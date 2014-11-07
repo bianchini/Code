@@ -10,6 +10,9 @@ string Algo::translateDecay(Algo::Decay& decay){
     case Algo::Decay::TopHad:
       name = "TopHad";
       break;
+    case Algo::Decay::WHad:
+      name = "WHad";
+      break;
     case Algo::Decay::TopLep:
       name = "TopLep";
       break;
@@ -36,13 +39,20 @@ Algo::HypoTester::HypoTester(){
 
   verbose = 2;
 
-  tf_met = nullptr;
+  minimizer =  ROOT::Math::Factory::CreateMinimizer("Minuit2", "");
+  minimizer->SetMaxFunctionCalls(1000000); 
+  minimizer->SetMaxIterations(10000);  
+  minimizer->SetTolerance(0.001);
+  minimizer->SetPrintLevel(0);
+
+  tf_met    = nullptr;
 }
 
 
 Algo::HypoTester::~HypoTester(){
   cout << "Removing HypoTester" << endl;
   if(tf_met != nullptr) delete tf_met;
+  delete minimizer;
 }
 
 
@@ -222,7 +232,7 @@ void Algo::HypoTester::read(){
 }
 
 
-double Algo::HypoTester::run(const double* xx){
+double Algo::HypoTester::eval(const double* xx){
 
   double val {0.};
 
@@ -232,7 +242,7 @@ double Algo::HypoTester::run(const double* xx){
 
     double val_perm{1.};
 
-    if(verbose>0){
+    if(verbose>1){
       cout << count_perm << "th perm: [ " ; 
       for( auto p : particles )
 	cout << "(" << p.first << "," << p.second << ") " ;
@@ -270,7 +280,7 @@ double Algo::HypoTester::run(const double* xx){
   else if( val<=0 )
     return numeric_limits<double>::min();
   else 
-    return -TMath::Log(val);
+    return -TMath::Log(count_perm>0 ? val/count_perm : val);
   
   return val;
 
@@ -280,12 +290,12 @@ double Algo::HypoTester::run(const double* xx){
 
 void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
 
-  if(verbose>0){ cout << "Start grouping" << endl; }
+  if(verbose>2){ cout << "Start grouping" << endl; }
 
   // first get all hadronically decaying tops
   for( size_t t_had = 0; t_had < count_TopHad; ++t_had ){
 
-    if(verbose>1) cout << "Processing " << t_had << " top had" << endl;
+    if(verbose>1) cout << "Processing " << t_had << "th TopHad" << endl;
 
     TopHadBuilder* topHad = new TopHadBuilder();
     
@@ -305,7 +315,7 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
   // first get all hadronically decaying tops
   for( size_t w_had = 0; w_had < count_WHad; ++w_had ){
 
-    if(verbose>1) cout << "Processing " << w_had << " w had" << endl;
+    if(verbose>1) cout << "Processing " << w_had << "th WHad" << endl;
 
     WHadBuilder* wHad = new WHadBuilder();
     
@@ -328,6 +338,27 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
 }
 
 
+void Algo::HypoTester::run(){
+
+  ROOT::Math::Functor f0( this , &Algo::HypoTester::eval, 2); 
+  minimizer->SetFunction(f0);
+
+  minimizer->SetVariable(0,"j1", p4_Jet[0].p4.E() , 1.);
+  minimizer->SetVariable(1,"j2", p4_Jet[1].p4.E() , 1.);
+
+  verbose = 0;
+  minimizer->Minimize(); 
+  ++verbose;
+
+  double min0 = minimizer->MinValue();
+
+  const double *xs = minimizer->X();
+  if(verbose>0)  
+    cout << "Minimum --> f(" << xs[0] << "," << xs[1] << ") => " << min0  << endl;
+
+}
+
+
 void Algo::HypoTester::create_tf_met(){  
   tf_met = new TransferFunction("tf_met", TF_MET );
 }
@@ -341,7 +372,7 @@ Algo::HypoTester::TransferFunction::TransferFunction(const string& name, const s
 }
 
 Algo::HypoTester::TransferFunction::~TransferFunction(){
-  cout << "Destroy tf " << string(f->GetName()) << endl;
+  //cout << "Destroy tf " << string(f->GetName()) << endl;
   delete f;
 }
 
@@ -374,7 +405,7 @@ Algo::HypoTester::TopHadBuilder::TopHadBuilder () {
 };
 
 Algo::HypoTester::TopHadBuilder::~TopHadBuilder() {
-  cout << "Destroy TopHadBuilder" << endl;
+  //cout << "Destroy TopHadBuilder" << endl;
   if( tf_q   != nullptr ) delete tf_q;
   if( tf_qbar!= nullptr ) delete tf_qbar;
   if( tf_b   != nullptr ) delete tf_b;
@@ -512,7 +543,7 @@ Algo::HypoTester::WHadBuilder::WHadBuilder () {
 };
 
 Algo::HypoTester::WHadBuilder::~WHadBuilder() {
-  cout << "Destroy WHadBuilder" << endl;
+  //cout << "Destroy WHadBuilder" << endl;
   if( tf_q   != nullptr ) delete tf_q;
   if( tf_qbar!= nullptr ) delete tf_qbar;
 };

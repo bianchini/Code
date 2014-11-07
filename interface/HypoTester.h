@@ -7,6 +7,9 @@
 #include<memory> 
 #include<limits> 
 
+#include "Math/Minimizer.h"
+#include "Math/Factory.h"
+#include "Math/Functor.h"
 
 #include "TLorentzVector.h"
 #include "TFormula.h"
@@ -176,14 +179,18 @@ namespace Algo {
     // read
     void read();
 
-    // run
-    double run(const double* );
-
     // group particles
     void group_particles(vector<DecayBuilder*>& );
+      
+    // run
+    void run();
+
+    // eval
+    double eval(const double* );
 
   private:
-     
+
+    ROOT::Math::Minimizer* minimizer;     
 
     vector<Object> p4_Jet;  
     vector<Object> p4_Lepton;  

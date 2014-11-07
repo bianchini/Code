@@ -15,7 +15,7 @@ int main(){
   
   // test
   TLorentzVector j1;
-  j1.SetPtEtaPhiM( 40., 0., 0., 0.);
+  j1.SetPtEtaPhiM( 60., 0., 0., 0.);
   tester->push_back_object( j1  , 'j');
 
   TLorentzVector j2;
@@ -41,10 +41,9 @@ int main(){
 
   // run the algo
   tester->read();
-
-  const double p[] = { j1.E(), j2.E() /*, j3.E() */ };
-  cout << tester->run( p ) << endl;
-
+ 
+  // run the algo
+  tester->run();
   
 
 }
