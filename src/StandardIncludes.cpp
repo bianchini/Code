@@ -38,6 +38,29 @@ string Algo::translateDecay(Algo::Decay& decay){
 }
 
 
+bool Algo::isSame( const std::vector<std::pair<FinalState,size_t>>& a, const std::vector<std::pair<FinalState,size_t>>& b){
+
+  if(a.size()!=b.size()) return false;
+
+  for(size_t i = 0 ; i < a.size() ; ++i ){
+
+    //printf("A: [%d,%d]\t", int(a[i].first), int(a[i].second)) ;
+    //printf("B: [%d,%d]\n", int(b[i].first), int(b[i].second)) ;
+
+    if( a[i].first != FinalState::Radiation_q ){
+      if( a[i].first != b[i].first || a[i].second != b[i].second ) return false;
+    }
+    if( a[i].first == FinalState::Radiation_q ){
+      if( a[i].first != b[i].first ) return false;
+    }
+
+  }
+  
+  return true;
+
+}
+
+
 //////////////////////////////////////////////////////
 
 
@@ -490,3 +513,53 @@ double Algo::TopLepBuilder::eval( const double *xx, LV& invisible ) {
 
 
 //////////////////////////////////////////////////////
+
+
+
+Algo::RadiationBuilder::RadiationBuilder () {
+  decay   = Decay::Radiation;
+  tf_g    = nullptr;
+};
+
+Algo::RadiationBuilder::~RadiationBuilder() {
+  if(VERBOSE) cout << "Destroy RadiationBuilder" << endl;
+  if( tf_g   != nullptr ) delete tf_g;
+};
+
+void Algo::RadiationBuilder::print(ostream& os){
+  os << "\t\t\tDecay: " << Algo::translateDecay(decay) << endl; 
+  os << "\t\t\tq    [" << index_g    << "]: p4 = (" << p4_g.Pt() << ", " << p4_g.Eta()  << ", " << p4_g.Phi() << ", " << p4_g.M() << ")" << endl; 
+  if(tf_g!=nullptr)    os << "\t\t\tTF g   : " << tf_g->getFormula() << endl;
+}
+
+
+void Algo::RadiationBuilder::init( const FinalState& fs, const LV& lv, const size_t& sz ){
+
+  TransferFunction* tf = nullptr;
+
+  switch( fs ){
+  case FinalState::Radiation_q:
+    p4_g    = lv;
+    index_g = sz;
+    tf = new TransferFunction("tf_g", TF_Q);
+    tf->init( TF_Q_param[Algo::eta_to_bin(lv)] );
+    tf_g    = tf;
+    break;
+  default:
+    break;
+  }
+
+}
+ 
+double Algo::RadiationBuilder::eval( const double *xx, LV& invisible ) {
+
+  // return value
+  double val {0.};
+
+  double E = xx[ index_g ];
+
+  val += tf_g->eval(p4_g.E(), E);
+
+  return val;
+  
+}

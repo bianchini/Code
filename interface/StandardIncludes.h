@@ -19,6 +19,7 @@ using namespace std;
 
 typedef TLorentzVector LV;
 
+
 #define VERBOSE 0
 
 namespace Algo {
@@ -52,7 +53,9 @@ namespace Algo {
 		    HiggsHad_b, HiggsHad_bbar, 
 		    Radiation_q };
 
-  
+
+  bool isSame( const std::vector<std::pair<FinalState,size_t>>&, const std::vector<std::pair<FinalState,size_t>>&);  
+
   
   class TransferFunction  {
     
@@ -172,6 +175,23 @@ namespace Algo {
     size_t errFlag;
   };
 
+
+  
+  class RadiationBuilder : public DecayBuilder {
+    
+  public:
+    RadiationBuilder();
+    ~RadiationBuilder();
+    void init(const FinalState& , const LV&, const size_t&);
+    double eval ( const double* , LV&) ;
+    void print(ostream&);     
+    
+  private:
+    LV p4_g;
+    size_t index_g;
+    TransferFunction* tf_g;
+    Decay decay;
+  };
 
 
 }

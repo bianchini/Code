@@ -30,9 +30,17 @@ int main(){
   j4.SetPtEtaPhiM(100., 0., -TMath::Pi()/4, 0.);
   tester->push_back_object( j4  , 'j');
 
+  TLorentzVector j5;
+  j5.SetPtEtaPhiM(80., 0., -TMath::Pi()/5, 0.);
+  //tester->push_back_object( j5  , 'j');
+
+  TLorentzVector j6;
+  j6.SetPtEtaPhiM(120., 0., -TMath::Pi()/6, 0.);
+  //tester->push_back_object( j6  , 'j');
+
   TLorentzVector lep;
   lep.SetPtEtaPhiM( 50., 1., +TMath::Pi()/3, 0.);
-  tester->push_back_object( lep  , 'l');
+  //tester->push_back_object( lep  , 'l');
 
   TLorentzVector met;
   met.SetPtEtaPhiM( 30., 0., 0., 0.);
@@ -41,7 +49,7 @@ int main(){
   // assumptions
   tester->assume( Algo::Decay::TopHad  );
   //tester->assume( Algo::Decay::WHad  );
-  tester->assume( Algo::Decay::TopLep   );
+  //tester->assume( Algo::Decay::TopLep   );
   //tester->assume( Algo::Decay::HiggsHad );
 
   // printout

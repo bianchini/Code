@@ -175,22 +175,44 @@ void Algo::HypoTester::init(){
   sort( particles.begin(), particles.end(), MyComp );
 
   count_perm = 0;
+
+  vector<vector<std::pair<FinalState,size_t>>> logbook;
+
   do {
 
-     vector<Algo::DecayBuilder*> decays; 
-     group_particles( decays );
+    
+    bool skip = false;
+    if(logbook.size()==0) 
+      logbook.push_back(particles);
+    else{
+      for( auto log : logbook ){
+	if( isSame( log, particles ) ){
+	  skip = true;
+	}
+      }
+      if(!skip) 
+	logbook.push_back(particles);             
+      else{
+	if(verbose>2) cout << "\tDo not consider this permutation  " << endl;
+	continue;
+      }
+    }
+    
 
-     // if there are invisible particles
-     if(invisible>0){
+    vector<Algo::DecayBuilder*> decays; 
+    group_particles( decays );
+    
+    // if there are invisible particles
+    if(invisible>0){
       Algo::METBuilder* met = new Algo::METBuilder();
       met->init( p4_MET.size() ? p4_MET[0].p4 : LV() );
       decays.push_back( met );
-     }
-     
-     permutations.push_back( new Algo::CombBuilder(decays) );
-     
+    }
+    
+    permutations.push_back( new Algo::CombBuilder(decays) );
+    
     ++count_perm;
-
+    
   } while ( next_permutation(particles.begin(), particles.end(), MyComp  ) );
 
 
@@ -221,10 +243,9 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
     
     size_t pos = 0;
     for( auto part : particles ){
-      if( part.second != t_had ) continue;
-      
-      // no effect if the type does not match
-      topHad->init( part.first, p4_Jet[pos].p4 , pos );
+
+      if( part.second == t_had )  
+	topHad->init( part.first, p4_Jet[pos].p4 , pos );
       ++pos;
     }
 
@@ -241,10 +262,9 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
     
     size_t pos = 0;
     for( auto part : particles ){
-      if( part.second != w_had ) continue;
       
-      // no effect if the type does not match
-      wHad->init( part.first, p4_Jet[pos].p4 , pos );
+      if( part.second == w_had ) 
+	wHad->init( part.first, p4_Jet[pos].p4 , pos );
       ++pos;
     }
 
@@ -264,10 +284,8 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
     size_t pos = 0;
     for( auto part : particles ){
 
-      if( part.second != t_lep ) continue;      
-
-      // no effect if the type does not match
-      topLep->init( part.first, p4_Jet[pos].p4 , pos );
+      if( part.second == t_lep ) 
+	topLep->init( part.first, p4_Jet[pos].p4 , pos );
       ++pos;
     }
 
@@ -275,6 +293,27 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
     decayed.push_back( topLep );
 
   }
+
+
+  // first get all hadronically decaying tops
+  for( size_t r_had = 0; r_had < count_Radiation; ++r_had ){
+    
+    if(verbose>1) cout << "\tProcessing " << r_had << "th Radiaton" << endl;
+
+    Algo::RadiationBuilder* rad = new Algo::RadiationBuilder();
+    
+    size_t pos = 0;
+    for( auto part : particles ){
+
+      if( part.second == r_had )  
+	rad->init( part.first, p4_Jet[pos].p4 , pos );
+      ++pos;
+    }
+
+    decayed.push_back( rad );
+
+  }
+
 
 
   /* ... */  
