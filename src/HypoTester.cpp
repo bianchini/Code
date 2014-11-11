@@ -1,57 +1,32 @@
 #include "interface/HypoTester.h"
-#include "interface/StandardIncludes.h"
-
-
-
-string Algo::translateDecay(Algo::Decay& decay){
-
-    string name = "Unknown";
-    switch( decay ){
-    case Algo::Decay::TopHad:
-      name = "TopHad";
-      break;
-    case Algo::Decay::WHad:
-      name = "WHad";
-      break;
-    case Algo::Decay::TopLep:
-      name = "TopLep";
-      break;
-    case Algo::Decay::HiggsHad:
-      name = "HiggsHad";
-      break;
-    default:
-      name = "Radiation";
-      break;
-    }
-    
-    return name;
-  }
 
 
 Algo::HypoTester::HypoTester(){
 
   // reset variables
+  nParam_j          = 0;
+  nParam_n          = 0;
   count_perm        = 0;
   count_TopHad      = 0;
   count_TopLep      = 0;
   count_HiggsHad    = 0;
   count_Radiation   = 0;
+  invisible         = 0;
 
-  verbose = 2;
+  verbose = 3;
 
   minimizer =  ROOT::Math::Factory::CreateMinimizer("Minuit2", "");
   minimizer->SetMaxFunctionCalls(1000000); 
   minimizer->SetMaxIterations(10000);  
   minimizer->SetTolerance(0.001);
   minimizer->SetPrintLevel(0);
-
-  tf_met    = nullptr;
 }
 
 
 Algo::HypoTester::~HypoTester(){
   cout << "Removing HypoTester" << endl;
-  if(tf_met != nullptr) delete tf_met;
+  for( auto perm : permutations )
+    delete perm;
   delete minimizer;
 }
 
@@ -97,50 +72,6 @@ void Algo::HypoTester::add_object_observables( const string& name, const double 
 
 }
 
-void Algo::HypoTester::print(ostream& os){
-
-  os << "****************************************************" << endl;
-  os << "Content of this HypoTester:" << endl;
-  os << " -- Jets:" << endl;
-  int count_j = 0;
-  for( auto jet : p4_Jet ){
-    os << "\tjet[" << count_j << "]: (" << jet.p4.Pt() << "," << jet.p4.Eta() << "," << jet.p4.Phi() << "," << jet.p4.M() << ")" << endl;
-    for( auto it = (jet.obs).begin() ; it !=  (jet.obs).end(); ++it)
-      os << "\t\t" << it->first << " = " << it->second << endl;
-    ++count_j;
-  }
-
-  os << " -- Leptons:" << endl;
-  int count_l = 0;
-  for( auto lepton : p4_Lepton ){
-    os << "\tlepton[" << count_l << "]: (" << lepton.p4.Pt() << "," << lepton.p4.Eta() << "," << lepton.p4.Phi() << "," << lepton.p4.M() << ")" << endl;
-    for( auto it = (lepton.obs).begin() ; it !=  (lepton.obs).end(); ++it)
-      os << "\t\t" << it->first << " = " << it->second << endl;
-    ++count_l;
-  }
-
-  os << " -- MET:" << endl;
-  int count_m = 0;
-  for( auto MET : p4_MET ){
-    os << "\tMET[" << count_l << "]: (" << MET.p4.Pt() << "," << MET.p4.Eta() << "," << MET.p4.Phi() << "," << MET.p4.M() << ")" << endl;
-    for( auto it = (MET.obs).begin() ; it !=  (MET.obs).end(); ++it)
-      os << "\t\t" << it->first << " = " << it->second << endl;
-    ++count_m;
-  }
-
-  os << " -- Assuming the following decays:" << endl;
-  for( auto decay : decays )
-    os << "\t" << int(decay) << " (=" << Algo::translateDecay(decay)  << ")" << endl;
-  os << " -- Assumed partons:" << endl;
-  int count_all = 0;  
-  for( auto particle : particles ){
-    os << "\t" << particle.first << " (x" << particle.second << ")" << endl;
-    ++count_all;
-  }
-  os << "\tTotal = " << count_all << " partons" << endl;
-
-  os << "****************************************************" << endl;
-}
 
 void Algo::HypoTester::assume( Decay decay ){
   decays.push_back( decay );
@@ -149,9 +80,13 @@ void Algo::HypoTester::assume( Decay decay ){
 
 void Algo::HypoTester::unpack_assumptions(){
 
+  if(verbose>0){ cout << "HypoTester::unpack_assumptions()" << endl; }
+
   // reset
+  nParam_j          = 0;
+  nParam_n          = 0;
   count_TopHad      = 0;
-  count_WHad      = 0;
+  count_WHad        = 0;
   count_TopLep      = 0;
   count_HiggsHad    = 0;
   count_Radiation   = 0;
@@ -165,33 +100,40 @@ void Algo::HypoTester::unpack_assumptions(){
      particles.push_back( make_pair( FinalState::TopHad_qbar, count_TopHad) );
      particles.push_back( make_pair( FinalState::TopHad_b,    count_TopHad) );
      ++count_TopHad;
-     if(verbose>0){ cout << "Added TopHad" << endl; }
+     nParam_j += 3;
+     if(verbose>0){ cout << "\tAdded TopHad" << endl; }
      break;
 
    case Algo::Decay::WHad:
      particles.push_back( make_pair( FinalState::WHad_q,    count_WHad) );
      particles.push_back( make_pair( FinalState::WHad_qbar, count_WHad) );
      ++count_WHad;
-     if(verbose>0){ cout << "Added WHad" << endl; }
+     nParam_j += 2;
+     if(verbose>0){ cout << "\tAdded WHad" << endl; }
      break;
 
    case Algo::Decay::TopLep:
      particles.push_back( make_pair( FinalState::TopLep_b,    count_TopLep) );
      ++count_TopLep;
-     if(verbose>0){ cout << "Added TopLep" << endl; }
+     ++invisible;
+     nParam_j += 1;
+     nParam_n += 2;
+     if(verbose>0){ cout << "\tAdded TopLep" << endl; }
      break;
 
    case Algo::Decay::HiggsHad:
      particles.push_back( make_pair( FinalState::HiggsHad_b,    count_HiggsHad) );
      particles.push_back( make_pair( FinalState::HiggsHad_bbar, count_HiggsHad) );
      ++count_HiggsHad;
-     if(verbose>0){ cout << "Added HiggsHad" << endl; }
+     nParam_j += 2;
+     if(verbose>0){ cout << "\tAdded HiggsHad" << endl; }
      break;
 
    case Algo::Decay::Radiation:
      particles.push_back( make_pair( FinalState::Radiation_q,   count_Radiation) );
-     if(verbose>0){ cout << "Added Radiation" << endl; }
+     if(verbose>0){ cout << "\tAdded Radiation" << endl; }
      ++count_Radiation;
+     nParam_j += 1;
      break;
 
    default:
@@ -207,97 +149,75 @@ void Algo::HypoTester::unpack_assumptions(){
     size_t addradiation = p4_Jet.size()-particles.size();
     while( addradiation > 0){
       particles.push_back( make_pair( FinalState::Radiation_q,   count_Radiation) );
+      if(verbose>0){ cout << "\tAdded Radiation" << endl; }
       ++count_Radiation;
+      nParam_j += 1;
       --addradiation;
     }
 
   }
     
+  if(verbose>0){ cout << "\tTotal number of parameters: nParam_j=" << nParam_j << ", nParam_n=" << nParam_n << endl; }
 
 }
 
 
-void Algo::HypoTester::read(){
+void Algo::HypoTester::init(){
+
+  if(verbose>2){ cout << "HypoTester::init()" << endl; }
 
   // first, unpack assumptions
   this->unpack_assumptions();
-
-  // create TF for invisible (once for good)
-  this->create_tf_met();
 
   assert( particles.size()<=p4_Jet.size() );
   assert( count_TopLep==p4_Lepton.size()  );
   
   sort( particles.begin(), particles.end(), MyComp );
-}
-
-
-double Algo::HypoTester::eval(const double* xx){
-
-  double val {0.};
 
   count_perm = 0;
-
   do {
 
-    double val_perm{1.};
+     vector<Algo::DecayBuilder*> decays; 
+     group_particles( decays );
 
-    if(verbose>1){
-      cout << count_perm << "th perm: [ " ; 
-      for( auto p : particles )
-	cout << "(" << p.first << "," << p.second << ") " ;
-      cout << "]" << endl;
-    }
-    
-    vector<DecayBuilder*> decayed; 
-    group_particles( decayed );
-    
-    LV invisible;
-    LV MET = p4_MET.size() ? p4_MET[0].p4 : LV();
-    for( auto dec : decayed ){  
-      if( verbose > 0) dec->print(cout) ;
-      double val_perm_tmp = dec->eval( xx ,invisible );
-      val_perm *= val_perm_tmp;
-    }
-    if(invisible.E()>1e-02){
-      if( verbose>1 ) cout << "Evaluating tf_met..." << endl;
-      val_perm *= tf_met->eval( invisible.Px()-MET.Px(),invisible.Py()-MET.Py() );
-    }
-    
-    val += val_perm;
-
+     // if there are invisible particles
+     if(invisible>0){
+      Algo::METBuilder* met = new Algo::METBuilder();
+      met->init( p4_MET.size() ? p4_MET[0].p4 : LV() );
+      decays.push_back( met );
+     }
+     
+     permutations.push_back( new Algo::CombBuilder(decays) );
+     
     ++count_perm;
 
-    // clean
-    for( auto dec : decayed ){      
-      delete dec;
-    }
-
   } while ( next_permutation(particles.begin(), particles.end(), MyComp  ) );
-  
-  if( TMath::IsNaN(val) )
-    return numeric_limits<double>::min();
-  else if( val<=0 )
-    return numeric_limits<double>::min();
-  else 
-    return -TMath::Log(count_perm>0 ? val/count_perm : val);
-  
-  return val;
 
-  cout << "Run finished with " << count_perm << " permutations" << endl;
+
+   cout << "\tTotal of  " << count_perm << " permutations created:" << endl;
+   if(verbose>0) {
+     size_t count = 0;
+     for( auto perm : permutations){
+       cout << "(" << count << ")";
+       perm->print(cout);
+       ++count;
+     }
+   }
+
 }
+
 
 
 void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
 
-  if(verbose>2){ cout << "Start grouping" << endl; }
+  if(verbose>2){ cout << "HypoTester::group_particles()" << endl; }
 
   // first get all hadronically decaying tops
   for( size_t t_had = 0; t_had < count_TopHad; ++t_had ){
 
-    if(verbose>1) cout << "Processing " << t_had << "th TopHad" << endl;
+    if(verbose>1) cout << "\tProcessing " << t_had << "th TopHad" << endl;
 
-    TopHadBuilder* topHad = new TopHadBuilder();
+    Algo::TopHadBuilder* topHad = new Algo::TopHadBuilder();
     
     size_t pos = 0;
     for( auto part : particles ){
@@ -315,9 +235,9 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
   // first get all hadronically decaying tops
   for( size_t w_had = 0; w_had < count_WHad; ++w_had ){
 
-    if(verbose>1) cout << "Processing " << w_had << "th WHad" << endl;
+    if(verbose>1) cout << "\tProcessing " << w_had << "th WHad" << endl;
 
-    WHadBuilder* wHad = new WHadBuilder();
+    Algo::WHadBuilder* wHad = new Algo::WHadBuilder();
     
     size_t pos = 0;
     for( auto part : particles ){
@@ -332,19 +252,86 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
 
   }
 
+  //  get all leptonically decaying tops
+  for( size_t t_lep = 0; t_lep < count_TopLep; ++t_lep ){
+
+    if(verbose>1) cout << "\tProcessing " << t_lep << "th TopLep" << endl;
+
+    Algo::TopLepBuilder* topLep = new Algo::TopLepBuilder();
+    
+    topLep->init( FinalState::TopLep_l , p4_Lepton[t_lep].p4 , t_lep + nParam_j );
+
+    size_t pos = 0;
+    for( auto part : particles ){
+
+      if( part.second != t_lep ) continue;      
+
+      // no effect if the type does not match
+      topLep->init( part.first, p4_Jet[pos].p4 , pos );
+      ++pos;
+    }
+
+
+    decayed.push_back( topLep );
+
+  }
+
 
   /* ... */  
 
 }
 
-
 void Algo::HypoTester::run(){
 
-  ROOT::Math::Functor f0( this , &Algo::HypoTester::eval, 2); 
+  if(verbose>2){ cout << "HypoTester::run()" << endl; }
+
+  ROOT::Math::Functor f0( this , &Algo::HypoTester::eval, nParam_j + nParam_n); 
   minimizer->SetFunction(f0);
 
-  minimizer->SetVariable(0,"j1", p4_Jet[0].p4.E() , 1.);
-  minimizer->SetVariable(1,"j2", p4_Jet[1].p4.E() , 1.);
+  for( size_t p = 0 ; p < nParam_j ; p++){
+    char name[6];
+    sprintf(name, "j%lu", p);
+
+    double inVal    {p4_Jet[p].p4.E()};
+    double inVal_lo {0.};
+    double inVal_hi {inVal*2.0};
+    double step     {0.5};
+
+    minimizer->SetLimitedVariable(p, name, inVal  , step, inVal_lo , inVal_hi);
+
+    if(verbose>2)
+      printf("\tParam[%lu] = %s set to %.0f. Range: [%.0f,%.0f]\n", p,name, inVal, inVal_lo, inVal_hi );
+    
+  }
+
+  for( size_t p = 0 ; p < nParam_n ; p++){
+
+    char name[6];
+    double inVal, inVal_lo, inVal_hi, step;
+
+    if( p%2==0 ){
+      sprintf(name, "phi%lu", p);
+      inVal    = p4_MET[0].p4.Phi();
+      inVal_lo = -TMath::Pi() ;
+      inVal_hi = +TMath::Pi() ;
+      step     = 0.05;     
+    }
+    else{
+      sprintf(name, "cos%lu", p/2);
+      inVal    = 0.;
+      inVal_lo = -1. ;
+      inVal_hi = +1. ;
+      step     = 0.05;   
+    }
+
+    minimizer->SetLimitedVariable(nParam_j+p, name,  inVal , step, inVal_lo , inVal_hi);
+   
+    if(verbose>2)
+      printf("\tParam[%lu] = %s set to %.0f. Range: [%.2f,%.2f]\n", nParam_j+p,name, inVal, inVal_lo, inVal_hi );
+    
+  }
+  
+  return;
 
   verbose = 0;
   minimizer->Minimize(); 
@@ -354,258 +341,74 @@ void Algo::HypoTester::run(){
 
   const double *xs = minimizer->X();
   if(verbose>0)  
-    cout << "Minimum --> f(" << xs[0] << "," << xs[1] << ") => " << min0  << endl;
+    cout << "\tMinimum --> f(" << xs[0] << "," << xs[1] << ") => " << min0  << endl;
 
 }
 
 
-void Algo::HypoTester::create_tf_met(){  
-  tf_met = new TransferFunction("tf_met", TF_MET );
-}
+double Algo::HypoTester::eval(const double* xx){
 
+  double val {0.};
 
-//////////////////////////////////////////////////////
-
-Algo::HypoTester::TransferFunction::TransferFunction(const string& name, const string& form){
-  formula = form;
-  f       = new TFormula(name.c_str(), formula.c_str());
-}
-
-Algo::HypoTester::TransferFunction::~TransferFunction(){
-  //cout << "Destroy tf " << string(f->GetName()) << endl;
-  delete f;
-}
-
-const string Algo::HypoTester::TransferFunction::getFormula() const {
-  return string(f->GetExpFormula("p"));
-}
-
-double Algo::HypoTester::TransferFunction::eval(const double& rec, const double& gen) const {
-  return f->Eval(rec,gen);
-}
-
-void Algo::HypoTester::TransferFunction::init(const double* param){
-  assert(f!=nullptr);
-  f->SetParameters( param );
-}
-
-
-
-
-
-
-//////////////////////////////////////////////////////
-
-Algo::HypoTester::TopHadBuilder::TopHadBuilder () {
-  decay   = Decay::TopHad;
-  errFlag = 0;
-  tf_q    = nullptr;
-  tf_qbar = nullptr;
-  tf_b    = nullptr;
-};
-
-Algo::HypoTester::TopHadBuilder::~TopHadBuilder() {
-  //cout << "Destroy TopHadBuilder" << endl;
-  if( tf_q   != nullptr ) delete tf_q;
-  if( tf_qbar!= nullptr ) delete tf_qbar;
-  if( tf_b   != nullptr ) delete tf_b;
-};
-
-void Algo::HypoTester::TopHadBuilder::print(ostream& os){
-  os << "\tDecay: " <<  Algo::translateDecay(decay) << endl; 
-  os << "\tq    [" << index_q    << "]: p4 = (" << p4_q.Pt() << ", " << p4_q.Eta()  << ", " << p4_q.Phi() << ", " << p4_q.M() << ")" << endl; 
-  os << "\tqbar [" << index_qbar << "]: p4 = (" << p4_qbar.Pt() << ", " << p4_qbar.Eta()  << ", " << p4_qbar.Phi() << ", " << p4_qbar.M() << ")" <<endl; 
-  os << "\tb    [" << index_b    << "]: p4 = (" << p4_b.Pt() << ", " << p4_b.Eta()  << ", " << p4_b.Phi() << ", " << p4_b.M() << ")" <<endl; 
-  if(tf_q!=nullptr)    os << "\tTF q   : " << tf_q->getFormula() << endl;
-  if(tf_qbar!=nullptr) os << "\tTF qbar: " << tf_qbar->getFormula() << endl;
-  if(tf_b!=nullptr)    os << "\tTF b   : " << tf_b->getFormula() << endl;
-}
-
-
-
-void Algo::HypoTester::TopHadBuilder::init( const FinalState& fs, const LV& lv, const size_t& sz ){
-
-  TransferFunction* tf = nullptr;
-
-  switch( fs ){
-  case FinalState::TopHad_q:
-    p4_q    = lv;
-    index_q = sz;
-    tf = new TransferFunction("tf_q", TF_Q);
-    tf->init( TF_Q_param[eta_to_bin(lv)] );
-    tf_q    = tf;
-    break;
-  case FinalState::TopHad_qbar:
-    p4_qbar    = lv;
-    index_qbar = sz;
-    tf = new TransferFunction("tf_qbar", TF_Q);
-    tf->init( TF_Q_param[eta_to_bin(lv)] );
-    tf_qbar    = tf;
-    break;
-  case FinalState::TopHad_b:
-    p4_b    = lv;
-    index_b = sz;
-    tf = new TransferFunction("tf_b", TF_B);
-    tf->init( TF_Q_param[eta_to_bin(lv)] );
-    tf_b    = tf;
-    break;
-  default:
-    break;
-  }
-
-}
- 
-double Algo::HypoTester::TopHadBuilder::eval( const double *xx, LV& invisible ) {
-
-  // return value
-  double val = 0.;
-
-  double E1 = xx[ index_q ];
-  double E2, E3;
-
-  int nSol = 0;
-
-  double a12 = p4_q.Angle(p4_qbar.Vect());
-  double a13 = p4_q.Angle(p4_b.Vect());
-  double a23 = p4_qbar.Angle(p4_b.Vect());
+  for( auto perm : permutations)
+    val += perm->eval( xx );
   
-  E2 = MW*MW/E1/(4*TMath::Sin(a12/2.)*TMath::Sin(a12/2.));
-
-  double a = E1+E2;
-  double b = E1*TMath::Cos(a13)+E2*TMath::Cos(a23);
-  if( (DM2*DM2 - (a*a - b*b)*MB*MB) < 0){
-    errFlag = 1;
-    return val;
-  }
-
-  double E3_1 = (a*DM2 + b*TMath::Sqrt(DM2*DM2 - (a*a - b*b)*MB*MB))/(a*a - b*b) ;
-  double E3_2 = (a*DM2 - b*TMath::Sqrt(DM2*DM2 - (a*a - b*b)*MB*MB))/(a*a - b*b) ;
-  double E3tmp1 = -999.;
-  double E3tmp2 = -999.;
-
-  if( b>0 ){
-    if(E3_1>DM2/a){
-      E3tmp1 = E3_1;
-      nSol++;
-    }
-    if(E3_2>DM2/a){
-      E3tmp2 = E3_2;
-      nSol++;
-    }
-  }
-  else{
-    if(E3_1<DM2/a){
-      E3tmp1 = E3_1;
-      nSol++;
-    }
-    if(E3_2<DM2/a){
-      E3tmp2 = E3_2;
-      nSol++;
-    }
-  }
-  if( E3tmp1>0 && E3tmp2>0 )
-    E3 = TMath::Max( E3tmp1,E3tmp2 );
-  else if( E3tmp1>0 && E3tmp2<0)
-    E3 = E3tmp1;
-  else if( E3tmp1<0 && E3tmp2>0)
-    E3 = E3tmp2;
-  else{
-    errFlag = 1;
-    return val;
-  }
-  if(E3<MB){
-    errFlag = 1;
-    return val;
-  }
-
-  invisible += LV(0.,0.,0.,0.);
-
-  val += tf_q->eval(p4_q.E(), E1) * tf_qbar->eval(p4_qbar.E(), E2) * tf_b->eval(p4_b.E(), E3);
-
+  if( TMath::IsNaN(val) )
+    return numeric_limits<double>::min();
+  else if( val<=0 )
+    return numeric_limits<double>::min();
+  else 
+    return -TMath::Log(count_perm>0 ? val/count_perm : val);
+  
   return val;
 
-  /*
-  TLorentzVector w1 ( p4_q.Vect().Unit()*E1, E1);
-  TLorentzVector w2 ( p4_qbar.Vect().Unit()*E2, E2);
-  TLorentzVector blv( p4_b.Vect().Unit()*(TMath::Sqrt(E3*E3 - MB*MB)), E3);
-  */
-  
 }
 
 
-//////////////////////////////////////////////////////
+void Algo::HypoTester::print(ostream& os){
 
-Algo::HypoTester::WHadBuilder::WHadBuilder () {
-  decay   = Decay::WHad;
-  errFlag = 0;
-  tf_q    = nullptr;
-  tf_qbar = nullptr;
-};
+  cout << "HypoTester::print()" << endl;
 
-Algo::HypoTester::WHadBuilder::~WHadBuilder() {
-  //cout << "Destroy WHadBuilder" << endl;
-  if( tf_q   != nullptr ) delete tf_q;
-  if( tf_qbar!= nullptr ) delete tf_qbar;
-};
-
-void Algo::HypoTester::WHadBuilder::print(ostream& os){
-  os << "\tDecay: " << Algo::translateDecay(decay) << endl; 
-  os << "\tq    [" << index_q    << "]: p4 = (" << p4_q.Pt() << ", " << p4_q.Eta()  << ", " << p4_q.Phi() << ", " << p4_q.M() << ")" << endl; 
-  os << "\tqbar [" << index_qbar << "]: p4 = (" << p4_qbar.Pt() << ", " << p4_qbar.Eta()  << ", " << p4_qbar.Phi() << ", " << p4_qbar.M() << ")" <<endl; 
-  if(tf_q!=nullptr)    os << "\tTF q   : " << tf_q->getFormula() << endl;
-  if(tf_qbar!=nullptr) os << "\tTF qbar: " << tf_qbar->getFormula() << endl;
-}
-
-
-
-void Algo::HypoTester::WHadBuilder::init( const FinalState& fs, const LV& lv, const size_t& sz ){
-
-  TransferFunction* tf = nullptr;
-
-  switch( fs ){
-  case FinalState::WHad_q:
-    p4_q    = lv;
-    index_q = sz;
-    tf = new TransferFunction("tf_q", TF_Q);
-    tf->init( TF_Q_param[eta_to_bin(lv)] );
-    tf_q    = tf;
-    break;
-  case FinalState::WHad_qbar:
-    p4_qbar    = lv;
-    index_qbar = sz;
-    tf = new TransferFunction("tf_qbar", TF_Q);
-    tf->init( TF_Q_param[eta_to_bin(lv)] );
-    tf_qbar    = tf;
-    break;
-  default:
-    break;
+  os << " -Content:" << endl;
+  os << "\t -jets:" << endl;
+  int count_j = 0;
+  for( auto jet : p4_Jet ){
+    os << "\t\tjet[" << count_j << "]: (" << jet.p4.Pt() << "," << jet.p4.Eta() << "," << jet.p4.Phi() << "," << jet.p4.M() << ")" << endl;
+    for( auto it = (jet.obs).begin() ; it !=  (jet.obs).end(); ++it)
+      os << "\t\t" << it->first << " = " << it->second << endl;
+    ++count_j;
   }
 
-}
- 
-double Algo::HypoTester::WHadBuilder::eval( const double *xx, LV& invisible ) {
+  os << "\t -leptons:" << endl;
+  int count_l = 0;
+  for( auto lepton : p4_Lepton ){
+    os << "\t\tlepton[" << count_l << "]: (" << lepton.p4.Pt() << "," << lepton.p4.Eta() << "," << lepton.p4.Phi() << "," << lepton.p4.M() << ")" << endl;
+    for( auto it = (lepton.obs).begin() ; it !=  (lepton.obs).end(); ++it)
+      os << "\t\t" << it->first << " = " << it->second << endl;
+    ++count_l;
+  }
 
-  // return value
-  double val = 0.;
+  os << "\t -MET:" << endl;
+  int count_m = 0;
+  for( auto MET : p4_MET ){
+    os << "\t\tMET[" << count_l << "]: (" << MET.p4.Pt() << "," << MET.p4.Eta() << "," << MET.p4.Phi() << "," << MET.p4.M() << ")" << endl;
+    for( auto it = (MET.obs).begin() ; it !=  (MET.obs).end(); ++it)
+      os << "\t\t" << it->first << " = " << it->second << endl;
+    ++count_m;
+  }
 
-  double E1 = xx[ index_q ];
-  double E2;
+  os << " -Decays:" << endl;
+  for( auto decay : decays )
+    os << "\t" << int(decay) << " (=" << Algo::translateDecay(decay)  << ")" << endl;
 
-  double a12 = p4_q.Angle(p4_qbar.Vect());
-  
-  E2 = MW*MW/E1/(4*TMath::Sin(a12/2.)*TMath::Sin(a12/2.));
+  os << " -Partons:" << endl;
+  int count_all = 0;  
+  for( auto particle : particles ){
+    os << "\t" << particle.first << " (x" << particle.second << ")" << endl;
+    ++count_all;
+  }
+  os << "\tTotal = " << count_all << " partons" << endl;
 
-  invisible += LV(0.,0.,0.,0.);
-
-  val += tf_q->eval(p4_q.E(), E1) * tf_qbar->eval(p4_qbar.E(), E2) ;
-
-  return val;
-
-  /*
-  TLorentzVector w1 ( p4_q.Vect().Unit()*E1, E1);
-  TLorentzVector w2 ( p4_qbar.Vect().Unit()*E2, E2);
-  TLorentzVector blv( p4_b.Vect().Unit()*(TMath::Sqrt(E3*E3 - MB*MB)), E3);
-  */
-  
+  os << "****************************************************" << endl;
 }
 
