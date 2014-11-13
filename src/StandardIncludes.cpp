@@ -20,8 +20,8 @@ string Algo::translateDecay(Algo::Decay& decay){
   case Algo::Decay::TopLep:
     name = "TopLep";
     break;
-  case Algo::Decay::HiggsHad:
-    name = "HiggsHad";
+  case Algo::Decay::Higgs:
+    name = "Higgs";
     break;
   case Algo::Decay::Radiation:
     name = "Radiation";
@@ -91,11 +91,17 @@ void Algo::TransferFunction::init(const double* param){
 //////////////////////////////////////////////////////
 
 Algo::CombBuilder::CombBuilder() {
-
+  verbose = 0;
 }
 
 Algo::CombBuilder::CombBuilder(vector<DecayBuilder*>& comb) {
   combined = comb;
+  verbose  = 0;
+}
+
+Algo::CombBuilder::CombBuilder(vector<DecayBuilder*>& comb, const int& verb) {
+  combined = comb;
+  verbose  = verb;
 }
 
 
@@ -116,8 +122,17 @@ double Algo::CombBuilder::eval(const double* xx) {
   double val{1.};
 
   LV invisible(0.,0.,0.,0.);
-  for(auto dec : combined) 
-    val *= dec->eval(xx, invisible);
+
+  int count {0};  
+  for(auto dec : combined){
+    double val_tmp = dec->eval(xx, invisible);
+    val *= val_tmp;
+    if(verbose)
+      cout << "\tEval block " << count << " += " << (val_tmp>0. ? -TMath::Log( val_tmp ) : 0.) 
+	   << ", Invisible = " << "(eng=" << invisible.E() << ", eta=" << invisible.Eta() << ", phi=" << invisible.Phi() << ")"
+	   << endl;
+    ++count;
+  }
 
   return val;
 }
@@ -129,15 +144,23 @@ double Algo::CombBuilder::eval(const double* xx,  LV& lv) {
 
 void Algo::CombBuilder::print(ostream& os){
   os << "\t\tCombBuilder contains " << combined.size() << " block(s):" << endl; 
-  for(auto dec : combined) dec->print(os);
+  for(auto dec : combined) 
+    dec->print(os);
 }
 
 //////////////////////////////////////////////////////
 
 
 Algo::METBuilder::METBuilder() {
-  decay = Decay::MET;
-  tf_met = nullptr;
+  decay   = Decay::MET;
+  tf_met  = nullptr;
+  verbose = 0;
+}
+
+Algo::METBuilder::METBuilder(const int& verb) {
+  decay   = Decay::MET;
+  tf_met  = nullptr;
+  verbose = verb;
 }
 
 
@@ -177,6 +200,16 @@ Algo::TopHadBuilder::TopHadBuilder () {
   tf_q    = nullptr;
   tf_qbar = nullptr;
   tf_b    = nullptr;
+  verbose = 0;
+}
+
+Algo::TopHadBuilder::TopHadBuilder (const int& verb) {
+  decay   = Decay::TopHad;
+  errFlag = 0;
+  tf_q    = nullptr;
+  tf_qbar = nullptr;
+  tf_b    = nullptr;
+  verbose = verb;
 }
 
 Algo::TopHadBuilder::~TopHadBuilder() {
@@ -221,7 +254,7 @@ void Algo::TopHadBuilder::init( const FinalState& fs, const LV& lv, const size_t
     p4_b    = lv;
     index_b = sz;
     tf = new TransferFunction("tf_b", TF_B);
-    tf->init( TF_Q_param[Algo::eta_to_bin(lv)] );
+    tf->init( TF_B_param[Algo::eta_to_bin(lv)] );
     tf_b    = tf;
     break;
   default:
@@ -236,6 +269,9 @@ double Algo::TopHadBuilder::eval( const double *xx, LV& invisible ) {
   double val {0.};
 
   double E1 = xx[ index_q ];
+
+  if(verbose) cout << "\tTopHadBuilder::eval xx[" << index_q << "]=" << E1 << endl;
+
   double E2, E3;
 
   int nSol = 0;
@@ -297,14 +333,14 @@ double Algo::TopHadBuilder::eval( const double *xx, LV& invisible ) {
 
   val += tf_q->eval(p4_q.E(), E1) * tf_qbar->eval(p4_qbar.E(), E2) * tf_b->eval(p4_b.E(), E3);
 
-  return val;
-
   /*
-  TLorentzVector w1 ( p4_q.Vect().Unit()*E1, E1);
+  TLorentzVector w1 ( p4_q.Vect().Unit()   *E1, E1);
   TLorentzVector w2 ( p4_qbar.Vect().Unit()*E2, E2);
-  TLorentzVector blv( p4_b.Vect().Unit()*(TMath::Sqrt(E3*E3 - MB*MB)), E3);
+  TLorentzVector blv( p4_b.Vect().Unit()   *(TMath::Sqrt(E3*E3 - MB*MB)), E3);  
+  cout << (w1+w2).M() << ", " << (w1+w2+blv).M() << endl;
   */
-  
+
+  return val;
 }
 
 
@@ -315,6 +351,15 @@ Algo::WHadBuilder::WHadBuilder () {
   errFlag = 0;
   tf_q    = nullptr;
   tf_qbar = nullptr;
+  verbose = 0;
+};
+
+Algo::WHadBuilder::WHadBuilder (const int& verb) {
+  decay   = Decay::WHad;
+  errFlag = 0;
+  tf_q    = nullptr;
+  tf_qbar = nullptr;
+  verbose = verb;
 };
 
 Algo::WHadBuilder::~WHadBuilder() {
@@ -366,7 +411,10 @@ double Algo::WHadBuilder::eval( const double *xx, LV& invisible ) {
   double E1 = xx[ index_q ];
   double E2;
 
-  double a12 = p4_q.Angle(p4_qbar.Vect());
+  if(verbose) cout << "\tWHadBuilder::eval xx[" << index_q << "]=" << E1 << endl;
+  
+
+  double a12 = (p4_q.Vect()).Angle(p4_qbar.Vect());
   
   E2 = MW*MW/E1/(4*TMath::Sin(a12/2.)*TMath::Sin(a12/2.));
 
@@ -374,14 +422,152 @@ double Algo::WHadBuilder::eval( const double *xx, LV& invisible ) {
 
   val += tf_q->eval(p4_q.E(), E1) * tf_qbar->eval(p4_qbar.E(), E2) ;
 
+  /*
+  TLorentzVector w1 ( p4_q.Vect().Unit()   *E1, E1);
+  TLorentzVector w2 ( p4_qbar.Vect().Unit()*E2, E2);
+  */
+
   return val;
 
+}
+
+//////////////////////////////////////////////////////
+
+Algo::HiggsBuilder::HiggsBuilder () {
+  decay   = Decay::Higgs;
+  errFlag = 0;
+  tf_b    = nullptr;
+  tf_bbar = nullptr;
+  verbose = 0;
+};
+
+Algo::HiggsBuilder::HiggsBuilder (const int& verb) {
+  decay   = Decay::Higgs;
+  errFlag = 0;
+  tf_b    = nullptr;
+  tf_bbar = nullptr;
+  verbose = verb;
+};
+
+Algo::HiggsBuilder::~HiggsBuilder() {
+   if(VERBOSE) cout << "Destroy HiggsBuilder" << endl;
+  if( tf_b   != nullptr ) delete tf_b;
+  if( tf_bbar!= nullptr ) delete tf_bbar;
+};
+
+void Algo::HiggsBuilder::print(ostream& os){
+  os << "\t\t\tDecay: " << Algo::translateDecay(decay) << endl; 
+  os << "\t\t\tb    [" << index_b    << "]: p4 = (" << p4_b.Pt() << ", " << p4_b.Eta()  << ", " << p4_b.Phi() << ", " << p4_b.M() << ")" << endl; 
+  os << "\t\t\tbbar [" << index_bbar << "]: p4 = (" << p4_bbar.Pt() << ", " << p4_bbar.Eta()  << ", " << p4_bbar.Phi() << ", " << p4_bbar.M() << ")" <<endl; 
+  if(tf_b!=nullptr)    os << "\t\t\tTF b   : " << tf_b->getFormula() << endl;
+  if(tf_bbar!=nullptr) os << "\t\t\tTF bbar: " << tf_bbar->getFormula() << endl;
+}
+
+
+
+void Algo::HiggsBuilder::init( const FinalState& fs, const LV& lv, const size_t& sz ){
+
+  TransferFunction* tf = nullptr;
+
+  switch( fs ){
+  case FinalState::Higgs_b:
+    p4_b    = lv;
+    index_b = sz;
+    tf = new TransferFunction("tf_b", TF_B);
+    tf->init( TF_B_param[Algo::eta_to_bin(lv)] );
+    tf_b    = tf;
+    break;
+  case FinalState::Higgs_bbar:
+    p4_bbar    = lv;
+    index_bbar = sz;
+    tf = new TransferFunction("tf_bbar", TF_B);
+    tf->init( TF_B_param[Algo::eta_to_bin(lv)] );
+    tf_bbar    = tf;
+    break;
+  default:
+    break;
+  }
+
+}
+ 
+double Algo::HiggsBuilder::eval( const double *xx, LV& invisible ) {
+
+  // return value
+  double val {0.};
+
+  double E1 = xx[ index_b ];
+  double E2;
+
+  if(verbose) cout << "\tHiggsBuilder::eval xx[" << index_b << "]=" << E1 << endl;
+
+
+  int nSol = 0;
+
+  if(E1<MB){
+    errFlag = 1;
+    return val;
+  }
+
+  double a12 = (p4_b.Vect()).Angle(p4_bbar.Vect());
+  double a = E1;
+  double b = TMath::Sqrt(E1*E1 - MB*MB)*TMath::Cos(a12);
+
+  if( (DMH2*DMH2 - (a*a - b*b)*MB*MB) < 0){
+    errFlag = 1;
+    return val;
+  }
+  double E2_1 = (a*DMH2 + b*TMath::Sqrt(DMH2*DMH2 - (a*a - b*b)*MB*MB))/(a*a - b*b);
+  double E2_2 = (a*DMH2 - b*TMath::Sqrt(DMH2*DMH2 - (a*a - b*b)*MB*MB))/(a*a - b*b);
+  double E2tmp1 = -999.;
+  double E2tmp2 = -999.;
+
+  if( b>0 ){
+    if(E2_1>DMH2/a){
+      E2tmp1 = E2_1;
+      nSol++;
+    }
+    if(E2_2>DMH2/a){
+      E2tmp2 = E2_2;
+      nSol++;
+    }
+  }
+  else{
+    if(E2_1<DMH2/a){
+      E2tmp1 = E2_1;
+      nSol++;
+    }
+    if(E2_2<DMH2/a){
+      E2tmp2 = E2_2;
+      nSol++;
+    }
+  }
+  if( E2tmp1>0 && E2tmp2>0 )
+    E2 = TMath::Max( E2tmp1,E2tmp2 );
+  else if( E2tmp1>0 && E2tmp2<0)
+    E2 = E2tmp1;
+  else if( E2tmp1<0 && E2tmp2>0)
+    E2 = E2tmp2;
+  else{
+    errFlag = 1;
+    return val;
+  }
+  if(E2<MB){
+    errFlag = 1;
+    return val;
+  }
+
   /*
-  TLorentzVector w1 ( p4_q.Vect().Unit()*E1, E1);
-  TLorentzVector w2 ( p4_qbar.Vect().Unit()*E2, E2);
-  TLorentzVector blv( p4_b.Vect().Unit()*(TMath::Sqrt(E3*E3 - MB*MB)), E3);
+    TLorentzVector b1 ( p4_b.Vect().Unit()   *(TMath::Sqrt(E1*E1 - MB*MB)), E1);
+    TLorentzVector b2 ( p4_bbar.Vect().Unit()*(TMath::Sqrt(E2*E2 - MB*MB)), E2);
+    cout << (b1+b2).M() << endl;
   */
-  
+
+  invisible += LV(0.,0.,0.,0.);
+
+  val += tf_b->eval(p4_b.E(), E1) * tf_bbar->eval(p4_bbar.E(), E2) ;
+
+  return val;
+
 }
 
 
@@ -391,6 +577,15 @@ Algo::TopLepBuilder::TopLepBuilder () {
   decay   = Decay::TopLep;
   errFlag = 0;
   tf_b    = nullptr;
+  verbose = 0;
+}
+
+
+Algo::TopLepBuilder::TopLepBuilder (const int& verb) {
+  decay   = Decay::TopLep;
+  errFlag = 0;
+  tf_b    = nullptr;
+  verbose = verb;
 }
 
 Algo::TopLepBuilder::~TopLepBuilder() {
@@ -420,7 +615,7 @@ void Algo::TopLepBuilder::init( const FinalState& fs, const LV& lv, const size_t
     p4_b    = lv;
     index_b = sz;
     tf = new TransferFunction("tf_b", TF_B);
-    tf->init( TF_Q_param[Algo::eta_to_bin(lv)] );
+    tf->init( TF_B_param[Algo::eta_to_bin(lv)] );
     tf_b    = tf;
     break;
   default:
@@ -440,6 +635,8 @@ double Algo::TopLepBuilder::eval( const double *xx, LV& invisible ) {
   double nuPhi    = xx[ index_l   ] ; // fill here
   double nuTheta  = xx[ index_l +1] ; // fill here
   
+  if(verbose) cout << "\tTopLepBuilder::eval xx[" << index_l << "]=" << nuPhi << ", xx[" << index_l +1 << "]=" << nuTheta << endl;
+
   double Enu, Eb;
 
   TVector3 e3(0.,0.,1.); // neutrino
@@ -502,12 +699,14 @@ double Algo::TopLepBuilder::eval( const double *xx, LV& invisible ) {
   
   val += tf_b->eval(p4_b.E(), Eb);
   
+  /*
+  TLorentzVector wLep( p4_l.Vect().Unit()*Elep, Elep);
+  TLorentzVector blv ( p4_b.Vect().Unit() *(TMath::Sqrt(Eb*Eb - MB*MB)), Eb);  
+  cout << (wNu+wLep).M() << ", " << (wNu+wLep+blv).M() << endl;
+  */
+
   return val;
   
-  /*
-    TLorentzVector wLep( p4_l.Vect().Unit()*Elep, Elep);
-    TLorentzVector blv ( p4_b.Vect().Unit() *(TMath::Sqrt(Eb*Eb - Mb_*Mb_)), Eb);
-  */
   
 }
 
@@ -519,6 +718,13 @@ double Algo::TopLepBuilder::eval( const double *xx, LV& invisible ) {
 Algo::RadiationBuilder::RadiationBuilder () {
   decay   = Decay::Radiation;
   tf_g    = nullptr;
+  verbose = 0;
+};
+
+Algo::RadiationBuilder::RadiationBuilder (const int& verb) {
+  decay   = Decay::Radiation;
+  tf_g    = nullptr;
+  verbose = verb;
 };
 
 Algo::RadiationBuilder::~RadiationBuilder() {
@@ -557,6 +763,9 @@ double Algo::RadiationBuilder::eval( const double *xx, LV& invisible ) {
   double val {0.};
 
   double E = xx[ index_g ];
+
+  if(verbose) cout << "\tRadiationBuilder::eval xx[" << index_g << "]=" << E << endl;
+
 
   val += tf_g->eval(p4_g.E(), E);
 

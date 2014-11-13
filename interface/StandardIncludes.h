@@ -31,26 +31,30 @@ namespace Algo {
   constexpr double MH   = 125.;
   constexpr double DMH2 = (MH*MH-2*MB*MB)*0.5;
 
-  const string TF_Q = "TMath::Gaus(x, [0] + [1]*y, y*TMath::Sqrt([2]+[3]/y+[4]/y/y))";
-  const string TF_B = "TMath::Gaus(x, [0] + [1]*y, y*TMath::Sqrt([2]+[3]/y+[4]/y/y))";
+  const string TF_Q = "TMath::Gaus(x, [0] + [1]*y, y*TMath::Sqrt([2]+[3]/y+[4]/y/y), 1)";
+  const string TF_B = "TMath::Gaus(x, [0] + [1]*y, y*TMath::Sqrt([2]+[3]/y+[4]/y/y), 1)";
   const double TF_Q_param[2][5] = 
     {  { 0.0e+00, 1.0e+00, 0.0e+00, 1.5e+00, 0.0e+00 },
        { 0.0e+00, 1.0e+00, 1.3e+01, 1.5e+00, 0.0e+00 } 
     };
+  const double TF_B_param[2][5] = 
+    {  { 0.0e+00, 1.0e+00, 0.0e+00, 1.5e+00, 0.0e+00 },
+       { 0.0e+00, 1.0e+00, 1.3e+01, 1.5e+00, 0.0e+00 } 
+    };
 
-  const string TF_MET = "TMath::Gaus(x,0.,20)*TMath::Gaus(y,0.,20)";
+  const string TF_MET = "TMath::Gaus(x,0.,100, 1)*TMath::Gaus(y,0.,100, 1)";
 
   size_t eta_to_bin( const LV& );
 
 
-  enum Decay { TopLep, TopHad, WHad, HiggsHad, Radiation, MET, UNKNOWN };
+  enum Decay { TopLep, TopHad, WHad, Higgs, Radiation, MET, UNKNOWN };
   string translateDecay(Decay&);
 
 
   enum FinalState { TopLep_l=0, TopLep_b, 
 		    TopHad_q,   TopHad_qbar,  TopHad_b, 
 		    WHad_q,     WHad_qbar,
-		    HiggsHad_b, HiggsHad_bbar, 
+		    Higgs_b, Higgs_bbar, 
 		    Radiation_q };
 
 
@@ -84,6 +88,7 @@ namespace Algo {
   public:
     CombBuilder();
     CombBuilder(vector<DecayBuilder*>&);
+    CombBuilder(vector<DecayBuilder*>&, const int&);
     ~CombBuilder();
     void add(DecayBuilder*);
     double eval ( const double* , LV&);
@@ -91,12 +96,14 @@ namespace Algo {
     void print(ostream&);   
   private:
     vector<DecayBuilder*> combined;
+    int verbose;
   };
 
 
   class METBuilder: public DecayBuilder {
   public:
     METBuilder();
+    METBuilder(const int&);
     ~METBuilder();
     void init(const LV&);
     double eval (  const double* , LV& );
@@ -105,6 +112,7 @@ namespace Algo {
     LV p4_invisible;
     TransferFunction* tf_met;
     Decay decay;
+    int verbose;
   };
   
   
@@ -112,6 +120,7 @@ namespace Algo {
     
   public:
     TopHadBuilder();
+    TopHadBuilder(const int&);
     ~TopHadBuilder();
     void init(const FinalState& , const LV&, const size_t&);
     double eval ( const double* , LV&) ;
@@ -130,6 +139,7 @@ namespace Algo {
     TransferFunction* tf_b;
     Decay decay;
     size_t errFlag;
+    int verbose;
   };
 
   
@@ -137,6 +147,7 @@ namespace Algo {
     
   public:
     WHadBuilder();
+    WHadBuilder(const int&);
     ~WHadBuilder();
     void init(const FinalState& , const LV&, const size_t&);
     double eval ( const double* , LV&) ;
@@ -152,6 +163,7 @@ namespace Algo {
     TransferFunction* tf_qbar;
     Decay decay;
     size_t errFlag;
+    int verbose;
   };
 
 
@@ -159,6 +171,7 @@ namespace Algo {
     
   public:
     TopLepBuilder();
+    TopLepBuilder(const int&);
     ~TopLepBuilder();
     void init(const FinalState& , const LV&, const size_t&);
     double eval ( const double* , LV&) ;
@@ -173,6 +186,7 @@ namespace Algo {
     TransferFunction* tf_b;
     Decay decay;
     size_t errFlag;
+    int verbose;
   };
 
 
@@ -181,6 +195,7 @@ namespace Algo {
     
   public:
     RadiationBuilder();
+    RadiationBuilder(const int&);
     ~RadiationBuilder();
     void init(const FinalState& , const LV&, const size_t&);
     double eval ( const double* , LV&) ;
@@ -191,6 +206,31 @@ namespace Algo {
     size_t index_g;
     TransferFunction* tf_g;
     Decay decay;
+    int verbose;
+  };
+
+ 
+  class HiggsBuilder: public DecayBuilder {
+    
+  public:
+    HiggsBuilder();
+    HiggsBuilder(const int&);
+    ~HiggsBuilder();
+    void init(const FinalState& , const LV&, const size_t&);
+    double eval ( const double* , LV&) ;
+    void print(ostream&);     
+    
+  private:
+  
+    LV p4_b;
+    LV p4_bbar;
+    size_t index_b;
+    size_t index_bbar;
+    TransferFunction* tf_b;
+    TransferFunction* tf_bbar;
+    Decay decay;
+    size_t errFlag;
+    int verbose;
   };
 
 

@@ -89,7 +89,7 @@ namespace Algo {
     size_t count_TopHad;
     size_t count_WHad;
     size_t count_TopLep;
-    size_t count_HiggsHad;
+    size_t count_Higgs;
     size_t count_Radiation;
     size_t invisible;
 

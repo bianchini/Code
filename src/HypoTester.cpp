@@ -9,7 +9,7 @@ Algo::HypoTester::HypoTester(){
   count_perm        = 0;
   count_TopHad      = 0;
   count_TopLep      = 0;
-  count_HiggsHad    = 0;
+  count_Higgs       = 0;
   count_Radiation   = 0;
   invisible         = 0;
 
@@ -88,7 +88,7 @@ void Algo::HypoTester::unpack_assumptions(){
   count_TopHad      = 0;
   count_WHad        = 0;
   count_TopLep      = 0;
-  count_HiggsHad    = 0;
+  count_Higgs       = 0;
   count_Radiation   = 0;
 
   for( auto decay : decays ){
@@ -121,12 +121,12 @@ void Algo::HypoTester::unpack_assumptions(){
      if(verbose>0){ cout << "\tAdded TopLep" << endl; }
      break;
 
-   case Algo::Decay::HiggsHad:
-     particles.push_back( make_pair( FinalState::HiggsHad_b,    count_HiggsHad) );
-     particles.push_back( make_pair( FinalState::HiggsHad_bbar, count_HiggsHad) );
-     ++count_HiggsHad;
+   case Algo::Decay::Higgs:
+     particles.push_back( make_pair( FinalState::Higgs_b,    count_Higgs) );
+     particles.push_back( make_pair( FinalState::Higgs_bbar, count_Higgs) );
+     ++count_Higgs;
      nParam_j += 2;
-     if(verbose>0){ cout << "\tAdded HiggsHad" << endl; }
+     if(verbose>0){ cout << "\tAdded Higgs" << endl; }
      break;
 
    case Algo::Decay::Radiation:
@@ -169,18 +169,28 @@ void Algo::HypoTester::init(){
   // first, unpack assumptions
   this->unpack_assumptions();
 
+  // number of jets at least as large as num of quarks
   assert( particles.size()<=p4_Jet.size() );
+
+  // if >0 topLep, need leptons
   assert( count_TopLep==p4_Lepton.size()  );
+
+  // if >0 topLep, need MET
+  assert( count_TopLep==0 || (count_TopLep>0 && p4_MET.size()>0)  );
   
+  // order particles
   sort( particles.begin(), particles.end(), MyComp );
 
+  // permutations visited
   count_perm = 0;
 
+  // bookkeep to remove unnecessary permutations
   vector<vector<std::pair<FinalState,size_t>>> logbook;
 
+  // permutatios using std library
   do {
-
     
+    // skip unnecessary permutations
     bool skip = false;
     if(logbook.size()==0) 
       logbook.push_back(particles);
@@ -199,18 +209,25 @@ void Algo::HypoTester::init(){
     }
     
 
+    // this vector will contain all blocks 
+    // E.g. block = TopHad * TopLep * Rad * Rad * ... * MET
     vector<Algo::DecayBuilder*> decays; 
+
+    // pass by reference: here the group is formed
     group_particles( decays );
     
-    // if there are invisible particles
+    // if there are invisible particles, add MET as last element
     if(invisible>0){
-      Algo::METBuilder* met = new Algo::METBuilder();
+      Algo::METBuilder* met = new Algo::METBuilder(verbose);
       met->init( p4_MET.size() ? p4_MET[0].p4 : LV() );
       decays.push_back( met );
     }
     
-    permutations.push_back( new Algo::CombBuilder(decays) );
+    // add block list of permutations
+    // a block is assembled by CombBuilder
+    permutations.push_back( new Algo::CombBuilder(decays, verbose) );
     
+    // increment counter
     ++count_perm;
     
   } while ( next_permutation(particles.begin(), particles.end(), MyComp  ) );
@@ -234,12 +251,12 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
 
   if(verbose>2){ cout << "HypoTester::group_particles()" << endl; }
 
-  // first get all hadronically decaying tops
+  //  get all hadronically decaying tops
   for( size_t t_had = 0; t_had < count_TopHad; ++t_had ){
 
     if(verbose>1) cout << "\tProcessing " << t_had << "th TopHad" << endl;
 
-    Algo::TopHadBuilder* topHad = new Algo::TopHadBuilder();
+    Algo::TopHadBuilder* topHad = new Algo::TopHadBuilder(verbose);
     
     size_t pos = 0;
     for( auto part : particles ){
@@ -253,12 +270,12 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
 
   }
 
-  // first get all hadronically decaying tops
+  // get all hadronically decaying tops
   for( size_t w_had = 0; w_had < count_WHad; ++w_had ){
 
     if(verbose>1) cout << "\tProcessing " << w_had << "th WHad" << endl;
 
-    Algo::WHadBuilder* wHad = new Algo::WHadBuilder();
+    Algo::WHadBuilder* wHad = new Algo::WHadBuilder(verbose);
     
     size_t pos = 0;
     for( auto part : particles ){
@@ -277,7 +294,7 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
 
     if(verbose>1) cout << "\tProcessing " << t_lep << "th TopLep" << endl;
 
-    Algo::TopLepBuilder* topLep = new Algo::TopLepBuilder();
+    Algo::TopLepBuilder* topLep = new Algo::TopLepBuilder(verbose);
     
     topLep->init( FinalState::TopLep_l , p4_Lepton[t_lep].p4 , t_lep + nParam_j );
 
@@ -295,12 +312,12 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
   }
 
 
-  // first get all hadronically decaying tops
+  //  get all radiation
   for( size_t r_had = 0; r_had < count_Radiation; ++r_had ){
     
     if(verbose>1) cout << "\tProcessing " << r_had << "th Radiaton" << endl;
 
-    Algo::RadiationBuilder* rad = new Algo::RadiationBuilder();
+    Algo::RadiationBuilder* rad = new Algo::RadiationBuilder(verbose);
     
     size_t pos = 0;
     for( auto part : particles ){
@@ -315,6 +332,24 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
   }
 
 
+  // get all hadronically decaying higgs
+  for( size_t higgs = 0; higgs < count_Higgs; ++higgs ){
+
+    if(verbose>1) cout << "\tProcessing " << higgs << "th Higgs" << endl;
+
+    Algo::HiggsBuilder* hig = new Algo::HiggsBuilder(verbose);
+    
+    size_t pos = 0;
+    for( auto part : particles ){
+      
+      if( part.second == higgs ) 
+	hig->init( part.first, p4_Jet[pos].p4 , pos );
+      ++pos;
+    }
+
+    decayed.push_back( hig );
+
+  }
 
   /* ... */  
 
@@ -333,8 +368,8 @@ void Algo::HypoTester::run(){
 
     double inVal    {p4_Jet[p].p4.E()};
     double inVal_lo {0.};
-    double inVal_hi {inVal*2.0};
-    double step     {0.5};
+    double inVal_hi {inVal*3.0};
+    double step     {1.0};
 
     minimizer->SetLimitedVariable(p, name, inVal  , step, inVal_lo , inVal_hi);
 
@@ -353,14 +388,14 @@ void Algo::HypoTester::run(){
       inVal    = p4_MET[0].p4.Phi();
       inVal_lo = -TMath::Pi() ;
       inVal_hi = +TMath::Pi() ;
-      step     = 0.05;     
+      step     = 0.1;     
     }
     else{
       sprintf(name, "cos%lu", p/2);
       inVal    = 0.;
       inVal_lo = -1. ;
       inVal_hi = +1. ;
-      step     = 0.05;   
+      step     = 0.1;   
     }
 
     minimizer->SetLimitedVariable(nParam_j+p, name,  inVal , step, inVal_lo , inVal_hi);
@@ -370,17 +405,21 @@ void Algo::HypoTester::run(){
     
   }
   
-  return;
+  //return;
 
-  verbose = 0;
+  //verbose = 0;
   minimizer->Minimize(); 
-  ++verbose;
+  //++verbose;
 
   double min0 = minimizer->MinValue();
 
   const double *xs = minimizer->X();
-  if(verbose>0)  
-    cout << "\tMinimum --> f(" << xs[0] << "," << xs[1] << ") => " << min0  << endl;
+  if(verbose>0){
+    cout << "\tMinimum = " << min0  << endl;
+    for( size_t var = 0 ; var < minimizer->NDim() ; ++var)
+      cout << "\tVar[" << var << "] = " << xs[var] << endl;
+  }
+  
 
 }
 
@@ -389,15 +428,23 @@ double Algo::HypoTester::eval(const double* xx){
 
   double val {0.};
 
-  for( auto perm : permutations)
+  int count {0};
+  for( auto perm : permutations){
+    if(verbose>2) cout << "Eval perm " << count << endl;
     val += perm->eval( xx );
+    ++count;
+  }
   
   if( TMath::IsNaN(val) )
-    return numeric_limits<double>::min();
+    return numeric_limits<double>::max();
   else if( val<=0 )
-    return numeric_limits<double>::min();
-  else 
-    return -TMath::Log(count_perm>0 ? val/count_perm : val);
+    return numeric_limits<double>::max();
+  else{
+    double ret_val = -TMath::Log(count_perm>0 ? val/count_perm : val);
+    if(verbose>2) cout << "-Log(f) = " << ret_val << endl;
+    return ret_val;
+  }
+  
   
   return val;
 
