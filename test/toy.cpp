@@ -1,9 +1,10 @@
 #include<iostream>
 #include<memory>
 #include<cstdlib>
+#include <getopt.h>
 
 #include "interface/ToyGenerator.h"
-//#include "interface/HypoTester.h"
+#include "interface/HypoTester.h"
 
 #include "TMath.h"
 #include "TTree.h"
@@ -15,20 +16,56 @@ using namespace std;
 
 int main(int argc, char *argv[]){
 
-  TTree* t    = new TTree("tree", "tree");
+  string fname = "DUMMY.root";
+  int ntoys    = 0;  
+  int smear    = 0;
+  int verbose  = 0;
+
+  static struct option long_options[] = {
+    {"toys",     required_argument,   0, 't' },
+    {"output",   required_argument,   0, 'o' },
+    {"smear",    required_argument,   0, 's' },
+    {"verbose",  optional_argument,   0, 'v' },
+    {0, 0, 0, 0 }
+  };
+
+  int long_index  = 0;
+  int opt;
+  while ((opt = getopt_long(argc, argv,"t:o:s:v:",
+			    long_options, &long_index )) != -1) {
+    switch (opt) {
+    case 't' : ntoys   = atoi(optarg);
+      break;
+    case 'o' : fname   = string(optarg);
+      break;
+    case 's' : smear   = atoi(optarg);
+      break;
+    case 'v' : verbose = atoi(optarg);                                 
+      break;  
+    case '?':
+      cout << "Unknown option " << opt << endl;
+      break;
+    default:
+      cout << "Invalid usage of toy" << endl;
+      return 0;
+    }
+  }
+
+
+  TTree* t = new TTree("tree", "tree");
   Algo::HypoTester* tester = new Algo::HypoTester(t) ;
 
-  Algo::ToyGenerator* toyGenerator = new Algo::ToyGenerator(0);
+  Algo::ToyGenerator* toyGenerator = new Algo::ToyGenerator(verbose);
 
   vector<Algo::Decay> decays;
   decays.push_back( Algo::Decay::TopHad );
   decays.push_back( Algo::Decay::WHad  );
 
-  const int ntoy  = argc>1 ? atoi(argv[1]) : 1 ;
-  const int smear = argc>2 ? atoi(argv[2]) : 0 ;
+  //const int ntoy  = argc>1 ? atoi(argv[1]) : 1 ;
+  //const int smear = argc>2 ? atoi(argv[2]) : 0 ;
 
   int itoy = 0;
-  while( itoy < ntoy ){
+  while( itoy < ntoys ){
     vector<pair<char,TLorentzVector>> out = 
       toyGenerator->generate( decays , smear );
 
@@ -45,7 +82,7 @@ int main(int argc, char *argv[]){
 	++count_m;
       }
     }
-    cout << "Generate event " << itoy << "/" << ntoy << endl;
+    cout << "Generate event " << itoy << "/" << ntoys << endl;
     cout << "\tNumber of jets: " << count_j << endl;
     cout << "\tNumber of lept: " << count_l << endl;
     cout << "\tNumber of nus : " << count_m << endl;
@@ -67,7 +104,7 @@ int main(int argc, char *argv[]){
 
   }
 
-  TFile* fout = new TFile("test/Test_3.root", "RECREATE");
+  TFile* fout = new TFile(("test/"+fname).c_str(), "RECREATE");
   fout->cd();
   t->Write("", TObject::kOverwrite);
   fout->Close();

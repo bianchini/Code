@@ -1,7 +1,10 @@
+#ifndef ToyGenerator_h
+#define ToyGenerator_h
+
 #include "TRandom3.h"
 #include "TLorentzRotation.h"
-#include "interface/HypoTester.h"
-#include "TMath.h"
+#include "interface/Utils.h"
+
 #include<iostream>
 
 using namespace std;
@@ -25,3 +28,5 @@ namespace Algo {
   };
 
 }
+
+#endif

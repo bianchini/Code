@@ -1,3 +1,6 @@
+#ifndef StandardIncludes_h
+#define StandardIncludes_h
+
 #include "interface/Utils.h"
 
 using namespace std;
@@ -186,3 +189,5 @@ namespace Algo {
 
 
 }
+
+#endif

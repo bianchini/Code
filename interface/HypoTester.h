@@ -1,9 +1,11 @@
+#ifndef HypoTester_h
+#define HypoTester_h
+
 #include "Math/Minimizer.h"
 #include "Math/Factory.h"
 #include "Math/Functor.h"
 
 #include "interface/StandardIncludes.h"
-
 #include "interface/Event.h"
 
 namespace Algo {
@@ -116,3 +118,5 @@ namespace Algo {
 
 
 }
+
+#endif

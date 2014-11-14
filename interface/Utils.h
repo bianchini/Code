@@ -1,3 +1,6 @@
+#ifndef Utils_h
+#define Utils_h
+
 #include "TLorentzVector.h"
 #include "TVector3.h"
 #include "TTree.h"
@@ -58,3 +61,5 @@ namespace Algo {
   bool isSame( const std::vector<std::pair<FinalState,size_t>>&, const std::vector<std::pair<FinalState,size_t>>&);
 
 }
+
+#endif
