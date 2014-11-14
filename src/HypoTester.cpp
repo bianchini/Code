@@ -6,14 +6,16 @@ Algo::HypoTester::HypoTester(){
   // reset variables
   nParam_j          = 0;
   nParam_n          = 0;
+  count_hypo        = 0;
   count_perm        = 0;
   count_TopHad      = 0;
   count_TopLep      = 0;
   count_Higgs       = 0;
   count_Radiation   = 0;
   invisible         = 0;
+  verbose           = 0;
 
-  verbose = 3;
+  event             = nullptr;
 
   minimizer =  ROOT::Math::Factory::CreateMinimizer("Minuit2", "");
   minimizer->SetMaxFunctionCalls(1000000); 
@@ -22,12 +24,37 @@ Algo::HypoTester::HypoTester(){
   minimizer->SetPrintLevel(0);
 }
 
+Algo::HypoTester::HypoTester(TTree* t){
+
+  // reset variables                                                                                                                                
+  nParam_j          = 0;
+  nParam_n          = 0;
+  count_hypo        = 0;
+  count_perm        = 0;
+  count_TopHad      = 0;
+  count_TopLep      = 0;
+  count_Higgs       = 0;
+  count_Radiation   = 0;
+  invisible         = 0;
+  verbose           = 0;
+
+  minimizer =  ROOT::Math::Factory::CreateMinimizer("Minuit2", "");
+  minimizer->SetMaxFunctionCalls(1000000);
+  minimizer->SetMaxIterations(10000);
+  minimizer->SetTolerance(0.001);
+  minimizer->SetPrintLevel(0);  
+
+  cout << "Creating branches to output file" << endl;
+  event  = new Event(t);
+  event->createBranches();
+  event->reset();
+}
 
 Algo::HypoTester::~HypoTester(){
   cout << "Removing HypoTester" << endl;
-  for( auto perm : permutations )
-    delete perm;
+  for( auto perm : permutations ) delete perm;
   delete minimizer;
+  delete event;
 }
 
 
@@ -72,6 +99,48 @@ void Algo::HypoTester::add_object_observables( const string& name, const double 
 
 }
 
+
+void Algo::HypoTester::test( const map<string, vector<Decay>>& all ){
+
+  if(event!=nullptr) event->reset();
+
+  // make sure we start from zero
+  count_hypo = 0;
+  for( auto hypo : all ){
+    cout << "Testing hypothesis " << count_hypo 
+	 << " with name \"" << hypo.first << "\"" << endl;
+    reset();
+    for( auto decay : hypo.second ){
+      assume( decay );
+    }    
+    init();
+    run();
+    ++count_hypo;
+  }
+
+  if(event!=nullptr) event->fillTree();
+
+}
+
+void Algo::HypoTester::reset(){
+
+  // remove old permutations
+  // perm calls destructor of block
+  for( auto perm : permutations ) delete perm;
+  
+  decays.clear();
+  particles.clear();
+  permutations.clear();
+  nParam_j        = 0;
+  nParam_n        = 0;
+  count_perm      = 0;
+  count_TopHad    = 0;
+  count_WHad      = 0;
+  count_TopLep    = 0;
+  count_Higgs     = 0;
+  count_Radiation = 0;
+  invisible       = 0;
+}
 
 void Algo::HypoTester::assume( Decay decay ){
   decays.push_back( decay );
@@ -216,13 +285,6 @@ void Algo::HypoTester::init(){
     // pass by reference: here the group is formed
     group_particles( decays );
     
-    // if there are invisible particles, add MET as last element
-    if(invisible>0){
-      Algo::METBuilder* met = new Algo::METBuilder(verbose);
-      met->init( p4_MET.size() ? p4_MET[0].p4 : LV() );
-      decays.push_back( met );
-    }
-    
     // add block list of permutations
     // a block is assembled by CombBuilder
     permutations.push_back( new Algo::CombBuilder(decays, verbose) );
@@ -351,7 +413,28 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
 
   }
 
-  /* ... */  
+
+  /* Add other blocks here */
+
+
+  // if there are invisible particles, add MET as last element                                                                            
+  if(invisible>0){
+
+    Algo::METBuilder* met = new Algo::METBuilder(verbose);
+    assert( p4_MET.size()>0 );
+    met->init( p4_MET[0].p4 );
+    decayed.push_back( met );
+  }
+  // if there are not insible particles, but MET is an input, eval MET tf at (0.,0.)                                                      
+  else if( p4_MET.size()>0 ){
+
+    Algo::METBuilder* met = new Algo::METBuilder(verbose);
+    met->init( p4_MET[0].p4 );
+    met->fix_vars();
+    decayed.push_back( met );
+  }
+  else{ /* do nothing */ }
+
 
 }
 
@@ -369,7 +452,7 @@ void Algo::HypoTester::run(){
     double inVal    {p4_Jet[p].p4.E()};
     double inVal_lo {0.};
     double inVal_hi {inVal*3.0};
-    double step     {1.0};
+    double step     {0.5};
 
     minimizer->SetLimitedVariable(p, name, inVal  , step, inVal_lo , inVal_hi);
 
@@ -405,21 +488,40 @@ void Algo::HypoTester::run(){
     
   }
   
-  //return;
-
-  //verbose = 0;
+  // minimie nll
   minimizer->Minimize(); 
-  //++verbose;
 
-  double min0 = minimizer->MinValue();
-
+  // get the result
+  double nll  = minimizer->MinValue();
+  const size_t ndim = minimizer->NDim();
+ 
   const double *xs = minimizer->X();
-  if(verbose>0){
-    cout << "\tMinimum = " << min0  << endl;
-    for( size_t var = 0 ; var < minimizer->NDim() ; ++var)
+
+  if(verbose>-1){
+    cout << "\tMinimum = " << nll  << endl;
+    for( size_t var = 0 ; var < ndim ; ++var)
       cout << "\tVar[" << var << "] = " << xs[var] << endl;
   }
   
+  if(event!=nullptr){
+    // hypothesis counter
+    ++(event->treeStruct.n_h);
+
+    // add nll and number of dimension per each hypo
+    if(count_hypo<HMAX){
+      event->treeStruct.nll[(size_t)count_hypo] = nll;
+      event->treeStruct.dim[(size_t)count_hypo] = ndim;    
+    }
+
+    // add value of parameters per each hypo:
+    // [ [p0_0 p0_1 ... p0_N ], ... , [ [pH_0 pH_1 ... pH_N] ]
+    for( size_t p = 0 ; p < ndim && p < PMAX; ++p){
+      event->treeStruct.param[ event->treeStruct.n_dim + p ] = xs[p];
+    }
+
+    // increment total dim counter
+    (event->treeStruct.n_dim) += ndim;
+  }
 
 }
 

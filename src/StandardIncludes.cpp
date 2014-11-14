@@ -127,10 +127,13 @@ double Algo::CombBuilder::eval(const double* xx) {
   for(auto dec : combined){
     double val_tmp = dec->eval(xx, invisible);
     val *= val_tmp;
-    if(verbose)
-      cout << "\tEval block " << count << " += " << (val_tmp>0. ? -TMath::Log( val_tmp ) : 0.) 
-	   << ", Invisible = " << "(eng=" << invisible.E() << ", eta=" << invisible.Eta() << ", phi=" << invisible.Phi() << ")"
-	   << endl;
+    if(verbose){
+      cout << "\tEval block " << count << " += " << (val_tmp>0. ? -TMath::Log( val_tmp ) : 0.) ;
+      if( invisible.Px()>0. || invisible.Py()>0.) 
+	cout << ", Invisible = " << "(eng=" << invisible.E() << ", eta=" << invisible.Eta() << ", phi=" << invisible.Phi() << ")" << endl;
+      else
+	cout << endl;
+    }
     ++count;
   }
 
@@ -152,20 +155,22 @@ void Algo::CombBuilder::print(ostream& os){
 
 
 Algo::METBuilder::METBuilder() {
-  decay   = Decay::MET;
-  tf_met  = nullptr;
-  verbose = 0;
+  decay    = Decay::MET;
+  tf_met   = nullptr;
+  verbose  = 0;
+  saturate = 0;
 }
 
 Algo::METBuilder::METBuilder(const int& verb) {
-  decay   = Decay::MET;
-  tf_met  = nullptr;
-  verbose = verb;
+  decay    = Decay::MET;
+  tf_met   = nullptr;
+  verbose  = verb;
+  saturate = 0;
 }
 
 
 Algo::METBuilder::~METBuilder() {
-   if(VERBOSE) cout << "Destroy METBuilder" << endl;
+  if(VERBOSE) cout << "Destroy METBuilder" << endl;
   if( tf_met!=nullptr) delete tf_met;
 }
 
@@ -175,12 +180,19 @@ void Algo::METBuilder::init(const LV& lv) {
   tf_met = new TransferFunction("tf_met", TF_MET );
 }
 
+void Algo::METBuilder::fix_vars(){
+  ++saturate;
+}
 
 double Algo::METBuilder::eval(const double* xx,  LV& lv) {
 
   double val{1.};
+  
+  if( saturate==0 )
+    val *= tf_met->eval( p4_invisible.Px()-lv.Px(), p4_invisible.Py()-lv.Py() );
+  else
+    val *= tf_met->eval( 0., 0. );
 
-  val *= tf_met->eval( p4_invisible.Px()-lv.Px(),p4_invisible.Py()-lv.Py() );
   return val;
 }
 

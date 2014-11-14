@@ -1,5 +1,6 @@
 #include "TLorentzVector.h"
 #include "TVector3.h"
+#include "TTree.h"
 #include "TFormula.h"
 #include "TMath.h"
 
@@ -107,12 +108,14 @@ namespace Algo {
     ~METBuilder();
     void init(const LV&);
     double eval (  const double* , LV& );
+    void fix_vars();
     void print(ostream&);   
   private:
     LV p4_invisible;
     TransferFunction* tf_met;
     Decay decay;
     int verbose;
+    int saturate;
   };
   
   

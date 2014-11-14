@@ -4,6 +4,7 @@
 
 #include "interface/StandardIncludes.h"
 
+#include "interface/Event.h"
 
 namespace Algo {
 
@@ -37,7 +38,10 @@ namespace Algo {
 
     // constructor
     HypoTester();
-
+    
+    // constructor with output file
+    HypoTester(TTree*);
+    
     // destructor
     ~HypoTester();
 
@@ -48,6 +52,12 @@ namespace Algo {
     // they will be accessible in the form of a map
     void add_object_observables ( const string&, const double , char);
      
+    // add multiple hypotheses
+    void test( const map< string,vector<Decay>>& );
+
+    // clean content
+    void reset();
+
     // add hypotheses
     void assume(Decay);  
 
@@ -85,6 +95,7 @@ namespace Algo {
     size_t nParam_j;
     size_t nParam_n;
 
+    int    count_hypo;
     int    count_perm;
     size_t count_TopHad;
     size_t count_WHad;
@@ -94,7 +105,10 @@ namespace Algo {
     size_t invisible;
 
     int verbose;
-    
+
+    Event* event;
+
+
   };
 
 

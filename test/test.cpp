@@ -4,6 +4,8 @@
 #include "interface/HypoTester.h"
 
 #include "TMath.h"
+#include "TFile.h"
+#include "TTree.h"
 #include "TLorentzVector.h"
 
 
@@ -11,7 +13,8 @@ using namespace std;
 
 int main(){
 
-  unique_ptr<Algo::HypoTester> tester{ new Algo::HypoTester() };
+  TTree* t    = new TTree("tree", "tree");
+  Algo::HypoTester* tester = new Algo::HypoTester(t) ;
   
   // test
   TLorentzVector j1;
@@ -24,7 +27,7 @@ int main(){
 
   TLorentzVector j3;
   j3.SetPtEtaPhiM( 50., 0., -TMath::Pi()/2, 0.);
-  //tester->push_back_object( j3  , 'j');
+  tester->push_back_object( j3  , 'j');
 
   TLorentzVector j4;
   j4.SetPtEtaPhiM(100., 0., -TMath::Pi()/4, 0.);
@@ -40,12 +43,27 @@ int main(){
 
   TLorentzVector lep;
   lep.SetPtEtaPhiM( 50., 1., -TMath::Pi()/3, 0.);
-  tester->push_back_object( lep  , 'l');
+  //tester->push_back_object( lep  , 'l');
 
   TLorentzVector met;
   met.SetPtEtaPhiM( 0., 0., 0., 0.);
-  tester->push_back_object( met  , 'm');
+  //tester->push_back_object( met  , 'm');
 
+  map<string, vector<Algo::Decay> > hypotheses;
+  hypotheses["H0"] = {Algo::Decay::TopHad};
+  hypotheses["H1"] = {Algo::Decay::Radiation, Algo::Decay::Radiation, Algo::Decay::Radiation};
+  hypotheses["H2"] = {Algo::Decay::WHad, Algo::Decay::Radiation};
+  tester->test( hypotheses );
+
+  TFile* fout = new TFile("test/Test.root", "RECREATE");
+  fout->cd();
+  t->Write("", TObject::kOverwrite);
+  fout->Close();
+  cout << "ROOT file saved" << endl;
+
+  delete tester;
+
+  /*
   // assumptions
   //tester->assume( Algo::Decay::TopHad  );
   //tester->assume( Algo::Decay::WHad  );
@@ -60,6 +78,6 @@ int main(){
  
   // run the algo
   tester->run();
-  
+  */
 
 }
