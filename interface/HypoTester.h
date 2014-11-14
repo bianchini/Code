@@ -58,6 +58,9 @@ namespace Algo {
     // clean content
     void reset();
 
+    // prepare for next event
+    void next_event();
+
     // add hypotheses
     void assume(Decay);  
 

@@ -14,14 +14,7 @@ Algo::HypoTester::HypoTester(){
   count_Radiation   = 0;
   invisible         = 0;
   verbose           = 0;
-
   event             = nullptr;
-
-  minimizer =  ROOT::Math::Factory::CreateMinimizer("Minuit2", "");
-  minimizer->SetMaxFunctionCalls(1000000); 
-  minimizer->SetMaxIterations(10000);  
-  minimizer->SetTolerance(0.001);
-  minimizer->SetPrintLevel(0);
 }
 
 Algo::HypoTester::HypoTester(TTree* t){
@@ -38,12 +31,6 @@ Algo::HypoTester::HypoTester(TTree* t){
   invisible         = 0;
   verbose           = 0;
 
-  minimizer =  ROOT::Math::Factory::CreateMinimizer("Minuit2", "");
-  minimizer->SetMaxFunctionCalls(1000000);
-  minimizer->SetMaxIterations(10000);
-  minimizer->SetTolerance(0.001);
-  minimizer->SetPrintLevel(0);  
-
   cout << "Creating branches to output file" << endl;
   event  = new Event(t);
   event->createBranches();
@@ -53,7 +40,7 @@ Algo::HypoTester::HypoTester(TTree* t){
 Algo::HypoTester::~HypoTester(){
   cout << "Removing HypoTester" << endl;
   for( auto perm : permutations ) delete perm;
-  delete minimizer;
+  //delete minimizer;
   delete event;
 }
 
@@ -119,7 +106,7 @@ void Algo::HypoTester::test( const map<string, vector<Decay>>& all ){
   }
 
   if(event!=nullptr) event->fillTree();
-
+  next_event();
 }
 
 void Algo::HypoTester::reset(){
@@ -140,6 +127,13 @@ void Algo::HypoTester::reset(){
   count_Higgs     = 0;
   count_Radiation = 0;
   invisible       = 0;
+}
+
+void Algo::HypoTester::next_event(){
+  reset();
+  p4_Jet.clear();
+  p4_Lepton.clear();
+  p4_MET.clear();
 }
 
 void Algo::HypoTester::assume( Decay decay ){
@@ -442,6 +436,12 @@ void Algo::HypoTester::run(){
 
   if(verbose>2){ cout << "HypoTester::run()" << endl; }
 
+  minimizer =  ROOT::Math::Factory::CreateMinimizer("Minuit2", "");
+  minimizer->SetMaxFunctionCalls(1000000);
+  minimizer->SetMaxIterations(10000);
+  minimizer->SetTolerance(0.001);
+  minimizer->SetPrintLevel(0);
+
   ROOT::Math::Functor f0( this , &Algo::HypoTester::eval, nParam_j + nParam_n); 
   minimizer->SetFunction(f0);
 
@@ -522,6 +522,8 @@ void Algo::HypoTester::run(){
     // increment total dim counter
     (event->treeStruct.n_dim) += ndim;
   }
+
+  delete minimizer;
 
 }
 
