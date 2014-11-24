@@ -32,18 +32,18 @@ namespace Algo {
   constexpr double MH   = 125.;
   constexpr double DMH2 = (MH*MH-2*MB*MB)*0.5;
   
-  const string TF_Q = "TMath::Gaus(x, [0] + [1]*y, y*TMath::Sqrt([2]+[3]/y+[4]/y/y), 1)";
-  const string TF_B = "TMath::Gaus(x, [0] + [1]*y, y*TMath::Sqrt([2]+[3]/y+[4]/y/y), 1)";
+  const string TF_Q = "TMath::Gaus(x, [0] + [1]*y, y*TMath::Sqrt([2]*[2]+[3]*[3]/y+[4]*[4]/y/y), 1)";
+  const string TF_B = "TMath::Gaus(x, [0] + [1]*y, y*TMath::Sqrt([2]*[2]+[3]*[3]/y+[4]*[4]/y/y), 1)";
   const double TF_Q_param[2][5] =
     { { 0.0e+00, 1.0e+00, 0.0e+00, 1.5e+00, 0.0e+00 },
-      { 0.0e+00, 1.0e+00, 1.3e+01, 1.5e+00, 0.0e+00 }
+      { 0.0e+00, 1.0e+00, 1.3e-01, 1.5e+00, 0.0e+00 }
     };
   const double TF_B_param[2][5] =
     { { 0.0e+00, 1.0e+00, 0.0e+00, 1.5e+00, 0.0e+00 },
-      { 0.0e+00, 1.0e+00, 1.3e+01, 1.5e+00, 0.0e+00 }
+      { 0.0e+00, 1.0e+00, 1.3e-01, 1.5e+00, 0.0e+00 }
     };
 
-  const string TF_MET = "TMath::Gaus(x,0.,100, 1)*TMath::Gaus(y,0.,100, 1)";
+  const string TF_MET = "TMath::Gaus(x,0.,20, 1)*TMath::Gaus(y,0.,20, 1)";
   
   size_t eta_to_bin( const LV& );
  

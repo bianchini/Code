@@ -75,6 +75,9 @@ namespace Algo {
     // print objects
     void print(ostream&);
 
+    // set verbosity
+    void set_verbosity(const int&);
+
   private:
 
     // unpack hypotheses

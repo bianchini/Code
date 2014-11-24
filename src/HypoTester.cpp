@@ -19,7 +19,7 @@ Algo::HypoTester::HypoTester(){
 
 Algo::HypoTester::HypoTester(TTree* t){
 
-  // reset variables                                                                                                                                
+  // reset variables
   nParam_j          = 0;
   nParam_n          = 0;
   count_hypo        = 0;
@@ -419,7 +419,7 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
     met->init( p4_MET[0].p4 );
     decayed.push_back( met );
   }
-  // if there are not insible particles, but MET is an input, eval MET tf at (0.,0.)                                                      
+  // if there are not invisible particles, but MET is an input, eval MET tf at (0.,0.)                                                      
   else if( p4_MET.size()>0 ){
 
     Algo::METBuilder* met = new Algo::METBuilder(verbose);
@@ -582,6 +582,7 @@ void Algo::HypoTester::print(ostream& os){
   int count_m = 0;
   for( auto MET : p4_MET ){
     os << "\t\tMET[" << count_l << "]: (" << MET.p4.Pt() << "," << MET.p4.Eta() << "," << MET.p4.Phi() << "," << MET.p4.M() << ")" << endl;
+    os << "\t\t\t cos(t)=" << TMath::Cos( MET.p4.Theta() ) << endl;
     for( auto it = (MET.obs).begin() ; it !=  (MET.obs).end(); ++it)
       os << "\t\t" << it->first << " = " << it->second << endl;
     ++count_m;
@@ -602,3 +603,6 @@ void Algo::HypoTester::print(ostream& os){
   os << "****************************************************" << endl;
 }
 
+void Algo::HypoTester::set_verbosity(const int& verb){
+  verbose = verb;
+}

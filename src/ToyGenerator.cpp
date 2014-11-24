@@ -6,6 +6,12 @@ Algo::ToyGenerator::ToyGenerator(const int verb) {
   ran     = new TRandom3();
 }
 
+Algo::ToyGenerator::ToyGenerator(const int verb, const unsigned int seed) {
+  verbose = verb;
+  ran     = new TRandom3();
+  ran->SetSeed(seed);
+}
+
 Algo::ToyGenerator::~ToyGenerator(){
   delete ran;
 }
@@ -90,7 +96,7 @@ void Algo::ToyGenerator::generate_hypo( vector<pair<char,TLorentzVector>>& out, 
   p4_bh.Boost   ( p4_h.BoostVector() );
   p4_bbarh.Boost( p4_h.BoostVector() );
 
-  if(verbose){
+  if(verbose>2){
     cout << "Top E    = " << (p4_q + p4_qbar + p4_b).E() << " (" << p4_top.E() << ")" << endl;
     cout << "Top Px   = " << (p4_q + p4_qbar + p4_b).Px() << " (" << p4_top.Px() << ")" << endl;
     cout << "Top Py   = " << (p4_q + p4_qbar + p4_b).Py() << " (" << p4_top.Py() << ")" << endl;
@@ -101,32 +107,111 @@ void Algo::ToyGenerator::generate_hypo( vector<pair<char,TLorentzVector>>& out, 
     cout << "Higgs Pz = " << (p4_bh + p4_bbarh ).Pz() << " (" << p4_h.Pz() << ")" << endl;
   }
 
-
   switch(type){
   case Decay::TopHad:
-    out.push_back( make_pair('j', p4_b) );
-    out.push_back( make_pair('j', p4_q) );
-    out.push_back( make_pair('j', p4_qbar) );
+    if(smear){
+      smear_by_TF(p4_b,   'b');
+      smear_by_TF(p4_q,   'q');
+      smear_by_TF(p4_qbar,'q');
+    }
+    out.push_back( make_pair('b', p4_b) );
+    out.push_back( make_pair('q', p4_q) );
+    out.push_back( make_pair('q', p4_qbar) );
     break;
   case Decay::TopLep:
-    out.push_back( make_pair('j', p4_b) );
+    if(smear){
+      smear_by_TF(p4_b,   'b');
+      smear_by_TF(p4_qbar,'m');
+    }
+    out.push_back( make_pair('b', p4_b) );
     out.push_back( make_pair('l', p4_q) );
-    p4_qbar.SetPz(0.);
     out.push_back( make_pair('m', p4_qbar) );
     break;
   case Decay::WHad:
-    out.push_back( make_pair('j', p4_q) );
-    out.push_back( make_pair('j', p4_qbar) );
+    if(smear){
+      smear_by_TF(p4_q,   'q');
+      smear_by_TF(p4_qbar,'q');
+    }
+    out.push_back( make_pair('q', p4_q) );
+    out.push_back( make_pair('q', p4_qbar) );
     break;
   case Decay::Higgs:
-    out.push_back( make_pair('j', p4_bh) );
-    out.push_back( make_pair('j', p4_bbarh) );
+    if(smear){
+      smear_by_TF(p4_bh,   'b');
+      smear_by_TF(p4_bbarh,'b');
+    }
+    out.push_back( make_pair('b', p4_bh) );
+    out.push_back( make_pair('b', p4_bbarh) );
     break;
   case Decay::Radiation:
-    out.push_back( make_pair('j', p4_q) );
+    if(smear) 
+      smear_by_TF(p4_q, 'q');
+    out.push_back( make_pair('q', p4_q) );
     break;
   default:
     break;
+  }
+
+  return;
+}
+
+void Algo::ToyGenerator::smear_by_TF(TLorentzVector& lv, char type){
+  
+  string func;
+
+  switch(type){
+  case 'q':
+    func = TF_Q;
+    break;
+  case 'b':
+    func = TF_B;
+    break;
+  case 'm':
+    func = TF_MET;
+    break;
+  default:
+    cout << "Unknown smear type" << endl;
+    return;
+    break;
+  }
+
+  TransferFunction tf("tf", func); 
+
+  if(type=='q' || type=='b'){
+
+    if(type=='q') 
+      tf.init( TF_Q_param[Algo::eta_to_bin(lv)] );
+    else
+      tf.init( TF_B_param[Algo::eta_to_bin(lv)] );
+    
+    string func_eval = tf.getFormula();
+    std::ostringstream os;
+    os << lv.E();
+    while( func_eval.find("y")!=string::npos ){
+      func_eval.replace(func_eval.find("y"), 1 , os.str());
+    }
+    TF1 f("f", func_eval.c_str(), lv.E() * SMEAR_EREL_MIN, lv.E() * SMEAR_EREL_MAX );
+    double E_smear = TMath::Max( f.GetRandom(), 0.);
+
+    if(verbose>0)
+      cout << func_eval << ": E := " << lv.E() ;
+    lv *= E_smear/lv.E() ;
+    if(verbose>0)
+      cout << " --> " << lv.E() << endl;
+  }
+
+
+  if(type=='m'){
+    string func_eval = tf.getFormula(); 
+    TF2 f("f", func_eval.c_str(), SMEAR_MET_PX_MIN, SMEAR_MET_PX_MAX, SMEAR_MET_PY_MIN, SMEAR_MET_PY_MAX);
+    double Px{0.};
+    double Py{0.};
+    f.GetRandom2(Px,Py);
+    if(verbose>0)   
+      cout << func_eval << ": (Px,Py) := (" << lv.Px() << "," << lv.Py() ;
+    lv += TLorentzVector(Px,Py,0,Px+Py);
+    if(verbose>0)   
+      cout << ") --> (" << lv.Px() << "," << lv.Py() << ")" << endl;
   }
 
   return;

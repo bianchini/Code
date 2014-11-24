@@ -19,12 +19,18 @@ namespace Algo {
       os << "TreeStruct contains: " << endl;
       os << "\tn_h   = " << n_h << endl;
       os << "\tn_dim = " << n_dim << endl;
+      size_t it_p {0};
       for( size_t i = 0 ; (i < n_h && i < (size_t)HMAX) ; ++i){
-	os << "\tnll[" << i << "] = " << nll[i];
+	os << "\tHypo " << i << ":" << endl;
+	os << "\t\tnll[" << i << "] = " << nll[i];
 	os << ", dim[" << i << "] = " << dim[i] << endl;
+	for(size_t j = 0 ; j < dim[i] ; ++j){	  
+	  os << "\t\tparam[" << j << "] = " << param[it_p] << endl; 
+	  ++it_p;
+	}
       }
-      for( size_t i = 0 ; (i < n_dim && i < (size_t)PMAX) ; ++i)
-        os << "\tparam[" << i << "] = " << param[i] << endl;
+      //for( size_t i = 0 ; (i < n_dim && i < (size_t)PMAX) ; ++i)
+      //os << "\tparam[" << i << "] = " << param[i] << endl;
     }
   };
 
