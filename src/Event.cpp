@@ -25,6 +25,7 @@ void Algo::Event::createBranches(){
   outTree->Branch( "test__n_dim",   &(treeStruct.n_dim), "test__n_dim/i");
   outTree->Branch( "test__dim",     &(treeStruct.dim),   "test__dim[test__n_dim]/i");
   outTree->Branch( "test__param",   &(treeStruct.param), "test__param[test__n_dim]/D");
+  outTree->Branch( "test__obs",     &(treeStruct.obs),   "test__obs[test__n_dim]/D");
 }
 
 

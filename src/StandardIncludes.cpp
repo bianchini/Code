@@ -1,9 +1,10 @@
 #include "interface/StandardIncludes.h"
 
 
-Algo::TransferFunction::TransferFunction(const string& name, const string& form){
+Algo::TransferFunction::TransferFunction(const string& name, const string& form, const int verb){
   formula = form;
   f       = new TFormula(name.c_str(), formula.c_str());
+  verbose = verb;
 }
 
 Algo::TransferFunction::~TransferFunction(){
@@ -16,7 +17,60 @@ const string Algo::TransferFunction::getFormula() const {
 }
 
 double Algo::TransferFunction::eval(const double& rec, const double& gen) const {
-  return f->Eval(rec,gen);
+  double val{1.0};
+  val *= get_pdfs();
+  val *= f->Eval(rec,gen);
+  return val;
+}
+
+void Algo::TransferFunction::init_pdf( const string& name, const Object& obj, const char type){
+
+  if( obj.obs.find(name)==obj.obs.end() ){
+    cout << "Algo::TransferFunction::init_pdf(): Observable " << name << " is not available" << endl;
+    return;
+  }
+
+  if( name == "BTAG"){
+
+    if(pdfs.find(name) == pdfs.end()){   
+
+      string param;      
+      switch( type ){
+      case 'u':
+	param = BTAG_U;
+	break;
+      case 'b':
+	param = BTAG_B;
+        break;
+      case 'd':
+	param = BTAG_D;
+	break;
+      default:
+	cout << "Algo::TransferFunction::init_pdf(): Unknow type " << type << endl;
+	return;
+      }
+
+
+      TFormula pdf(("pdf_"+name).c_str(), param.c_str());
+      pdf.SetParameter(0, obj.p4.Pt());
+      pdf.SetParameter(1, TMath::Abs(obj.p4.Eta()));
+      pdfs[name] = pdf.Eval( (obj.obs).find(name)->second );
+      if( verbose>-1 ){
+	cout << "\t\tAlgo::TransferFunction::init_pdf(): init pdf name " << name << " with function: " << endl;
+	cout << "\t\t" << string(pdf.GetExpFormula("p")) << " at x=" << (obj.obs).find(name)->second << " = " <<  pdfs[name] << endl;
+      }
+    }
+  }
+
+  /* implement others here */
+  
+}
+
+double Algo::TransferFunction::get_pdfs() const {
+  double val{1.0};
+  for( map<string,double>::const_iterator pdf = pdfs.begin() ; pdf != pdfs.end() ; ++pdf)
+    val *= pdf->second;
+  return val;    
 }
 
 void Algo::TransferFunction::init(const double* param){
@@ -112,9 +166,9 @@ Algo::METBuilder::~METBuilder() {
 }
 
 
-void Algo::METBuilder::init(const LV& lv) {
-  p4_invisible = lv;
-  tf_met = new TransferFunction("tf_met", TF_MET );
+void Algo::METBuilder::init(const Object& obj) {
+  p4_invisible = obj.p4;
+  tf_met = new TransferFunction("tf_met", TF_MET , verbose);
 }
 
 void Algo::METBuilder::fix_vars(){
@@ -180,30 +234,33 @@ void Algo::TopHadBuilder::print(ostream& os){
 
 
 
-void Algo::TopHadBuilder::init( const FinalState& fs, const LV& lv, const size_t& sz ){
+void Algo::TopHadBuilder::init( const FinalState& fs, const Object& obj, const size_t& sz ){
 
   TransferFunction* tf = nullptr;
 
   switch( fs ){
   case FinalState::TopHad_q:
-    p4_q    = lv;
+    p4_q    = obj.p4;
     index_q = sz;
-    tf = new TransferFunction("tf_q", TF_Q);
-    tf->init( TF_Q_param[Algo::eta_to_bin(lv)] );
+    tf = new TransferFunction("tf_q", TF_Q, verbose);    
+    tf->init( TF_Q_param[Algo::eta_to_bin(obj.p4)] );
+    if( obj.obs.find("BTAG")!=obj.obs.end() ) tf->init_pdf( "BTAG", obj, 'u' );    
     tf_q    = tf;
     break;
   case FinalState::TopHad_qbar:
-    p4_qbar    = lv;
+    p4_qbar    = obj.p4;
     index_qbar = sz;
-    tf = new TransferFunction("tf_qbar", TF_Q);
-    tf->init( TF_Q_param[Algo::eta_to_bin(lv)] );
+    tf = new TransferFunction("tf_qbar", TF_Q , verbose);
+    tf->init( TF_Q_param[Algo::eta_to_bin(obj.p4)] );
+    if( obj.obs.find("BTAG")!=obj.obs.end() ) tf->init_pdf( "BTAG", obj, 'd' );
     tf_qbar    = tf;
     break;
   case FinalState::TopHad_b:
-    p4_b    = lv;
+    p4_b    = obj.p4;
     index_b = sz;
-    tf = new TransferFunction("tf_b", TF_B);
-    tf->init( TF_B_param[Algo::eta_to_bin(lv)] );
+    tf = new TransferFunction("tf_b", TF_B , verbose);
+    tf->init( TF_B_param[Algo::eta_to_bin(obj.p4)] );
+    if( obj.obs.find("BTAG")!=obj.obs.end() ) tf->init_pdf( "BTAG", obj, 'b' );
     tf_b    = tf;
     break;
   default:
@@ -327,23 +384,25 @@ void Algo::WHadBuilder::print(ostream& os){
 
 
 
-void Algo::WHadBuilder::init( const FinalState& fs, const LV& lv, const size_t& sz ){
+void Algo::WHadBuilder::init( const FinalState& fs, const Object& obj, const size_t& sz ){
 
   TransferFunction* tf = nullptr;
 
   switch( fs ){
   case FinalState::WHad_q:
-    p4_q    = lv;
+    p4_q    = obj.p4;
     index_q = sz;
-    tf = new TransferFunction("tf_q", TF_Q);
-    tf->init( TF_Q_param[Algo::eta_to_bin(lv)] );
+    tf = new TransferFunction("tf_q", TF_Q , verbose);
+    tf->init( TF_Q_param[Algo::eta_to_bin(obj.p4)] );
+    if( obj.obs.find("BTAG")!=obj.obs.end() ) tf->init_pdf( "BTAG", obj, 'u' );
     tf_q    = tf;
     break;
   case FinalState::WHad_qbar:
-    p4_qbar    = lv;
+    p4_qbar    = obj.p4;
     index_qbar = sz;
-    tf = new TransferFunction("tf_qbar", TF_Q);
-    tf->init( TF_Q_param[Algo::eta_to_bin(lv)] );
+    tf = new TransferFunction("tf_qbar", TF_Q , verbose);
+    tf->init( TF_Q_param[Algo::eta_to_bin(obj.p4)] );
+    if( obj.obs.find("BTAG")!=obj.obs.end() ) tf->init_pdf( "BTAG", obj, 'd' );
     tf_qbar    = tf;
     break;
   default:
@@ -414,23 +473,25 @@ void Algo::HiggsBuilder::print(ostream& os){
 
 
 
-void Algo::HiggsBuilder::init( const FinalState& fs, const LV& lv, const size_t& sz ){
+void Algo::HiggsBuilder::init( const FinalState& fs, const Object& obj, const size_t& sz ){
 
   TransferFunction* tf = nullptr;
 
   switch( fs ){
   case FinalState::Higgs_b:
-    p4_b    = lv;
+    p4_b    = obj.p4;
     index_b = sz;
-    tf = new TransferFunction("tf_b", TF_B);
-    tf->init( TF_B_param[Algo::eta_to_bin(lv)] );
+    tf = new TransferFunction("tf_b", TF_B , verbose);
+    tf->init( TF_B_param[Algo::eta_to_bin(obj.p4)] );
+    if( obj.obs.find("BTAG")!=obj.obs.end() ) tf->init_pdf( "BTAG", obj, 'b' );
     tf_b    = tf;
     break;
   case FinalState::Higgs_bbar:
-    p4_bbar    = lv;
+    p4_bbar    = obj.p4;
     index_bbar = sz;
-    tf = new TransferFunction("tf_bbar", TF_B);
-    tf->init( TF_B_param[Algo::eta_to_bin(lv)] );
+    tf = new TransferFunction("tf_bbar", TF_B , verbose);
+    tf->init( TF_B_param[Algo::eta_to_bin(obj.p4)] );
+    if( obj.obs.find("BTAG")!=obj.obs.end() ) tf->init_pdf( "BTAG", obj, 'b' );
     tf_bbar    = tf;
     break;
   default:
@@ -551,20 +612,21 @@ void Algo::TopLepBuilder::print(ostream& os){
 
 
 
-void Algo::TopLepBuilder::init( const FinalState& fs, const LV& lv, const size_t& sz ){
+void Algo::TopLepBuilder::init( const FinalState& fs, const Object& obj, const size_t& sz ){
 
   TransferFunction* tf = nullptr;
 
   switch( fs ){
   case FinalState::TopLep_l:
-    p4_l    = lv;
+    p4_l    = obj.p4;
     index_l = sz;
     break;
   case FinalState::TopLep_b:
-    p4_b    = lv;
+    p4_b    = obj.p4;
     index_b = sz;
-    tf = new TransferFunction("tf_b", TF_B);
-    tf->init( TF_B_param[Algo::eta_to_bin(lv)] );
+    tf = new TransferFunction("tf_b", TF_B , verbose);
+    tf->init( TF_B_param[Algo::eta_to_bin(obj.p4)] );
+    if( obj.obs.find("BTAG")!=obj.obs.end() ) tf->init_pdf( "BTAG", obj, 'b' );
     tf_b    = tf;
     break;
   default:
@@ -665,16 +727,22 @@ double Algo::TopLepBuilder::eval( const double *xx, LV& invisible ) {
 
 
 Algo::RadiationBuilder::RadiationBuilder () {
-  decay   = Decay::Radiation;
+  decay   = Decay::Radiation_q;
   tf_g    = nullptr;
   verbose = 0;
 };
 
 Algo::RadiationBuilder::RadiationBuilder (const int& verb) {
-  decay   = Decay::Radiation;
+  decay   = Decay::Radiation_q;
   tf_g    = nullptr;
   verbose = verb;
 };
+
+Algo::RadiationBuilder::RadiationBuilder (const int& verb, const Decay& type) { 
+  decay   = type;
+  tf_g    = nullptr; 
+  verbose = verb;  
+}; 
 
 Algo::RadiationBuilder::~RadiationBuilder() {
   if(VERBOSE) cout << "Destroy RadiationBuilder" << endl;
@@ -683,21 +751,30 @@ Algo::RadiationBuilder::~RadiationBuilder() {
 
 void Algo::RadiationBuilder::print(ostream& os){
   os << "\t\t\tDecay: " << Algo::translateDecay(decay) << endl; 
-  os << "\t\t\tq    [" << index_g    << "]: p4 = (" << p4_g.Pt() << ", " << p4_g.Eta()  << ", " << p4_g.Phi() << ", " << p4_g.M() << ")" << endl; 
-  if(tf_g!=nullptr)    os << "\t\t\tTF g   : " << tf_g->getFormula() << endl;
+  os << "\t\t\t" << (decay==Decay::Radiation_q ? "q" : "b") << "    [" << index_g    << "]: p4 = (" << p4_g.Pt() << ", " << p4_g.Eta()  << ", " << p4_g.Phi() << ", " << p4_g.M() << ")" << endl; 
+  if(tf_g!=nullptr)    os << "\t\t\tTF " << (decay==Decay::Radiation_q ? "q" : "b") << "   : " << tf_g->getFormula() << endl;
 }
 
 
-void Algo::RadiationBuilder::init( const FinalState& fs, const LV& lv, const size_t& sz ){
+void Algo::RadiationBuilder::init( const FinalState& fs, const Object& obj, const size_t& sz ){
 
   TransferFunction* tf = nullptr;
 
   switch( fs ){
   case FinalState::Radiation_q:
-    p4_g    = lv;
+    p4_g    = obj.p4;
     index_g = sz;
-    tf = new TransferFunction("tf_g", TF_Q);
-    tf->init( TF_Q_param[Algo::eta_to_bin(lv)] );
+    tf = new TransferFunction("tf_q", TF_Q , verbose);
+    tf->init( TF_Q_param[Algo::eta_to_bin(obj.p4)] );
+    if( obj.obs.find("BTAG")!=obj.obs.end() ) tf->init_pdf( "BTAG", obj, 'd' );
+    tf_g    = tf;
+    break;
+  case FinalState::Radiation_b:
+    p4_g    = obj.p4;
+    index_g = sz;
+    tf = new TransferFunction("tf_b", TF_B , verbose);
+    tf->init( TF_B_param[Algo::eta_to_bin(obj.p4)] );
+    if( obj.obs.find("BTAG")!=obj.obs.end() ) tf->init_pdf( "BTAG", obj, 'b' );
     tf_g    = tf;
     break;
   default:

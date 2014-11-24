@@ -11,7 +11,8 @@ Algo::HypoTester::HypoTester(){
   count_TopHad      = 0;
   count_TopLep      = 0;
   count_Higgs       = 0;
-  count_Radiation   = 0;
+  count_Radiation_q = 0;
+  count_Radiation_b = 0;
   invisible         = 0;
   verbose           = 0;
   event             = nullptr;
@@ -27,7 +28,8 @@ Algo::HypoTester::HypoTester(TTree* t){
   count_TopHad      = 0;
   count_TopLep      = 0;
   count_Higgs       = 0;
-  count_Radiation   = 0;
+  count_Radiation_q = 0;
+  count_Radiation_b = 0;
   invisible         = 0;
   verbose           = 0;
 
@@ -47,9 +49,9 @@ Algo::HypoTester::~HypoTester(){
 
 void Algo::HypoTester::push_back_object( const LV& p4, char type ){
 
-  Object obj;
-  obj.init( p4 );
-
+  Algo::Object obj;
+  obj.init( p4, type );
+  
   switch( type ){
   case 'j':
     p4_Jet.push_back( obj ); 
@@ -118,15 +120,16 @@ void Algo::HypoTester::reset(){
   decays.clear();
   particles.clear();
   permutations.clear();
-  nParam_j        = 0;
-  nParam_n        = 0;
-  count_perm      = 0;
-  count_TopHad    = 0;
-  count_WHad      = 0;
-  count_TopLep    = 0;
-  count_Higgs     = 0;
-  count_Radiation = 0;
-  invisible       = 0;
+  nParam_j          = 0;
+  nParam_n          = 0;
+  count_perm        = 0;
+  count_TopHad      = 0;
+  count_WHad        = 0;
+  count_TopLep      = 0;
+  count_Higgs       = 0;
+  count_Radiation_b = 0;
+  count_Radiation_q = 0;
+  invisible         = 0;
 }
 
 void Algo::HypoTester::next_event(){
@@ -152,7 +155,8 @@ void Algo::HypoTester::unpack_assumptions(){
   count_WHad        = 0;
   count_TopLep      = 0;
   count_Higgs       = 0;
-  count_Radiation   = 0;
+  count_Radiation_q = 0;
+  count_Radiation_b = 0;
 
   for( auto decay : decays ){
 
@@ -192,10 +196,17 @@ void Algo::HypoTester::unpack_assumptions(){
      if(verbose>0){ cout << "\tAdded Higgs" << endl; }
      break;
 
-   case Algo::Decay::Radiation:
-     particles.push_back( make_pair( FinalState::Radiation_q,   count_Radiation) );
-     if(verbose>0){ cout << "\tAdded Radiation" << endl; }
-     ++count_Radiation;
+   case Algo::Decay::Radiation_q:
+     particles.push_back( make_pair( FinalState::Radiation_q,   count_Radiation_q) );
+     if(verbose>0){ cout << "\tAdded Radiation (q)" << endl; }
+     ++count_Radiation_q;
+     nParam_j += 1;
+     break;
+
+   case Algo::Decay::Radiation_b:
+     particles.push_back( make_pair( FinalState::Radiation_b,   count_Radiation_b) );
+     if(verbose>0){ cout << "\tAdded Radiation (b)" << endl; }
+     ++count_Radiation_b;
      nParam_j += 1;
      break;
 
@@ -211,9 +222,9 @@ void Algo::HypoTester::unpack_assumptions(){
 
     size_t addradiation = p4_Jet.size()-particles.size();
     while( addradiation > 0){
-      particles.push_back( make_pair( FinalState::Radiation_q,   count_Radiation) );
-      if(verbose>0){ cout << "\tAdded Radiation" << endl; }
-      ++count_Radiation;
+      particles.push_back( make_pair( FinalState::Radiation_q,   count_Radiation_q) );
+      if(verbose>0){ cout << "\tAdded Radiation (q)" << endl; }
+      ++count_Radiation_q;
       nParam_j += 1;
       --addradiation;
     }
@@ -230,7 +241,7 @@ void Algo::HypoTester::init(){
   if(verbose>2){ cout << "HypoTester::init()" << endl; }
 
   // first, unpack assumptions
-  this->unpack_assumptions();
+  unpack_assumptions();
 
   // number of jets at least as large as num of quarks
   assert( particles.size()<=p4_Jet.size() );
@@ -318,7 +329,7 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
     for( auto part : particles ){
 
       if( part.second == t_had )  
-	topHad->init( part.first, p4_Jet[pos].p4 , pos );
+	topHad->init( part.first, p4_Jet[pos] , pos );
       ++pos;
     }
 
@@ -337,7 +348,7 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
     for( auto part : particles ){
       
       if( part.second == w_had ) 
-	wHad->init( part.first, p4_Jet[pos].p4 , pos );
+	wHad->init( part.first, p4_Jet[pos] , pos );
       ++pos;
     }
 
@@ -352,13 +363,13 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
 
     Algo::TopLepBuilder* topLep = new Algo::TopLepBuilder(verbose);
     
-    topLep->init( FinalState::TopLep_l , p4_Lepton[t_lep].p4 , t_lep + nParam_j );
+    topLep->init( FinalState::TopLep_l , p4_Lepton[t_lep] , t_lep + nParam_j );
 
     size_t pos = 0;
     for( auto part : particles ){
 
       if( part.second == t_lep ) 
-	topLep->init( part.first, p4_Jet[pos].p4 , pos );
+	topLep->init( part.first, p4_Jet[pos] , pos );
       ++pos;
     }
 
@@ -369,17 +380,17 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
 
 
   //  get all radiation
-  for( size_t r_had = 0; r_had < count_Radiation; ++r_had ){
+  for( size_t r_had_q = 0; r_had_q < count_Radiation_q; ++r_had_q ){
     
-    if(verbose>1) cout << "\tProcessing " << r_had << "th Radiaton" << endl;
+    if(verbose>1) cout << "\tProcessing " << r_had_q << "th Radiaton (q)" << endl;
 
-    Algo::RadiationBuilder* rad = new Algo::RadiationBuilder(verbose);
+    Algo::RadiationBuilder* rad = new Algo::RadiationBuilder(verbose, Decay::Radiation_q);
     
     size_t pos = 0;
     for( auto part : particles ){
 
-      if( part.second == r_had )  
-	rad->init( part.first, p4_Jet[pos].p4 , pos );
+      if( part.second == r_had_q )  
+	rad->init( part.first, p4_Jet[pos] , pos );
       ++pos;
     }
 
@@ -387,6 +398,24 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
 
   }
 
+  //  get all radiation                                                                                                                               
+  for( size_t r_had_b = 0; r_had_b < count_Radiation_b; ++r_had_b ){
+
+    if(verbose>1) cout << "\tProcessing " << r_had_b << "th Radiaton (b)" << endl;
+
+    Algo::RadiationBuilder* rad = new Algo::RadiationBuilder(verbose, Decay::Radiation_b);
+
+    size_t pos = 0;
+    for( auto part : particles ){
+
+      if( part.second == r_had_b )
+        rad->init( part.first, p4_Jet[pos] , pos );
+      ++pos;
+    }
+
+    decayed.push_back( rad );
+
+  }
 
   // get all hadronically decaying higgs
   for( size_t higgs = 0; higgs < count_Higgs; ++higgs ){
@@ -399,7 +428,7 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
     for( auto part : particles ){
       
       if( part.second == higgs ) 
-	hig->init( part.first, p4_Jet[pos].p4 , pos );
+	hig->init( part.first, p4_Jet[pos] , pos );
       ++pos;
     }
 
@@ -416,14 +445,14 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
 
     Algo::METBuilder* met = new Algo::METBuilder(verbose);
     assert( p4_MET.size()>0 );
-    met->init( p4_MET[0].p4 );
+    met->init( p4_MET[0] );
     decayed.push_back( met );
   }
   // if there are not invisible particles, but MET is an input, eval MET tf at (0.,0.)                                                      
   else if( p4_MET.size()>0 ){
 
     Algo::METBuilder* met = new Algo::METBuilder(verbose);
-    met->init( p4_MET[0].p4 );
+    met->init( p4_MET[0] );
     met->fix_vars();
     decayed.push_back( met );
   }
@@ -445,6 +474,8 @@ void Algo::HypoTester::run(){
   ROOT::Math::Functor f0( this , &Algo::HypoTester::eval, nParam_j + nParam_n); 
   minimizer->SetFunction(f0);
 
+  size_t count_param{0};
+
   for( size_t p = 0 ; p < nParam_j ; p++){
     char name[6];
     sprintf(name, "j%lu", p);
@@ -459,6 +490,8 @@ void Algo::HypoTester::run(){
     if(verbose>2)
       printf("\tParam[%lu] = %s set to %.0f. Range: [%.0f,%.0f]\n", p,name, inVal, inVal_lo, inVal_hi );
     
+    event->treeStruct.obs[ count_param ] = inVal;
+    ++count_param;
   }
 
   for( size_t p = 0 ; p < nParam_n ; p++){
@@ -486,15 +519,21 @@ void Algo::HypoTester::run(){
     if(verbose>2)
       printf("\tParam[%lu] = %s set to %.0f. Range: [%.2f,%.2f]\n", nParam_j+p,name, inVal, inVal_lo, inVal_hi );
     
+    event->treeStruct.obs[ count_param ] =  (p%2==0 ? p4_MET[0].p4.Phi() : TMath::Cos(p4_MET[0].p4.Theta()) );
+    ++count_param;
   }
   
   // minimie nll
   minimizer->Minimize(); 
 
   // get the result
-  double nll  = minimizer->MinValue();
+  double nll        = minimizer->MinValue();
   const size_t ndim = minimizer->NDim();
  
+  // sanity check
+  assert( ndim==count_param );
+
+  // get the results
   const double *xs = minimizer->X();
 
   if(verbose>-1){
@@ -595,7 +634,7 @@ void Algo::HypoTester::print(ostream& os){
   os << " -Partons:" << endl;
   int count_all = 0;  
   for( auto particle : particles ){
-    os << "\t" << particle.first << " (x" << particle.second << ")" << endl;
+    os << "\t" << static_cast<int>(particle.first) << " (x" << particle.second << ")" << endl;
     ++count_all;
   }
   os << "\tTotal = " << count_all << " partons" << endl;

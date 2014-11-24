@@ -118,7 +118,7 @@ int main(int argc, char *argv[]){
 
       map<string, vector<Algo::Decay> > hypotheses;
       hypotheses["H0"] = {Algo::Decay::TopHad, Algo::Decay::TopLep};
-      hypotheses["H1"] = {Algo::Decay::TopLep, Algo::Decay::Radiation, Algo::Decay::Radiation, Algo::Decay::Radiation};
+      hypotheses["H1"] = {Algo::Decay::TopLep, Algo::Decay::Radiation_q, Algo::Decay::Radiation_q, Algo::Decay::Radiation_q};
       if(verbose>0) tester->print(cout);
       tester->test( hypotheses );
     }
@@ -137,7 +137,7 @@ int main(int argc, char *argv[]){
 
       map<string, vector<Algo::Decay> > hypotheses;
       hypotheses["H0"] = {Algo::Decay::TopHad, Algo::Decay::Higgs};
-      hypotheses["H1"] = {Algo::Decay::TopHad, Algo::Decay::Radiation, Algo::Decay::Radiation};
+      hypotheses["H1"] = {Algo::Decay::TopHad, Algo::Decay::Radiation_q, Algo::Decay::Radiation_q};
       if(verbose>0) tester->print(cout);
       tester->test( hypotheses );
     }

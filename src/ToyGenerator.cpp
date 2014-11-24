@@ -143,10 +143,15 @@ void Algo::ToyGenerator::generate_hypo( vector<pair<char,TLorentzVector>>& out, 
     out.push_back( make_pair('b', p4_bh) );
     out.push_back( make_pair('b', p4_bbarh) );
     break;
-  case Decay::Radiation:
+  case Decay::Radiation_q:
     if(smear) 
       smear_by_TF(p4_q, 'q');
     out.push_back( make_pair('q', p4_q) );
+    break;
+  case Decay::Radiation_b:
+    if(smear)
+      smear_by_TF(p4_b, 'b');
+    out.push_back( make_pair('b', p4_b) );
     break;
   default:
     break;
@@ -175,7 +180,7 @@ void Algo::ToyGenerator::smear_by_TF(TLorentzVector& lv, char type){
     break;
   }
 
-  TransferFunction tf("tf", func); 
+  TransferFunction tf("tf", func, verbose); 
 
   if(type=='q' || type=='b'){
 
