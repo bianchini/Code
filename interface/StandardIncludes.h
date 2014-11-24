@@ -16,17 +16,23 @@ namespace Algo {
   class TransferFunction  {
     
   public:
-    TransferFunction(const string&, const string&);
+    TransferFunction(const string&, const string&, const int);
     ~TransferFunction();
     void init(const double*);
     const string getFormula() const; 
-    double eval (const double& , const double&) const ;
+    double eval    (const double& , const double&) const ;
+    void   init_pdf(const string&, const Object&, const char);
+    double get_pdfs() const;
   private:
     string formula;
     TFormula* f;
+    map<string,double> pdfs;
+    int verbose;
   };
   
   
+
+
   class DecayBuilder {
   public:
     virtual ~DecayBuilder() {};
@@ -57,7 +63,7 @@ namespace Algo {
     METBuilder();
     METBuilder(const int&);
     ~METBuilder();
-    void init(const LV&);
+    void init(const Object&);
     double eval (  const double* , LV& );
     void fix_vars();
     void print(ostream&);   
@@ -76,7 +82,7 @@ namespace Algo {
     TopHadBuilder();
     TopHadBuilder(const int&);
     ~TopHadBuilder();
-    void init(const FinalState& , const LV&, const size_t&);
+    void init(const FinalState& , const Object&, const size_t&);
     double eval ( const double* , LV&) ;
     void print(ostream&);     
     
@@ -103,7 +109,7 @@ namespace Algo {
     WHadBuilder();
     WHadBuilder(const int&);
     ~WHadBuilder();
-    void init(const FinalState& , const LV&, const size_t&);
+    void init(const FinalState& , const Object&, const size_t&);
     double eval ( const double* , LV&) ;
     void print(ostream&);     
     
@@ -127,7 +133,7 @@ namespace Algo {
     TopLepBuilder();
     TopLepBuilder(const int&);
     ~TopLepBuilder();
-    void init(const FinalState& , const LV&, const size_t&);
+    void init(const FinalState& , const Object&, const size_t&);
     double eval ( const double* , LV&) ;
     void print(ostream&);     
     
@@ -150,8 +156,9 @@ namespace Algo {
   public:
     RadiationBuilder();
     RadiationBuilder(const int&);
+    RadiationBuilder(const int&, const Decay&);
     ~RadiationBuilder();
-    void init(const FinalState& , const LV&, const size_t&);
+    void init(const FinalState& , const Object&, const size_t&);
     double eval ( const double* , LV&) ;
     void print(ostream&);     
     
@@ -170,7 +177,7 @@ namespace Algo {
     HiggsBuilder();
     HiggsBuilder(const int&);
     ~HiggsBuilder();
-    void init(const FinalState& , const LV&, const size_t&);
+    void init(const FinalState& , const Object&, const size_t&);
     double eval ( const double* , LV&) ;
     void print(ostream&);     
     

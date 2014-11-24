@@ -15,6 +15,7 @@ namespace Algo {
     size_t n_dim;
     size_t dim  [HMAX];
     double param[PMAX];
+    double obs  [PMAX];
     void print(ostream& os){
       os << "TreeStruct contains: " << endl;
       os << "\tn_h   = " << n_h << endl;
@@ -25,7 +26,9 @@ namespace Algo {
 	os << "\t\tnll[" << i << "] = " << nll[i];
 	os << ", dim[" << i << "] = " << dim[i] << endl;
 	for(size_t j = 0 ; j < dim[i] ; ++j){	  
-	  os << "\t\tparam[" << j << "] = " << param[it_p] << endl; 
+	  os << "\t\tparam[" << j << "] = " 
+	     << param[it_p] << "  obs[" << j << "] = " << obs[it_p]
+	     << endl; 
 	  ++it_p;
 	}
       }

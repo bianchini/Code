@@ -15,29 +15,6 @@ namespace Algo {
     
   public:
    
-    struct Object {
-      
-      LV p4;                   // the four momentum
-      map<string,double> obs;  // observables
-      
-      void init(const LV& p){
-	p4 = p;      
-      }
-      
-      void addObs(const string& name, double val){
-	obs.insert( make_pair(name, val) );
-      }
-      
-    };
-
-    // compare hypos
-    struct CompFinalState {
-      bool operator()(pair<FinalState,size_t> a, pair<FinalState,size_t> b){
-	return (a.first>b.first) || (a.first==b.first && a.second>b.second);
-      }
-    } MyComp;
-
-
     // constructor
     HypoTester();
     
@@ -91,9 +68,9 @@ namespace Algo {
 
     ROOT::Math::Minimizer* minimizer;     
 
-    vector<Object> p4_Jet;  
-    vector<Object> p4_Lepton;  
-    vector<Object> p4_MET;  
+    vector<Algo::Object> p4_Jet;  
+    vector<Algo::Object> p4_Lepton;  
+    vector<Algo::Object> p4_MET;  
 
     vector<Decay> decays;
     vector<pair<FinalState,size_t>> particles;
@@ -109,13 +86,15 @@ namespace Algo {
     size_t count_WHad;
     size_t count_TopLep;
     size_t count_Higgs;
-    size_t count_Radiation;
+    size_t count_Radiation_q;
+    size_t count_Radiation_b;
     size_t invisible;
 
     int verbose;
 
     Event* event;
 
+    CompFinalState MyComp;
 
   };
 
