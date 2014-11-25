@@ -16,12 +16,12 @@ Algo::ToyGenerator::~ToyGenerator(){
   delete ran;
 }
 
-vector<pair<char,TLorentzVector>> Algo::ToyGenerator::generate( const vector<Decay>& decays, const int& smear){
-
-  vector<pair<char,TLorentzVector>> output;
+vector<Algo::Object> Algo::ToyGenerator::generate( const vector<Decay>& decays, const int& smear, const int& btag){
+  
+  vector<Algo::Object> output;
 
   for( auto decay : decays ){
-    generate_hypo( output, decay, smear);
+    generate_hypo( output, decay, smear, btag);
   }
 
   return output;
@@ -29,7 +29,7 @@ vector<pair<char,TLorentzVector>> Algo::ToyGenerator::generate( const vector<Dec
 }
 
 
-void Algo::ToyGenerator::generate_hypo( vector<pair<char,TLorentzVector>>& out, Decay type, const int& smear ){
+void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, const int& smear, const int& btag ){
   
   double pt_top  = 20.;
   double eta_top = ran->Uniform(-2.5,2.5);
@@ -107,58 +107,106 @@ void Algo::ToyGenerator::generate_hypo( vector<pair<char,TLorentzVector>>& out, 
     cout << "Higgs Pz = " << (p4_bh + p4_bbarh ).Pz() << " (" << p4_h.Pz() << ")" << endl;
   }
 
+  // at most three outputs
+  Algo::Object out1, out2, out3; 
+
   switch(type){
+
   case Decay::TopHad:
     if(smear){
-      smear_by_TF(p4_b,   'b');
       smear_by_TF(p4_q,   'q');
       smear_by_TF(p4_qbar,'q');
+      smear_by_TF(p4_b,   'b');
     }
-    out.push_back( make_pair('b', p4_b) );
-    out.push_back( make_pair('q', p4_q) );
-    out.push_back( make_pair('q', p4_qbar) );
+    out1.init(p4_q,    'q');
+    out2.init(p4_qbar, 'q');
+    out3.init(p4_b,    'b');
+    if(btag){
+      assign_rnd_btag( Algo::QuarkTypeUp,     out1 );
+      assign_rnd_btag( Algo::QuarkTypeDown,   out2 );
+      assign_rnd_btag( Algo::QuarkTypeBottom, out3 );
+    }
+    out.push_back( out1 );
+    out.push_back( out2 );
+    out.push_back( out3 );
     break;
   case Decay::TopLep:
     if(smear){
       smear_by_TF(p4_b,   'b');
       smear_by_TF(p4_qbar,'m');
     }
-    out.push_back( make_pair('b', p4_b) );
-    out.push_back( make_pair('l', p4_q) );
-    out.push_back( make_pair('m', p4_qbar) );
+    out1.init( p4_b,    'b');
+    out2.init( p4_q,    'l');
+    out3.init( p4_qbar, 'm');   
+    if(btag){
+      assign_rnd_btag( Algo::QuarkTypeBottom, out1 ); 
+    }
+    out.push_back( out1 );
+    out.push_back( out2 );
+    out.push_back( out3 );
     break;
   case Decay::WHad:
     if(smear){
       smear_by_TF(p4_q,   'q');
       smear_by_TF(p4_qbar,'q');
     }
-    out.push_back( make_pair('q', p4_q) );
-    out.push_back( make_pair('q', p4_qbar) );
+    out1.init( p4_q,    'q');
+    out2.init( p4_qbar, 'q');
+    if(btag){
+      assign_rnd_btag( Algo::QuarkTypeUp,   out1 );
+      assign_rnd_btag( Algo::QuarkTypeDown, out2 );
+    }
+    out.push_back( out1 );
+    out.push_back( out2 );
     break;
   case Decay::Higgs:
     if(smear){
       smear_by_TF(p4_bh,   'b');
       smear_by_TF(p4_bbarh,'b');
     }
-    out.push_back( make_pair('b', p4_bh) );
-    out.push_back( make_pair('b', p4_bbarh) );
+    out1.init( p4_bh,    'b');
+    out2.init( p4_bbarh, 'b');
+    if(btag){
+      assign_rnd_btag( Algo::QuarkTypeBottom,   out1 ); 
+      assign_rnd_btag( Algo::QuarkTypeBottom,   out2 ); 
+    }
+    out.push_back( out1 );
+    out.push_back( out2 );
     break;
   case Decay::Radiation_q:
     if(smear) 
       smear_by_TF(p4_q, 'q');
-    out.push_back( make_pair('q', p4_q) );
+    out1.init( p4_q,    'q');
+    if(btag){
+      assign_rnd_btag( Algo::QuarkTypeDown,   out1 ); 
+    }
+    out.push_back( out1 );
     break;
   case Decay::Radiation_b:
     if(smear)
       smear_by_TF(p4_b, 'b');
-    out.push_back( make_pair('b', p4_b) );
+    out1.init( p4_b,    'b');
+    if(btag){
+      assign_rnd_btag( Algo::QuarkTypeBottom,   out1 ); 
+    }
+    out.push_back( out1 );
     break;
+
   default:
     break;
   }
 
   return;
 }
+
+void Algo::ToyGenerator::assign_rnd_btag( const Algo::QuarkType type, Object& obj){
+  TF1 pdf("pdf_btag", Algo::pdf_btag , 0., 1., 3);
+  pdf.SetParameter(0, static_cast<int>(type) );
+  pdf.SetParameter(1, obj.p4.Pt()  ); 
+  pdf.SetParameter(2, obj.p4.Eta() ); 
+  obj.addObs( "BTAG", pdf.GetRandom() );
+}
+
 
 void Algo::ToyGenerator::smear_by_TF(TLorentzVector& lv, char type){
   

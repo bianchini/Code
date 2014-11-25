@@ -5,6 +5,7 @@
 #include "TVector3.h"
 #include "TTree.h"
 #include "TFormula.h"
+#include "TF1.h"
 #include "TMath.h"
 
 #include<cmath>
@@ -18,10 +19,12 @@
 #include<assert.h>
 #include<memory> 
 #include<limits> 
+#include<chrono>
 
 typedef TLorentzVector LV;
 
 using namespace std;
+using namespace std::chrono;
 
 namespace Algo {
 
@@ -43,57 +46,53 @@ namespace Algo {
       { 0.0e+00, 1.0e+00, 1.3e-01, 1.5e+00, 0.0e+00 }
     };
   const string TF_MET = "TMath::Gaus(x,0.,20, 1)*TMath::Gaus(y,0.,20, 1)";
-  
-  const string BTAG_U = 
-    "([0]>30. && [0]<9999.)&&([1]>=0.0 && [1]< 1.0)*( (x<0.5)*(0.98*0.5 + 0.80*0.5) + (x>0.5)*(0.02*0.5 + 0.20*0.5) )"
-    "+"
-    "([0]>30. && [0]<9999.)&&([1]>=1.0 && [1]< 2.5)*( (x<0.5)*(0.98*0.5 + 0.80*0.5) + (x>0.5)*(0.02*0.5 + 0.20*0.5) )";
-  const string BTAG_B = 
-    "([0]>30. && [0]<9999.)&&([1]>=0.0 && [1]< 1.0)*( (x<0.5)*0.30 + (x>0.5)*0.70 )"
-    "+"
-    "([0]>30. && [0]<9999.)&&([1]>=1.0 && [1]<=2.5)*( (x<0.5)*0.30 + (x>0.5)*0.70 )";
-  const string BTAG_D =
-    "([0]>30. && [0]<9999.)&&([1]>=0.0 && [1]< 1.0)*( (x<0.5)*(0.98*0.5 + 0.98*0.5) + (x>0.5)*(0.02*0.5 + 0.02*0.5) )"
-    "+"
-    "([0]>30. && [0]<9999.)&&([1]>=1.0 && [1]< 2.5)*( (x<0.5)*(0.98*0.5 + 0.98*0.5) + (x>0.5)*(0.02*0.5 + 0.02*0.5) )";
 
+  const double BTAG_Q_param[2][2] = 
+    { {0.98, 0.02},
+      {0.98, 0.02}
+    };
+  const double BTAG_C_param[2][2] = 
+    { {0.80, 0.20},     
+      {0.80, 0.20} 
+    };    
+  const double BTAG_B_param[2][2] =
+     { {0.30, 0.70},
+       {0.30, 0.70}
+     };
 
+  enum QuarkType : int { QuarkTypeUp=0, QuarkTypeDown=1, QuarkTypeBottom=2 };
+
+  double pdf_btag(double*, double*);
+  size_t eta_to_bin( const double& );
   size_t eta_to_bin( const LV& );
  
-  enum class Decay { TopLep, TopHad, WHad, Higgs, Radiation_q, Radiation_b, MET, UNKNOWN };
+  enum class Decay { TopLep, TopHad, WHad, Higgs, Radiation_u, Radiation_d, Radiation_b, Radiation_g, MET, UNKNOWN };
   string translateDecay(Decay&);
-
 
   enum class FinalState { TopLep_l=0, TopLep_b,
       TopHad_q,   TopHad_qbar,  TopHad_b,
       WHad_q,     WHad_qbar,
       Higgs_b, Higgs_bbar,
-      Radiation_q, Radiation_b };
+      Radiation_u, Radiation_d, Radiation_b, Radiation_g };
 
-  // compare hypos                                                                                                                                   
   struct CompFinalState {
     bool operator()(pair<FinalState,size_t> a, pair<FinalState,size_t> b){
       return (a.first>b.first) || (a.first==b.first && a.second>b.second);
     }
   };
   
-  struct Object {
-    
-    LV p4;                   // the four momentum                                                                                                    
-    map<string,double> obs;  // observables                                                                                                          
+  struct Object {   
+    LV p4;
+    map<string,double> obs; 
     char type;
-
-    void init(const LV& p, const char typ){
-      p4   = p;
-      type = typ;
-    }    
-    void addObs(const string& name, double val){
-      obs.insert( make_pair(name, val) );
-    }
-    
+    void init(const LV& p, const char typ)     { p4 = p; type = typ; }    
+    void addObs(const string& name, double val){ obs.insert( make_pair(name, val) ); }    
   };
 
-  bool isSame( const std::vector<std::pair<FinalState,size_t>>&, const std::vector<std::pair<FinalState,size_t>>&);
+  bool isSame( const std::vector<std::pair<FinalState,size_t>>&, 
+	       const std::vector<std::pair<FinalState,size_t>>&);
+
+  enum Strategy : int { FirstTrial=0, Coarser=1 };
 
 }
 

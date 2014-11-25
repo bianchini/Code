@@ -32,11 +32,12 @@ namespace Algo {
     ToyGenerator(const int);
     ToyGenerator(const int, const unsigned int);
     ~ToyGenerator();
-    vector<pair<char,TLorentzVector>> generate( const vector<Decay>& , const int&);
+    vector<Algo::Object> generate( const vector<Algo::Decay>& , const int&, const int&);
 
   private:
     int verbose;
-    void generate_hypo( vector<pair<char,TLorentzVector>>& , Decay, const int&);
+    void generate_hypo( vector<Algo::Object>& , Algo::Decay, const int&, const int&);
+    void assign_rnd_btag( const Algo::QuarkType, Algo::Object&);
     void smear_by_TF( TLorentzVector&, const char);
     TRandom3* ran;
 

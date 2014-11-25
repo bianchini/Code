@@ -7,9 +7,6 @@ using namespace std;
 
 typedef TLorentzVector LV;
 
-
-#define VERBOSE 0
-
 namespace Algo {
 
    
@@ -20,10 +17,10 @@ namespace Algo {
     ~TransferFunction();
     void init(const double*);
     const string getFormula() const; 
-    double eval    (const double& , const double&) const ;
-    void   init_pdf(const string&, const Object&, const char);
-    double get_pdfs() const;
+    double eval       (const double& , const double&) const ;
+    void   add_pdf_obs(const string&, const Object&, const int&);
   private:
+    double get_pdfs() const;
     string formula;
     TFormula* f;
     map<string,double> pdfs;
@@ -159,9 +156,10 @@ namespace Algo {
     RadiationBuilder(const int&, const Decay&);
     ~RadiationBuilder();
     void init(const FinalState& , const Object&, const size_t&);
-    double eval ( const double* , LV&) ;
+    double eval ( const double* , LV&) ;    
     void print(ostream&);     
-    
+    Decay get_decay() const ;
+
   private:
     LV p4_g;
     size_t index_g;

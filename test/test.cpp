@@ -53,11 +53,11 @@ int main(){
 
   map<string, vector<Algo::Decay> > hypotheses;
   hypotheses["H0"] = {Algo::Decay::TopHad};
-  //hypotheses["H1"] = {Algo::Decay::Radiation_q, Algo::Decay::Radiation_q, Algo::Decay::Radiation_q};
+  //hypotheses["H1"] = {Algo::Decay::Radiation_b, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b};
   //hypotheses["H2"] = {Algo::Decay::Radiation_b, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b};
-  //hypotheses["H3"] = {Algo::Decay::Radiation_b, Algo::Decay::Radiation_q, Algo::Decay::Radiation_q};
-  //hypotheses["H4"] = {Algo::Decay::Radiation_b, Algo::Decay::Radiation_b, Algo::Decay::Radiation_q};
-  //hypotheses["H2"] = {Algo::Decay::WHad, Algo::Decay::Radiation_q};
+  //hypotheses["H3"] = {Algo::Decay::Radiation_b, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b};
+  //hypotheses["H4"] = {Algo::Decay::Radiation_b, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b};
+  //hypotheses["H2"] = {Algo::Decay::WHad, Algo::Decay::Radiation_b};
   tester->test( hypotheses );
 
   TFile* fout = new TFile("test/Test.root", "RECREATE");

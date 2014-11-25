@@ -19,6 +19,7 @@ int main(int argc, char *argv[]){
   string fname = "tmp.root";
   int ntoys    = 1;  
   int smear    = 0;
+  int btag     = 0;
   int verbose  = 0;
   int pass     = 0;
   int seed     = 4357; // default seed
@@ -27,6 +28,7 @@ int main(int argc, char *argv[]){
     {"toys",     optional_argument,   0, 't' },
     {"output",   optional_argument,   0, 'o' },
     {"smear",    optional_argument,   0, 'g' },
+    {"btag",     optional_argument,   0, 'b' },
     {"verbose",  optional_argument,   0, 'v' },
     {"seed",     optional_argument,   0, 's' },
     {"pass",     optional_argument,   0, 'p' },
@@ -36,23 +38,25 @@ int main(int argc, char *argv[]){
 
   int long_index  = 0;
   int opt;
-  while ((opt = getopt_long(argc, argv,"t:o:g:v:s:p:h",
+  while ((opt = getopt_long(argc, argv,"t:o:gbv:s:ph",
 			    long_options, &long_index )) != -1) {
     switch (opt) {
     case 't' : ntoys   = atoi(optarg);
       break;
     case 'o' : fname   = string(optarg);
       break;
-    case 'g' : smear   = atoi(optarg);
+    case 'g' : smear   = 1;
+      break;
+    case 'b' : btag    = 1;
       break;
     case 'v' : verbose = atoi(optarg);                                 
       break;  
     case 's' : seed    = atoi(optarg);
       break;
-    case 'p' : pass    = atoi(optarg);
+    case 'p' : pass    = 1;
       break;
     case 'h' :
-      cout << "Usage: toy [-t TOYS] [-o OUTFILENAME.root] [-g SMEAR] [-v VERBOSE] [-s SEED] [-p COUNTIFPASS]" << endl; 
+      cout << "Usage: toy [-t TOYS] [-o OUTFILENAME.root] [-g (smear by TF)] [-b (use btag)] [-v VERBOSE] [-s SEED] [-p (all events passing cuts)]" << endl; 
       return 0;
     case '?':
       cout << "Unknown option " << opt << endl;
@@ -80,8 +84,8 @@ int main(int argc, char *argv[]){
 
   int itoy = 0;
   while( itoy < ntoys ){
-    vector<pair<char,TLorentzVector>> out = 
-      toyGenerator->generate( decays , smear );
+    vector<Algo::Object> out = 
+      toyGenerator->generate( decays , smear, btag );
 
     int count_j = 0;
     int count_l = 0;
@@ -89,36 +93,43 @@ int main(int argc, char *argv[]){
     TLorentzVector invisible(0.,0.,0.,0.);
 
     for( auto fs : out ){
-      if( (fs.first=='q' || fs.first=='b') && fs.second.Pt()>30 && TMath::Abs(fs.second.Eta())<2.5 ) ++count_j;
-      if( fs.first=='l' && fs.second.Pt()>20 && TMath::Abs(fs.second.Eta())<2.5 ) ++count_l;
-      if( fs.first=='m' && fs.second.Pt()>0. ){
-	invisible += fs.second;
+      if( (fs.type=='q' || fs.type=='b') && fs.p4.Pt()>30 && TMath::Abs(fs.p4.Eta())<2.5 ) ++count_j;
+      if( fs.type=='l' && fs.p4.Pt()>20 && TMath::Abs(fs.p4.Eta())<2.5 ) ++count_l;
+      if( fs.type=='m' && fs.p4.Pt()>0. ){
+	invisible += fs.p4;
 	++count_m;
       }
     }
-    cout << "Generate event " << itoy << "/" << ntoys << endl;
-    cout << "\tNumber of jets: " << count_j << endl;
-    cout << "\tNumber of lept: " << count_l << endl;
-    cout << "\tNumber of nus : " << count_m << endl;
+  
+    if(pass==0) cout << "Generate event " << itoy+1 << "/" << ntoys << endl;
+    if(verbose>0){
+      cout << "\tNumber of jets: " << count_j << endl;
+      cout << "\tNumber of lept: " << count_l << endl;
+      cout << "\tNumber of nus : " << count_m << endl;
+    }
 
     // TopHad + TopLep
     if( count_j==4 && count_l==1 && count_m==1 ) {
-      if(pass) ++itoy;
+      if(pass){
+	++itoy;
+	cout << "Generate event " << itoy << "/" << ntoys << endl;
+      }
       
-      // fill jets                                                                                                                      
+      // fill jets                                                                                                             
       for( auto fs : out ){
-	if( (fs.first=='q' || fs.first=='b') && fs.second.Pt()>30 && TMath::Abs(fs.second.Eta())<2.5 ){
-          tester->push_back_object( fs.second  , 'j');
+	if( (fs.type=='q' || fs.type=='b') && fs.p4.Pt()>30 && TMath::Abs(fs.p4.Eta())<2.5 ){
+          tester->push_back_object( fs.p4  , 'j');
+          if(btag) tester->add_object_observables( "BTAG", fs.obs["BTAG"] , 'j');
         }
-	if( fs.first=='m' )
-	  tester->push_back_object( fs.second  , 'm');
-	if( fs.first=='l' )
-	  tester->push_back_object( fs.second  , 'l');
+	if( fs.type=='m' )
+	  tester->push_back_object( fs.p4  , 'm');
+	if( fs.type=='l' )
+	  tester->push_back_object( fs.p4  , 'l');
       }
 
       map<string, vector<Algo::Decay> > hypotheses;
       hypotheses["H0"] = {Algo::Decay::TopHad, Algo::Decay::TopLep};
-      hypotheses["H1"] = {Algo::Decay::TopLep, Algo::Decay::Radiation_q, Algo::Decay::Radiation_q, Algo::Decay::Radiation_q};
+      hypotheses["H1"] = {Algo::Decay::TopLep, Algo::Decay::Radiation_u, Algo::Decay::Radiation_d, Algo::Decay::Radiation_b};
       if(verbose>0) tester->print(cout);
       tester->test( hypotheses );
     }
@@ -126,18 +137,22 @@ int main(int argc, char *argv[]){
 
     // TopHad + WHad
     else if( count_j==5 && count_m==0 && count_l==0) {
-      if(pass) ++itoy;
+      if(pass){
+	++itoy;
+	cout << "Generate event " << itoy << "/" << ntoys << endl;
+      }
 
       // fill jets
       for( auto fs : out ){
-	if( (fs.first=='q' || fs.first=='b') && fs.second.Pt()>30 && TMath::Abs(fs.second.Eta())<2.5 ){
-	  tester->push_back_object( fs.second  , 'j');
+	if( (fs.type=='q' || fs.type=='b') && fs.p4.Pt()>30 && TMath::Abs(fs.p4.Eta())<2.5 ){
+	  tester->push_back_object( fs.p4  , 'j');
+          if(btag) tester->add_object_observables( "BTAG", fs.obs["BTAG"] , 'j');
 	}
       }
 
       map<string, vector<Algo::Decay> > hypotheses;
       hypotheses["H0"] = {Algo::Decay::TopHad, Algo::Decay::Higgs};
-      hypotheses["H1"] = {Algo::Decay::TopHad, Algo::Decay::Radiation_q, Algo::Decay::Radiation_q};
+      hypotheses["H1"] = {Algo::Decay::TopHad, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b};
       if(verbose>0) tester->print(cout);
       tester->test( hypotheses );
     }
@@ -154,7 +169,7 @@ int main(int argc, char *argv[]){
   fout->cd();
   t->Write("", TObject::kOverwrite);
   fout->Close();
-  cout << "ROOT file saved" << endl;
+  if(verbose>0) cout << "ROOT file saved" << endl;
 
   delete toyGenerator;
   delete tester;

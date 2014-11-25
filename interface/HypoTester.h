@@ -29,7 +29,7 @@ namespace Algo {
 
     // add objects observables
     // they will be accessible in the form of a map
-    void add_object_observables ( const string&, const double , char);
+    void add_object_observables ( const string&, const double& , const char);
      
     // add multiple hypotheses
     void test( const map< string,vector<Decay>>& );
@@ -54,6 +54,9 @@ namespace Algo {
 
     // set verbosity
     void set_verbosity(const int&);
+
+    // set minimizer
+    void setup_minimizer( const Algo::Strategy );
 
   private:
 
@@ -86,10 +89,11 @@ namespace Algo {
     size_t count_WHad;
     size_t count_TopLep;
     size_t count_Higgs;
-    size_t count_Radiation_q;
+    size_t count_Radiation_u;
+    size_t count_Radiation_d;
     size_t count_Radiation_b;
+    size_t count_Radiation_g;
     size_t invisible;
-
     int verbose;
 
     Event* event;

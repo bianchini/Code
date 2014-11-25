@@ -11,8 +11,10 @@ Algo::HypoTester::HypoTester(){
   count_TopHad      = 0;
   count_TopLep      = 0;
   count_Higgs       = 0;
-  count_Radiation_q = 0;
+  count_Radiation_u = 0;
+  count_Radiation_d = 0;
   count_Radiation_b = 0;
+  count_Radiation_g = 0;
   invisible         = 0;
   verbose           = 0;
   event             = nullptr;
@@ -28,19 +30,21 @@ Algo::HypoTester::HypoTester(TTree* t){
   count_TopHad      = 0;
   count_TopLep      = 0;
   count_Higgs       = 0;
-  count_Radiation_q = 0;
+  count_Radiation_u = 0;
+  count_Radiation_d = 0;
   count_Radiation_b = 0;
+  count_Radiation_g = 0;
   invisible         = 0;
   verbose           = 0;
 
-  cout << "Creating branches to output file" << endl;
+  cout << "Algo::HypoTester::HypoTester(): Creating branches to output file" << endl;
   event  = new Event(t);
   event->createBranches();
   event->reset();
 }
 
 Algo::HypoTester::~HypoTester(){
-  cout << "Removing HypoTester" << endl;
+  cout << "Algo::HypoTester::~HypoTester(): Removing HypoTester" << endl;
   for( auto perm : permutations ) delete perm;
   //delete minimizer;
   delete event;
@@ -63,13 +67,13 @@ void Algo::HypoTester::push_back_object( const LV& p4, char type ){
     p4_MET.push_back( obj ); 
     break;
   default:
-    cout << "Algo::HypoTester::push_back_object: Unknown type of object added" << endl;
+    cout << "Algo::HypoTester::push_back_object(): Unknown type of object added" << endl;
     break;
   }
 
 }
 
-void Algo::HypoTester::add_object_observables( const string& name, const double val, char type){
+void Algo::HypoTester::add_object_observables( const string& name, const double& val, const char type){
 
   switch( type ){
   case 'j':
@@ -82,7 +86,7 @@ void Algo::HypoTester::add_object_observables( const string& name, const double 
     if(p4_MET.size()>0) (p4_MET.back()).addObs( name, val );
     break;
   default:
-    cout << "Algo::HypoTester::add_object_observables: Unknown type of object added" << endl;
+    cout << "Algo::HypoTester::add_object_observables(): Unknown type of object added" << endl;
     break;
   }
 
@@ -91,13 +95,18 @@ void Algo::HypoTester::add_object_observables( const string& name, const double 
 
 void Algo::HypoTester::test( const map<string, vector<Decay>>& all ){
 
+  // benchmark time
+  auto t0 = high_resolution_clock::now();
+
+  // reset tree
   if(event!=nullptr) event->reset();
 
   // make sure we start from zero
   count_hypo = 0;
   for( auto hypo : all ){
-    cout << "Testing hypothesis " << count_hypo 
-	 << " with name \"" << hypo.first << "\"" << endl;
+    if(verbose>0)
+      cout << "Algo::HypoTester::test(): Testing hypothesis " << count_hypo 
+	   << " with name \"" << hypo.first << "\"" << endl;
     reset();
     for( auto decay : hypo.second ){
       assume( decay );
@@ -107,7 +116,14 @@ void Algo::HypoTester::test( const map<string, vector<Decay>>& all ){
     ++count_hypo;
   }
 
-  if(event!=nullptr) event->fillTree();
+  // stop clock
+  auto t1 = high_resolution_clock::now();
+  if(event!=nullptr){
+    int time_0 = static_cast<int>(duration_cast<milliseconds>(t1-t0).count());
+    event->treeStruct.all_time = time_0; 
+    event->fillTree();
+    if(verbose>0) event->printTree();
+  }
   next_event();
 }
 
@@ -127,8 +143,10 @@ void Algo::HypoTester::reset(){
   count_WHad        = 0;
   count_TopLep      = 0;
   count_Higgs       = 0;
+  count_Radiation_u = 0;
+  count_Radiation_d = 0;
   count_Radiation_b = 0;
-  count_Radiation_q = 0;
+  count_Radiation_g = 0;
   invisible         = 0;
 }
 
@@ -146,7 +164,7 @@ void Algo::HypoTester::assume( Decay decay ){
 
 void Algo::HypoTester::unpack_assumptions(){
 
-  if(verbose>0){ cout << "HypoTester::unpack_assumptions()" << endl; }
+  if(verbose>0){ cout << "Algo::HypoTester::unpack_assumptions()" << endl; }
 
   // reset
   nParam_j          = 0;
@@ -155,8 +173,10 @@ void Algo::HypoTester::unpack_assumptions(){
   count_WHad        = 0;
   count_TopLep      = 0;
   count_Higgs       = 0;
-  count_Radiation_q = 0;
+  count_Radiation_u = 0;
+  count_Radiation_d = 0;
   count_Radiation_b = 0;
+  count_Radiation_g = 0;
 
   for( auto decay : decays ){
 
@@ -196,10 +216,17 @@ void Algo::HypoTester::unpack_assumptions(){
      if(verbose>0){ cout << "\tAdded Higgs" << endl; }
      break;
 
-   case Algo::Decay::Radiation_q:
-     particles.push_back( make_pair( FinalState::Radiation_q,   count_Radiation_q) );
-     if(verbose>0){ cout << "\tAdded Radiation (q)" << endl; }
-     ++count_Radiation_q;
+   case Algo::Decay::Radiation_u:
+     particles.push_back( make_pair( FinalState::Radiation_u,   count_Radiation_u) );
+     if(verbose>0){ cout << "\tAdded Radiation (u)" << endl; }
+     ++count_Radiation_u;
+     nParam_j += 1;
+     break;
+
+   case Algo::Decay::Radiation_d:
+     particles.push_back( make_pair( FinalState::Radiation_d,   count_Radiation_d) );
+     if(verbose>0){ cout << "\tAdded Radiation (d)" << endl; }
+     ++count_Radiation_d;
      nParam_j += 1;
      break;
 
@@ -207,6 +234,13 @@ void Algo::HypoTester::unpack_assumptions(){
      particles.push_back( make_pair( FinalState::Radiation_b,   count_Radiation_b) );
      if(verbose>0){ cout << "\tAdded Radiation (b)" << endl; }
      ++count_Radiation_b;
+     nParam_j += 1;
+     break;
+
+   case Algo::Decay::Radiation_g:
+     particles.push_back( make_pair( FinalState::Radiation_g,   count_Radiation_g) );
+     if(verbose>0){ cout << "\tAdded Radiation (g)" << endl; }
+     ++count_Radiation_g;
      nParam_j += 1;
      break;
 
@@ -222,9 +256,9 @@ void Algo::HypoTester::unpack_assumptions(){
 
     size_t addradiation = p4_Jet.size()-particles.size();
     while( addradiation > 0){
-      particles.push_back( make_pair( FinalState::Radiation_q,   count_Radiation_q) );
-      if(verbose>0){ cout << "\tAdded Radiation (q)" << endl; }
-      ++count_Radiation_q;
+      particles.push_back( make_pair( FinalState::Radiation_g,   count_Radiation_g) );
+      if(verbose>0){ cout << "\tAdded Radiation (g)" << endl; }
+      ++count_Radiation_g;
       nParam_j += 1;
       --addradiation;
     }
@@ -238,7 +272,7 @@ void Algo::HypoTester::unpack_assumptions(){
 
 void Algo::HypoTester::init(){
 
-  if(verbose>2){ cout << "HypoTester::init()" << endl; }
+  if(verbose>2){ cout << "Algo::HypoTester::init()" << endl; }
 
   // first, unpack assumptions
   unpack_assumptions();
@@ -298,142 +332,128 @@ void Algo::HypoTester::init(){
     ++count_perm;
     
   } while ( next_permutation(particles.begin(), particles.end(), MyComp  ) );
-
-
-   cout << "\tTotal of  " << count_perm << " permutations created:" << endl;
-   if(verbose>0) {
-     size_t count = 0;
-     for( auto perm : permutations){
-       cout << "(" << count << ")";
-       perm->print(cout);
-       ++count;
-     }
-   }
-
+  
+  if(verbose>0) {
+    cout << "\tTotal of  " << count_perm << " permutations created:" << endl;
+    size_t count {0};
+    for( auto perm : permutations){
+      cout << "(" << count << ")";
+      perm->print(cout);
+      ++count;
+    }
+  }
+  
 }
 
 
 
 void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
 
-  if(verbose>2){ cout << "HypoTester::group_particles()" << endl; }
+  if(verbose>2){ cout << "Algo::HypoTester::group_particles()" << endl; }
 
   //  get all hadronically decaying tops
   for( size_t t_had = 0; t_had < count_TopHad; ++t_had ){
-
     if(verbose>1) cout << "\tProcessing " << t_had << "th TopHad" << endl;
-
-    Algo::TopHadBuilder* topHad = new Algo::TopHadBuilder(verbose);
-    
+    Algo::TopHadBuilder* topHad = new Algo::TopHadBuilder(verbose);    
     size_t pos = 0;
     for( auto part : particles ){
-
       if( part.second == t_had )  
 	topHad->init( part.first, p4_Jet[pos] , pos );
       ++pos;
     }
-
     decayed.push_back( topHad );
-
   }
 
   // get all hadronically decaying tops
   for( size_t w_had = 0; w_had < count_WHad; ++w_had ){
-
     if(verbose>1) cout << "\tProcessing " << w_had << "th WHad" << endl;
-
-    Algo::WHadBuilder* wHad = new Algo::WHadBuilder(verbose);
-    
+    Algo::WHadBuilder* wHad = new Algo::WHadBuilder(verbose);    
     size_t pos = 0;
-    for( auto part : particles ){
-      
+    for( auto part : particles ){      
       if( part.second == w_had ) 
 	wHad->init( part.first, p4_Jet[pos] , pos );
       ++pos;
     }
-
     decayed.push_back( wHad );
-
   }
 
   //  get all leptonically decaying tops
   for( size_t t_lep = 0; t_lep < count_TopLep; ++t_lep ){
-
     if(verbose>1) cout << "\tProcessing " << t_lep << "th TopLep" << endl;
-
-    Algo::TopLepBuilder* topLep = new Algo::TopLepBuilder(verbose);
-    
+    Algo::TopLepBuilder* topLep = new Algo::TopLepBuilder(verbose);   
     topLep->init( FinalState::TopLep_l , p4_Lepton[t_lep] , t_lep + nParam_j );
-
     size_t pos = 0;
     for( auto part : particles ){
-
       if( part.second == t_lep ) 
 	topLep->init( part.first, p4_Jet[pos] , pos );
       ++pos;
     }
-
-
     decayed.push_back( topLep );
-
   }
 
 
   //  get all radiation
-  for( size_t r_had_q = 0; r_had_q < count_Radiation_q; ++r_had_q ){
-    
-    if(verbose>1) cout << "\tProcessing " << r_had_q << "th Radiaton (q)" << endl;
-
-    Algo::RadiationBuilder* rad = new Algo::RadiationBuilder(verbose, Decay::Radiation_q);
-    
+  for( size_t r_had_u = 0; r_had_u < count_Radiation_u; ++r_had_u ){
+    if(verbose>1) cout << "\tProcessing " << r_had_u << "th Radiaton (u)" << endl;
+    Algo::RadiationBuilder* rad = new Algo::RadiationBuilder(verbose, Decay::Radiation_u);    
     size_t pos = 0;
     for( auto part : particles ){
-
-      if( part.second == r_had_q )  
+      if( part.second == r_had_u && part.first==FinalState::Radiation_u )  
 	rad->init( part.first, p4_Jet[pos] , pos );
       ++pos;
     }
-
     decayed.push_back( rad );
-
   }
 
-  //  get all radiation                                                                                                                               
-  for( size_t r_had_b = 0; r_had_b < count_Radiation_b; ++r_had_b ){
-
-    if(verbose>1) cout << "\tProcessing " << r_had_b << "th Radiaton (b)" << endl;
-
-    Algo::RadiationBuilder* rad = new Algo::RadiationBuilder(verbose, Decay::Radiation_b);
-
+  for( size_t r_had_d = 0; r_had_d < count_Radiation_d; ++r_had_d ){
+    if(verbose>1) cout << "\tProcessing " << r_had_d << "th Radiaton (d)" << endl;
+    Algo::RadiationBuilder* rad = new Algo::RadiationBuilder(verbose, Decay::Radiation_d);
     size_t pos = 0;
     for( auto part : particles ){
-
-      if( part.second == r_had_b )
+      if( part.second == r_had_d && part.first==FinalState::Radiation_d )
         rad->init( part.first, p4_Jet[pos] , pos );
       ++pos;
     }
-
     decayed.push_back( rad );
+  }
 
+
+  //  get all radiation                                                                                                                               
+  for( size_t r_had_b = 0; r_had_b < count_Radiation_b; ++r_had_b ){
+    if(verbose>1) cout << "\tProcessing " << r_had_b << "th Radiaton (b)" << endl;
+    Algo::RadiationBuilder* rad = new Algo::RadiationBuilder(verbose, Decay::Radiation_b);
+    size_t pos = 0;
+    for( auto part : particles ){
+      if( part.second == r_had_b && part.first==FinalState::Radiation_b )
+        rad->init( part.first, p4_Jet[pos] , pos );
+      ++pos;
+    }
+    decayed.push_back( rad );
+  }
+
+  for( size_t r_had_g = 0; r_had_g < count_Radiation_g; ++r_had_g ){
+    if(verbose>1) cout << "\tProcessing " << r_had_g << "th Radiaton (g)" << endl;
+    Algo::RadiationBuilder* rad = new Algo::RadiationBuilder(verbose, Decay::Radiation_g);
+    size_t pos = 0;
+    for( auto part : particles ){
+      if( part.second == r_had_g && part.first==FinalState::Radiation_g )
+        rad->init( part.first, p4_Jet[pos] , pos );
+      ++pos;
+    }
+    decayed.push_back( rad );
   }
 
   // get all hadronically decaying higgs
   for( size_t higgs = 0; higgs < count_Higgs; ++higgs ){
-
     if(verbose>1) cout << "\tProcessing " << higgs << "th Higgs" << endl;
-
-    Algo::HiggsBuilder* hig = new Algo::HiggsBuilder(verbose);
-    
+    Algo::HiggsBuilder* hig = new Algo::HiggsBuilder(verbose);   
     size_t pos = 0;
-    for( auto part : particles ){
-      
+    for( auto part : particles ){      
       if( part.second == higgs ) 
 	hig->init( part.first, p4_Jet[pos] , pos );
       ++pos;
     }
-
     decayed.push_back( hig );
-
   }
 
 
@@ -461,95 +481,140 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
 
 }
 
-void Algo::HypoTester::run(){
 
-  if(verbose>2){ cout << "HypoTester::run()" << endl; }
+void Algo::HypoTester::setup_minimizer( const Algo::Strategy str){
 
-  minimizer =  ROOT::Math::Factory::CreateMinimizer("Minuit2", "");
   minimizer->SetMaxFunctionCalls(1000000);
   minimizer->SetMaxIterations(10000);
   minimizer->SetTolerance(0.001);
   minimizer->SetPrintLevel(0);
 
-  ROOT::Math::Functor f0( this , &Algo::HypoTester::eval, nParam_j + nParam_n); 
-  minimizer->SetFunction(f0);
+  // initial values
+  double step_E  {0.5};
+  double step_Phi{0.1};
+  double step_Cos{0.1};
 
+  // count parameters
   size_t count_param{0};
 
-  for( size_t p = 0 ; p < nParam_j ; p++){
-    char name[6];
-    sprintf(name, "j%lu", p);
+  switch( str ){
+  case Strategy::Coarser :
+    cout << "\t>>> Increase step size x2" << endl;
+    step_E   *= 2;
+    step_Phi *= 2;
+    step_Cos *= 2;
+  case Strategy::FirstTrial:    
 
-    double inVal    {p4_Jet[p].p4.E()};
-    double inVal_lo {0.};
-    double inVal_hi {inVal*3.0};
-    double step     {0.5};
+    for( size_t p = 0 ; p < nParam_j ; p++){
+      char name[6];
+      sprintf(name, "j%lu", p);
+      double inVal    {p4_Jet[p].p4.E()};
+      double inVal_lo {0.};
+      double inVal_hi {inVal*3.0};      
+      minimizer->SetLimitedVariable(p, name, inVal  , step_E, inVal_lo , inVal_hi);
 
-    minimizer->SetLimitedVariable(p, name, inVal  , step, inVal_lo , inVal_hi);
+      if(verbose>2)
+	printf("\tParam[%lu] = %s set to %.0f. Range: [%.0f,%.0f]\n", p,name, inVal, inVal_lo, inVal_hi );      
+      if(event!=nullptr){
+	event->treeStruct.obs     [ event->treeStruct.n_dim + count_param ] = inVal;     
+	event->treeStruct.obs_BTAG[ event->treeStruct.n_dim + count_param ] = 
+	  (p4_Jet[p].obs).find("BTAG")!=(p4_Jet[p].obs).end() ? (p4_Jet[p].obs)["BTAG"] : 0.;  	
+      }
+      ++count_param;
+    }
 
-    if(verbose>2)
-      printf("\tParam[%lu] = %s set to %.0f. Range: [%.0f,%.0f]\n", p,name, inVal, inVal_lo, inVal_hi );
-    
-    event->treeStruct.obs[ count_param ] = inVal;
-    ++count_param;
-  }
-
-  for( size_t p = 0 ; p < nParam_n ; p++){
-
-    char name[6];
-    double inVal, inVal_lo, inVal_hi, step;
-
-    if( p%2==0 ){
+    for( size_t p = 0 ; p < nParam_n ; p++){
+      char name[6];
+      double inVal, inVal_lo, inVal_hi, step;
+      if( p%2==0 ){
       sprintf(name, "phi%lu", p);
       inVal    = p4_MET[0].p4.Phi();
       inVal_lo = -TMath::Pi() ;
       inVal_hi = +TMath::Pi() ;
-      step     = 0.1;     
+      step     = step_Phi;     
     }
     else{
       sprintf(name, "cos%lu", p/2);
       inVal    = 0.;
       inVal_lo = -1. ;
       inVal_hi = +1. ;
-      step     = 0.1;   
+      step     = step_Cos;   
     }
+    minimizer->SetLimitedVariable(nParam_j+p, name,  inVal , step, inVal_lo , inVal_hi);   
 
-    minimizer->SetLimitedVariable(nParam_j+p, name,  inVal , step, inVal_lo , inVal_hi);
-   
     if(verbose>2)
       printf("\tParam[%lu] = %s set to %.0f. Range: [%.2f,%.2f]\n", nParam_j+p,name, inVal, inVal_lo, inVal_hi );
     
-    event->treeStruct.obs[ count_param ] =  (p%2==0 ? p4_MET[0].p4.Phi() : TMath::Cos(p4_MET[0].p4.Theta()) );
+    if(event!=nullptr){
+      event->treeStruct.obs     [ event->treeStruct.n_dim + count_param ] =  
+	(p%2==0 ? p4_MET[0].p4.Phi() : TMath::Cos(p4_MET[0].p4.Theta()) );
+      event->treeStruct.obs_BTAG[ event->treeStruct.n_dim + count_param ] = 0.;
+    }
     ++count_param;
+    }    
+    break;
   }
   
-  // minimie nll
-  minimizer->Minimize(); 
+  // sanity check
+  assert( minimizer->NDim()==count_param );
+}
 
+
+void Algo::HypoTester::run(){
+
+  if(verbose>2){ cout << "Algo::HypoTester::run()" << endl; }
+
+  minimizer =  ROOT::Math::Factory::CreateMinimizer("Minuit2", "");
+  ROOT::Math::Functor f0( this , &Algo::HypoTester::eval, nParam_j + nParam_n); 
+  minimizer->SetFunction(f0);
+
+  // minimize nll
+  setup_minimizer( Strategy::FirstTrial );
+  auto t0 = high_resolution_clock::now();
+  minimizer->Minimize(); 
+  auto t1 = high_resolution_clock::now();  
+
+  if( minimizer->Status()!=0 ){
+    cout << "Minimizer failed with strategy " 
+	 <<  static_cast<int>(Strategy::FirstTrial) 
+	 << ": try with strategy " 
+	 << static_cast<int>(Strategy::Coarser) << endl;
+    setup_minimizer( Strategy::Coarser );
+    t0 = high_resolution_clock::now(); 
+    minimizer->Minimize();
+    t1 = high_resolution_clock::now();
+  }
+
+  int time_0 = static_cast<int>(duration_cast<milliseconds>(t1-t0).count());
+  if(verbose>0){
+    cout << "\tMinimization done in " << time_0 << " msec" << endl;
+  }
+  
   // get the result
   double nll        = minimizer->MinValue();
+  int status        = minimizer->Status();
   const size_t ndim = minimizer->NDim();
- 
-  // sanity check
-  assert( ndim==count_param );
 
   // get the results
   const double *xs = minimizer->X();
 
-  if(verbose>-1){
-    cout << "\tMinimum = " << nll  << endl;
+  if(verbose>0){
+    cout << "\tStatus " << status << ", Minimum = " << nll  << endl;
     for( size_t var = 0 ; var < ndim ; ++var)
       cout << "\tVar[" << var << "] = " << xs[var] << endl;
   }
   
   if(event!=nullptr){
+
     // hypothesis counter
     ++(event->treeStruct.n_h);
 
     // add nll and number of dimension per each hypo
     if(count_hypo<HMAX){
-      event->treeStruct.nll[(size_t)count_hypo] = nll;
-      event->treeStruct.dim[(size_t)count_hypo] = ndim;    
+      event->treeStruct.nll     [(size_t)count_hypo] = nll;
+      event->treeStruct.status  [(size_t)count_hypo] = status;
+      event->treeStruct.min_time[(size_t)count_hypo] = time_0;
+      event->treeStruct.dim     [(size_t)count_hypo] = ndim;    
     }
 
     // add value of parameters per each hypo:
@@ -573,7 +638,7 @@ double Algo::HypoTester::eval(const double* xx){
 
   int count {0};
   for( auto perm : permutations){
-    if(verbose>2) cout << "Eval perm " << count << endl;
+    if(verbose>2) cout << "Algo::HypoTester::eval(): Eval perm " << count << endl;
     val += perm->eval( xx );
     ++count;
   }
@@ -596,7 +661,7 @@ double Algo::HypoTester::eval(const double* xx){
 
 void Algo::HypoTester::print(ostream& os){
 
-  cout << "HypoTester::print()" << endl;
+  cout << "Algo::HypoTester::print()" << endl;
 
   os << " -Content:" << endl;
   os << "\t -jets:" << endl;
