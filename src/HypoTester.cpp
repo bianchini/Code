@@ -615,6 +615,7 @@ void Algo::HypoTester::run(){
       event->treeStruct.status  [(size_t)count_hypo] = status;
       event->treeStruct.min_time[(size_t)count_hypo] = time_0;
       event->treeStruct.dim     [(size_t)count_hypo] = ndim;    
+      event->treeStruct.n_perm  [(size_t)count_hypo] = count_perm;    
     }
 
     // add value of parameters per each hypo:

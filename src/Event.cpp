@@ -29,6 +29,7 @@ void Algo::Event::createBranches(){
   outTree->Branch( "test__nll",       &(treeStruct.nll),       "test__nll[test__n_hyp]/D");
   outTree->Branch( "test__status",    &(treeStruct.status),    "test__status[test__n_hyp]/I");
   outTree->Branch( "test__min_time",  &(treeStruct.min_time),  "test__min_time[test__n_hyp]/I");
+  outTree->Branch( "test__n_perm",    &(treeStruct.n_perm),    "test__n_perm[test__n_hyp]/i");
   outTree->Branch( "test__n_dim",     &(treeStruct.n_dim),     "test__n_dim/i");
   outTree->Branch( "test__dim",       &(treeStruct.dim),       "test__dim[test__n_dim]/i");
   outTree->Branch( "test__param",     &(treeStruct.param),     "test__param[test__n_dim]/D");

@@ -14,6 +14,7 @@ namespace Algo {
     int    status   [HMAX];
     int    min_time [HMAX];
     size_t dim      [HMAX];
+    size_t n_perm   [HMAX];
     double param    [PMAX];
     double obs      [PMAX];
     double obs_BTAG [PMAX];
@@ -29,6 +30,7 @@ namespace Algo {
       for( size_t i = 0 ; (i < n_h && i < (size_t)HMAX) ; ++i){
 	os << "\tHypo " << i << ":" << endl;
 	os << "\t\tstatus[" << i << "] = " << status[i];
+	os << "\t\tn_perm[" << i << "] = " << n_perm[i];
 	os << "\t\tnll[" << i << "] = " << nll[i];
 	os << "\t\tmin_time[" << i << "] = " << min_time[i];
 	os << ", dim[" << i << "] = " << dim[i] << endl;
