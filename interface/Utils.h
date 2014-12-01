@@ -92,7 +92,10 @@ namespace Algo {
   bool isSame( const std::vector<std::pair<FinalState,size_t>>&, 
 	       const std::vector<std::pair<FinalState,size_t>>&);
 
-  enum Strategy : int { FirstTrial=0, Coarser=1 };
+  bool filter_by_btag( const std::vector<std::pair<FinalState,size_t>>&,
+		       const vector<Algo::Object>&  );
+
+  enum Strategy : int { FirstTrial=0, StartFromLastMinimum=1 };
 
 }
 

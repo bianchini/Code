@@ -25,13 +25,14 @@ void Algo::Event::reset(){
 
 void Algo::Event::createBranches(){  
   outTree->Branch( "test__n_hyp",     &(treeStruct.n_h),       "test__n_hyp/i");
+  outTree->Branch( "test__n_dim",     &(treeStruct.n_dim),     "test__n_dim/i");
   outTree->Branch( "test__all_time",  &(treeStruct.all_time),  "test__all_time/I");
   outTree->Branch( "test__nll",       &(treeStruct.nll),       "test__nll[test__n_hyp]/D");
   outTree->Branch( "test__status",    &(treeStruct.status),    "test__status[test__n_hyp]/I");
+  outTree->Branch( "test__strategy",  &(treeStruct.strategy),  "test__strategy[test__n_hyp]/I");
   outTree->Branch( "test__min_time",  &(treeStruct.min_time),  "test__min_time[test__n_hyp]/I");
-  outTree->Branch( "test__n_perm",    &(treeStruct.n_perm),    "test__n_perm[test__n_hyp]/i");
-  outTree->Branch( "test__n_dim",     &(treeStruct.n_dim),     "test__n_dim/i");
-  outTree->Branch( "test__dim",       &(treeStruct.dim),       "test__dim[test__n_dim]/i");
+  outTree->Branch( "test__dim",       &(treeStruct.dim),       "test__dim[test__n_hyp]/I");
+  outTree->Branch( "test__perm",      &(treeStruct.perm),      "test__perm[test__n_hyp]/I");
   outTree->Branch( "test__param",     &(treeStruct.param),     "test__param[test__n_dim]/D");
   outTree->Branch( "test__obs",       &(treeStruct.obs),       "test__obs[test__n_dim]/D");
   outTree->Branch( "test__obs_BTAG",  &(treeStruct.obs_BTAG),  "test__obs_BTAG[test__n_dim]/D");

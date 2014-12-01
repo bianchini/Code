@@ -95,11 +95,14 @@ void Algo::HypoTester::add_object_observables( const string& name, const double&
 
 void Algo::HypoTester::test( const map<string, vector<Decay>>& all ){
 
-  // benchmark time
+  // benchmark time: start clock for global timing
   auto t0 = high_resolution_clock::now();
 
-  // reset tree
   if(event!=nullptr) event->reset();
+
+  // create minimizer once for all hypotheses
+  // the function is however set inside the run() block
+  minimizer =  ROOT::Math::Factory::CreateMinimizer("Minuit2", "");
 
   // make sure we start from zero
   count_hypo = 0;
@@ -148,13 +151,21 @@ void Algo::HypoTester::reset(){
   count_Radiation_b = 0;
   count_Radiation_g = 0;
   invisible         = 0;
+
+  // reset minimzer for recursive minimizations
+  if(minimizer!=nullptr) minimizer->Clear();
+
 }
 
 void Algo::HypoTester::next_event(){
+
   reset();
   p4_Jet.clear();
   p4_Lepton.clear();
   p4_MET.clear();
+
+  // delete the minimizer: no longer needed
+  delete minimizer;
 }
 
 void Algo::HypoTester::assume( Decay decay ){
@@ -272,7 +283,7 @@ void Algo::HypoTester::unpack_assumptions(){
 
 void Algo::HypoTester::init(){
 
-  if(verbose>2){ cout << "Algo::HypoTester::init()" << endl; }
+  if(verbose>0){ cout << "Algo::HypoTester::init()" << endl; }
 
   // first, unpack assumptions
   unpack_assumptions();
@@ -295,7 +306,7 @@ void Algo::HypoTester::init(){
   // bookkeep to remove unnecessary permutations
   vector<vector<std::pair<FinalState,size_t>>> logbook;
 
-  // permutatios using std library
+  // permutations using std library
   do {
     
     // skip unnecessary permutations
@@ -304,9 +315,7 @@ void Algo::HypoTester::init(){
       logbook.push_back(particles);
     else{
       for( auto log : logbook ){
-	if( isSame( log, particles ) ){
-	  skip = true;
-	}
+	if(  isSame        ( log, particles ) ) skip = true;	
       }
       if(!skip) 
 	logbook.push_back(particles);             
@@ -314,8 +323,11 @@ void Algo::HypoTester::init(){
 	if(verbose>2) cout << "\tDo not consider this permutation  " << endl;
 	continue;
       }
-    }
-    
+    }    
+
+    if( !filter_by_btag( particles , p4_Jet ) ) continue;	
+
+    if(verbose>2){ cout << "\tPermutation number " << count_perm << ":" << endl; }
 
     // this vector will contain all blocks 
     // E.g. block = TopHad * TopLep * Rad * Rad * ... * MET
@@ -381,7 +393,7 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
   for( size_t t_lep = 0; t_lep < count_TopLep; ++t_lep ){
     if(verbose>1) cout << "\tProcessing " << t_lep << "th TopLep" << endl;
     Algo::TopLepBuilder* topLep = new Algo::TopLepBuilder(verbose);   
-    topLep->init( FinalState::TopLep_l , p4_Lepton[t_lep] , t_lep + nParam_j );
+    topLep->init( FinalState::TopLep_l , p4_Lepton[t_lep] , 2*t_lep + nParam_j ); // offset
     size_t pos = 0;
     for( auto part : particles ){
       if( part.second == t_lep ) 
@@ -490,31 +502,36 @@ void Algo::HypoTester::setup_minimizer( const Algo::Strategy str){
   minimizer->SetPrintLevel(0);
 
   // initial values
-  double step_E  {0.5};
-  double step_Phi{0.1};
-  double step_Cos{0.1};
+  double step_E  {1.0};
+  double step_Phi{0.2};
+  double step_Cos{0.2};
 
   // count parameters
   size_t count_param{0};
 
   switch( str ){
-  case Strategy::Coarser :
-    cout << "\t>>> Increase step size x2" << endl;
-    step_E   *= 2;
-    step_Phi *= 2;
-    step_Cos *= 2;
+  case Strategy::StartFromLastMinimum:    
+    cout << "\t>>> Start from last minimum";    
   case Strategy::FirstTrial:    
 
     for( size_t p = 0 ; p < nParam_j ; p++){
       char name[6];
       sprintf(name, "j%lu", p);
       double inVal    {p4_Jet[p].p4.E()};
-      double inVal_lo {0.};
+      double inVal_lo {inVal/3.0};
       double inVal_hi {inVal*3.0};      
-      minimizer->SetLimitedVariable(p, name, inVal  , step_E, inVal_lo , inVal_hi);
 
-      if(verbose>2)
-	printf("\tParam[%lu] = %s set to %.0f. Range: [%.0f,%.0f]\n", p,name, inVal, inVal_lo, inVal_hi );      
+      if( !is_variable_used(p) ){
+	minimizer->SetFixedVariable(p, name, inVal);
+	if(verbose>0)
+	  printf("\tParam[%lu] = %s set to FIXED value %.0f\n", p,name, inVal);      
+      }
+      else{
+	minimizer->SetLimitedVariable(p, name, inVal  , step_E, inVal_lo , inVal_hi);
+	if(verbose>0)
+	  printf("\tParam[%lu] = %s set to %.0f. Range: [%.0f,%.0f]\n", p,name, inVal, inVal_lo, inVal_hi );      
+      }
+
       if(event!=nullptr){
 	event->treeStruct.obs     [ event->treeStruct.n_dim + count_param ] = inVal;     
 	event->treeStruct.obs_BTAG[ event->treeStruct.n_dim + count_param ] = 
@@ -524,66 +541,85 @@ void Algo::HypoTester::setup_minimizer( const Algo::Strategy str){
     }
 
     for( size_t p = 0 ; p < nParam_n ; p++){
+
       char name[6];
       double inVal, inVal_lo, inVal_hi, step;
       if( p%2==0 ){
-      sprintf(name, "phi%lu", p);
-      inVal    = p4_MET[0].p4.Phi();
-      inVal_lo = -TMath::Pi() ;
-      inVal_hi = +TMath::Pi() ;
-      step     = step_Phi;     
-    }
-    else{
-      sprintf(name, "cos%lu", p/2);
-      inVal    = 0.;
-      inVal_lo = -1. ;
-      inVal_hi = +1. ;
-      step     = step_Cos;   
-    }
-    minimizer->SetLimitedVariable(nParam_j+p, name,  inVal , step, inVal_lo , inVal_hi);   
-
-    if(verbose>2)
-      printf("\tParam[%lu] = %s set to %.0f. Range: [%.2f,%.2f]\n", nParam_j+p,name, inVal, inVal_lo, inVal_hi );
-    
-    if(event!=nullptr){
-      event->treeStruct.obs     [ event->treeStruct.n_dim + count_param ] =  
-	(p%2==0 ? p4_MET[0].p4.Phi() : TMath::Cos(p4_MET[0].p4.Theta()) );
-      event->treeStruct.obs_BTAG[ event->treeStruct.n_dim + count_param ] = 0.;
-    }
-    ++count_param;
+	sprintf(name, "phi%lu", p);
+	inVal    = p4_MET[0].p4.Phi();
+	inVal_lo = -TMath::Pi() ;
+	inVal_hi = +TMath::Pi() ;
+	step     = step_Phi;     
+      }
+      else{
+	sprintf(name, "cos%lu", p/2);
+	inVal    = 0.;
+	inVal_lo = -1.;
+	inVal_hi = +1.;
+	step     = step_Cos;   
+      }
+      
+      if( !is_variable_used(nParam_j+p) ){
+        minimizer->SetFixedVariable(nParam_j+p, name, inVal );
+	if(verbose>0)
+	  printf("\tParam[%lu] = %s set to FIXED value %.0f\n", nParam_j+p, name, inVal);
+      }
+      else{
+	minimizer->SetLimitedVariable(nParam_j+p, name,  inVal , step, inVal_lo , inVal_hi);   
+	if(verbose>0)
+	  printf("\tParam[%lu] = %s set to %.0f. Range: [%.2f,%.2f]\n", nParam_j+p,name, inVal, inVal_lo, inVal_hi );	
+      }
+      
+      if(event!=nullptr){
+	event->treeStruct.obs     [ event->treeStruct.n_dim + count_param ] =  
+	  (p%2==0 ? p4_MET[0].p4.Phi() : TMath::Cos(p4_MET[0].p4.Theta()) );
+	event->treeStruct.obs_BTAG[ event->treeStruct.n_dim + count_param ] = 0.;
+      }
+      ++count_param;
     }    
+    
+    // sanity check
+    assert( minimizer->NDim()==count_param );
     break;
   }
   
-  // sanity check
-  assert( minimizer->NDim()==count_param );
 }
 
 
 void Algo::HypoTester::run(){
 
-  if(verbose>2){ cout << "Algo::HypoTester::run()" << endl; }
+  if(verbose>0){ cout << "Algo::HypoTester::run()" << endl; }
 
-  minimizer =  ROOT::Math::Factory::CreateMinimizer("Minuit2", "");
+  if(minimizer==nullptr){
+    cout << "\tNullptr for minimizer: run() returns" << endl;
+    return;
+  }
+  if(permutations.size()==0){
+    cout << "\tNo permutations: run() returns" << endl; 
+    return;
+  }
+
   ROOT::Math::Functor f0( this , &Algo::HypoTester::eval, nParam_j + nParam_n); 
   minimizer->SetFunction(f0);
 
+  Strategy strategy = Strategy::FirstTrial;
+
   // minimize nll
-  setup_minimizer( Strategy::FirstTrial );
+  setup_minimizer( strategy );
   auto t0 = high_resolution_clock::now();
   minimizer->Minimize(); 
-  auto t1 = high_resolution_clock::now();  
-
   if( minimizer->Status()!=0 ){
     cout << "Minimizer failed with strategy " 
 	 <<  static_cast<int>(Strategy::FirstTrial) 
 	 << ": try with strategy " 
-	 << static_cast<int>(Strategy::Coarser) << endl;
-    setup_minimizer( Strategy::Coarser );
-    t0 = high_resolution_clock::now(); 
+	 << static_cast<int>(Strategy::StartFromLastMinimum) << endl;
+    strategy =  Strategy::StartFromLastMinimum;
+    setup_minimizer( strategy );
     minimizer->Minimize();
-    t1 = high_resolution_clock::now();
+    if( minimizer->Status()==0 )  cout << "...success" << endl;
+    else cout << "...failure" << endl; 
   }
+  auto t1 = high_resolution_clock::now();  
 
   int time_0 = static_cast<int>(duration_cast<milliseconds>(t1-t0).count());
   if(verbose>0){
@@ -613,9 +649,10 @@ void Algo::HypoTester::run(){
     if(count_hypo<HMAX){
       event->treeStruct.nll     [(size_t)count_hypo] = nll;
       event->treeStruct.status  [(size_t)count_hypo] = status;
+      event->treeStruct.strategy[(size_t)count_hypo] = static_cast<int>(strategy);
       event->treeStruct.min_time[(size_t)count_hypo] = time_0;
-      event->treeStruct.dim     [(size_t)count_hypo] = ndim;    
-      event->treeStruct.n_perm  [(size_t)count_hypo] = count_perm;    
+      event->treeStruct.dim     [(size_t)count_hypo] = (int)ndim;    
+      event->treeStruct.perm    [(size_t)count_hypo] = (int)count_perm;    
     }
 
     // add value of parameters per each hypo:
@@ -628,14 +665,19 @@ void Algo::HypoTester::run(){
     (event->treeStruct.n_dim) += ndim;
   }
 
-  delete minimizer;
-
 }
 
 
 double Algo::HypoTester::eval(const double* xx){
 
   double val {0.};
+
+  if(verbose>2){
+    cout << "#iter: " ;
+    for( size_t dim = 0 ; dim <  minimizer->NDim() ; ++dim)
+      cout << "xx[" << dim << "] = " << xx[dim] << ", ";    
+    cout << endl;
+  }
 
   int count {0};
   for( auto perm : permutations){
@@ -657,6 +699,47 @@ double Algo::HypoTester::eval(const double* xx){
   
   return val;
 
+}
+
+bool Algo::HypoTester::is_variable_used( const size_t pos ){
+
+  for( auto perm : permutations ){
+    for(size_t i = 0 ; i < perm->size() ; ++i){
+
+      DecayBuilder* decay = perm->at(i);
+      vector<size_t> vars ;
+
+      switch( decay->get_decay() ){
+      case Decay::TopHad:
+	vars = (reinterpret_cast<TopHadBuilder*>(decay))->get_variables();
+	if( pos==vars[0] ) return true;
+	break;
+      case Decay::WHad:
+	vars = (reinterpret_cast<WHadBuilder*>(decay))->get_variables();
+	if( pos==vars[0] ) return true; 
+	break;
+      case Decay::Higgs:
+	vars = (reinterpret_cast<HiggsBuilder*>(decay))->get_variables();  
+	if( pos==vars[0] ) return true; 
+	break;
+      case Decay::TopLep:
+	vars = (reinterpret_cast<TopLepBuilder*>(decay))->get_variables(); 
+	if( pos==vars[0] || pos==vars[1] ) return true;
+	break;
+      case Decay::Radiation_u:
+      case Decay::Radiation_d:
+      case Decay::Radiation_g:
+      case Decay::Radiation_b:
+	vars = (reinterpret_cast<RadiationBuilder*>(decay))->get_variables();
+        if( pos==vars[0] ) return true;
+        break;
+      default:
+	break;
+      }
+    }
+  }
+
+  return false;
 }
 
 

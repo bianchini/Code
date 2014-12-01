@@ -34,7 +34,8 @@ namespace Algo {
   public:
     virtual ~DecayBuilder() {};
     virtual double eval( const double* , LV&) = 0; 
-    virtual void print(ostream&) = 0;     
+    virtual void print(ostream&) = 0;
+    virtual Decay get_decay() = 0;
   };
   
   
@@ -48,7 +49,10 @@ namespace Algo {
     void add(DecayBuilder*);
     double eval ( const double* , LV&);
     double eval ( const double* );
-    void print(ostream&);   
+    void print(ostream&);
+    DecayBuilder* at(const size_t&);
+    size_t size();
+    Decay get_decay();
   private:
     vector<DecayBuilder*> combined;
     int verbose;
@@ -64,6 +68,7 @@ namespace Algo {
     double eval (  const double* , LV& );
     void fix_vars();
     void print(ostream&);   
+    Decay get_decay();
   private:
     LV p4_invisible;
     TransferFunction* tf_met;
@@ -82,9 +87,9 @@ namespace Algo {
     void init(const FinalState& , const Object&, const size_t&);
     double eval ( const double* , LV&) ;
     void print(ostream&);     
-    
-  private:
-    
+    Decay get_decay();
+    vector<size_t> get_variables();
+  private:    
     LV p4_q;
     LV p4_qbar;
     LV p4_b;
@@ -109,9 +114,9 @@ namespace Algo {
     void init(const FinalState& , const Object&, const size_t&);
     double eval ( const double* , LV&) ;
     void print(ostream&);     
-    
+    Decay get_decay();
+    vector<size_t> get_variables();
   private:
-  
     LV p4_q;
     LV p4_qbar;
     size_t index_q;
@@ -133,7 +138,8 @@ namespace Algo {
     void init(const FinalState& , const Object&, const size_t&);
     double eval ( const double* , LV&) ;
     void print(ostream&);     
-    
+    Decay get_decay();
+    vector<size_t> get_variables();
   private:
     
     LV p4_l;
@@ -158,8 +164,8 @@ namespace Algo {
     void init(const FinalState& , const Object&, const size_t&);
     double eval ( const double* , LV&) ;    
     void print(ostream&);     
-    Decay get_decay() const ;
-
+    Decay get_decay();
+    vector<size_t> get_variables();
   private:
     LV p4_g;
     size_t index_g;
@@ -178,9 +184,9 @@ namespace Algo {
     void init(const FinalState& , const Object&, const size_t&);
     double eval ( const double* , LV&) ;
     void print(ostream&);     
-    
+    Decay get_decay();
+    vector<size_t> get_variables();
   private:
-  
     LV p4_b;
     LV p4_bbar;
     size_t index_b;

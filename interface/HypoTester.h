@@ -69,6 +69,9 @@ namespace Algo {
     // eval
     double eval(const double* );
 
+    // check whether a given variable is in at least one permutation
+    bool is_variable_used( const size_t );
+
     ROOT::Math::Minimizer* minimizer;     
 
     vector<Algo::Object> p4_Jet;  

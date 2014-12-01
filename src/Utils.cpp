@@ -102,7 +102,8 @@ bool Algo::isSame( const std::vector<std::pair<FinalState,size_t>>& a, const std
     //printf("A: [%d,%d]\t", int(a[i].first), int(a[i].second)) ;
     //printf("B: [%d,%d]\n", int(b[i].first), int(b[i].second)) ;
 
-    if( !( a[i].first == FinalState::Radiation_u || a[i].first == FinalState::Radiation_d || a[i].first == FinalState::Radiation_b || a[i].first == FinalState::Radiation_g )){
+    if( !( a[i].first == FinalState::Radiation_u || a[i].first == FinalState::Radiation_d || 
+	   a[i].first == FinalState::Radiation_b || a[i].first == FinalState::Radiation_g )){
       if( a[i].first != b[i].first || a[i].second != b[i].second ) return false;
     }
     else{
@@ -113,6 +114,49 @@ bool Algo::isSame( const std::vector<std::pair<FinalState,size_t>>& a, const std
   
   return true;
 
+}
+
+bool Algo::filter_by_btag( const std::vector<std::pair<FinalState,size_t>>& particles, const vector<Algo::Object>& jets ){
+  
+  bool passes {true};
+
+  if( jets.size()==0 ) return passes;
+
+  size_t count {0};
+  for( auto p : particles ){
+    if( (jets[count].obs).find("BTAG")    ==(jets[count].obs).end() ) continue;
+    if( (jets[count].obs).find("BTAG_RND")==(jets[count].obs).end() ) continue;
+    if( (jets[count].obs).find("BTAG_RND")!=(jets[count].obs).end() &&
+	(jets[count].obs).find("BTAG_RND")->second>0.5 )              continue;
+
+    double btag = (jets[count].obs).find("BTAG")->second;
+    switch( p.first ){
+    case FinalState::TopHad_qbar:
+    case FinalState::WHad_qbar:
+    case FinalState::Radiation_d:
+    case FinalState::Radiation_g:
+      if( btag>0.5 ){
+	passes = false;
+	return passes;
+      }
+      break;
+    case FinalState::TopLep_b:
+    case FinalState::TopHad_b:
+    case FinalState::Higgs_b:
+    case FinalState::Higgs_bbar:
+    case FinalState::Radiation_b:
+      if( btag<0.5 ){
+	passes = false;
+	return passes;
+      }
+      break;
+    default:
+      break;      
+    }
+    ++count;
+  }
+
+  return passes;
 }
 
 

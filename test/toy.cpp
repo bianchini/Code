@@ -22,6 +22,7 @@ int main(int argc, char *argv[]){
   int btag     = 0;
   int verbose  = 0;
   int pass     = 0;
+  int debug    = -1;
   int seed     = 4357; // default seed
 
   static struct option long_options[] = {
@@ -33,12 +34,13 @@ int main(int argc, char *argv[]){
     {"seed",     optional_argument,   0, 's' },
     {"pass",     optional_argument,   0, 'p' },
     {"help",     optional_argument,   0, 'h' },
+    {"debug",    optional_argument,   0, 'd' },
     {0, 0, 0, 0 }
   };
 
   int long_index  = 0;
   int opt;
-  while ((opt = getopt_long(argc, argv,"t:o:gbv:s:ph",
+  while ((opt = getopt_long(argc, argv,"t:o:gb:v:s:phd:",
 			    long_options, &long_index )) != -1) {
     switch (opt) {
     case 't' : ntoys   = atoi(optarg);
@@ -47,7 +49,7 @@ int main(int argc, char *argv[]){
       break;
     case 'g' : smear   = 1;
       break;
-    case 'b' : btag    = 1;
+    case 'b' : btag    = atoi(optarg);
       break;
     case 'v' : verbose = atoi(optarg);                                 
       break;  
@@ -55,8 +57,10 @@ int main(int argc, char *argv[]){
       break;
     case 'p' : pass    = 1;
       break;
+    case 'd' : debug   = atoi(optarg);
+      break;
     case 'h' :
-      cout << "Usage: toy [-t TOYS] [-o OUTFILENAME.root] [-g (smear by TF)] [-b (use btag)] [-v VERBOSE] [-s SEED] [-p (all events passing cuts)]" << endl; 
+      cout << "Usage: toy [-t TOYS] [-o OUTFILENAME.root] [-g] [-b] [-v VERBOSE] [-s SEED] [-p] [-d DEBUGEVTNUM]" << endl; 
       return 0;
     case '?':
       cout << "Unknown option " << opt << endl;
@@ -76,8 +80,14 @@ int main(int argc, char *argv[]){
 
   vector<Algo::Decay> decays;
   decays.push_back( Algo::Decay::TopHad );
+  //decays.push_back( Algo::Decay::TopHad );
+  //decays.push_back( Algo::Decay::TopLep );
   decays.push_back( Algo::Decay::TopLep );
-  //decays.push_back( Algo::Decay::Higgs );
+  decays.push_back( Algo::Decay::Higgs );
+  //decays.push_back( Algo::Decay::Radiation_u );
+  //decays.push_back( Algo::Decay::Radiation_d );
+  //decays.push_back( Algo::Decay::Radiation_b );
+  //decays.push_back( Algo::Decay::Radiation_b );
 
   //const int ntoy  = argc>1 ? atoi(argv[1]) : 1 ;
   //const int smear = argc>2 ? atoi(argv[2]) : 0 ;
@@ -109,44 +119,131 @@ int main(int argc, char *argv[]){
     }
 
     // TopHad + TopLep
-    if( count_j==4 && count_l==1 && count_m==1 ) {
+    if( false && count_j==4 && count_l==1 && count_m==1 ) {
       if(pass){
 	++itoy;
 	cout << "Generate event " << itoy << "/" << ntoys << endl;
       }
+
+      if( debug>=0 && itoy!=debug ) continue;
       
       // fill jets                                                                                                             
       for( auto fs : out ){
 	if( (fs.type=='q' || fs.type=='b') && fs.p4.Pt()>30 && TMath::Abs(fs.p4.Eta())<2.5 ){
           tester->push_back_object( fs.p4  , 'j');
-          if(btag) tester->add_object_observables( "BTAG", fs.obs["BTAG"] , 'j');
+          if(btag)   tester->add_object_observables( "BTAG",     fs.obs["BTAG"]     , 'j');	 
+	  if(btag>1) tester->add_object_observables( "BTAG_RND", fs.obs["BTAG_RND"] , 'j');
         }
-	if( fs.type=='m' )
-	  tester->push_back_object( fs.p4  , 'm');
 	if( fs.type=='l' )
 	  tester->push_back_object( fs.p4  , 'l');
       }
+      tester->push_back_object( invisible  , 'm');
 
       map<string, vector<Algo::Decay> > hypotheses;
       hypotheses["H0"] = {Algo::Decay::TopHad, Algo::Decay::TopLep};
-      hypotheses["H1"] = {Algo::Decay::TopLep, Algo::Decay::Radiation_u, Algo::Decay::Radiation_d, Algo::Decay::Radiation_b};
+      //hypotheses["H1"] = {Algo::Decay::TopLep, Algo::Decay::Radiation_u, Algo::Decay::Radiation_d, Algo::Decay::Radiation_b};
+      if(verbose>0) tester->print(cout);
+      tester->test( hypotheses );
+    }
+
+
+    // TopHad + TopLep + Higgs
+    if( count_j==6 && count_l==1 && count_m==1 ) {
+      if(pass){
+	++itoy;
+	cout << "Generate event " << itoy << "/" << ntoys << endl;
+      }
+      
+      if( debug>=0 && itoy!=debug ) continue;
+
+      // fill jets                                                                                                             
+      for( auto fs : out ){
+	if( (fs.type=='q' || fs.type=='b') && fs.p4.Pt()>30 && TMath::Abs(fs.p4.Eta())<2.5 ){
+          tester->push_back_object( fs.p4  , 'j');
+          if(btag)   tester->add_object_observables( "BTAG",     fs.obs["BTAG"] ,     'j');
+	  if(btag>1) tester->add_object_observables( "BTAG_RND", fs.obs["BTAG_RND"] , 'j');
+        }
+	if( fs.type=='l' )
+	  tester->push_back_object( fs.p4  , 'l');
+      }
+      tester->push_back_object( invisible  , 'm');
+
+      map<string, vector<Algo::Decay> > hypotheses;
+      hypotheses["H0"] = {Algo::Decay::TopHad, Algo::Decay::TopLep, Algo::Decay::Higgs};
+      //hypotheses["H1"] = {Algo::Decay::TopHad, Algo::Decay::TopLep, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b};
+      if(verbose>0) tester->print(cout);
+      tester->test( hypotheses );
+    }
+
+    // TopLep + TopLep + Higgs                                                                                                                       
+    if( false && count_j==4 && count_l==2 && count_m==2 ) {
+      if(pass){
+        ++itoy;
+        cout << "Generate event " << itoy << "/" << ntoys << endl;
+      }
+
+      if( debug>=0 && itoy!=debug ) continue;
+      
+      // fill jets                                                                                                                                    
+      for( auto fs : out ){
+        if( (fs.type=='q' || fs.type=='b') && fs.p4.Pt()>30 && TMath::Abs(fs.p4.Eta())<2.5 ){
+          tester->push_back_object( fs.p4  , 'j');
+          if(btag)   tester->add_object_observables( "BTAG",     fs.obs["BTAG"] ,     'j');
+	  if(btag>1) tester->add_object_observables( "BTAG_RND", fs.obs["BTAG_RND"] , 'j');
+        }
+        if( fs.type=='l' )
+          tester->push_back_object( fs.p4  , 'l');
+      }
+      tester->push_back_object( invisible  , 'm');
+
+      map<string, vector<Algo::Decay> > hypotheses;
+      hypotheses["H0"] = {Algo::Decay::TopLep, Algo::Decay::TopLep, Algo::Decay::Higgs};
+      hypotheses["H1"] = {Algo::Decay::TopLep, Algo::Decay::TopLep, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b};
+      if(verbose>0) tester->print(cout);
+      tester->test( hypotheses );
+    }
+
+    // TopHad + TopHad + Higgs                                                                                                                        
+    if( false && count_j==8 && count_l==0 && count_m==0 ) {
+      if(pass){
+        ++itoy;
+        cout << "Generate event " << itoy << "/" << ntoys << endl;
+      }
+
+      if( debug>=0 && itoy!=debug ) continue;
+
+      // fill jets                                                                                                                                  
+      for( auto fs : out ){
+        if( (fs.type=='q' || fs.type=='b') && fs.p4.Pt()>30 && TMath::Abs(fs.p4.Eta())<2.5 ){
+          tester->push_back_object( fs.p4  , 'j');
+          if(btag)   tester->add_object_observables( "BTAG",     fs.obs["BTAG"] ,     'j');
+	  if(btag>1) tester->add_object_observables( "BTAG_RND", fs.obs["BTAG_RND"] , 'j');
+        }
+      }
+
+      map<string, vector<Algo::Decay> > hypotheses;
+      hypotheses["H0"] = {Algo::Decay::TopHad, Algo::Decay::TopHad, Algo::Decay::Higgs};
+      hypotheses["H1"] = {Algo::Decay::TopHad, Algo::Decay::TopHad, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b};
       if(verbose>0) tester->print(cout);
       tester->test( hypotheses );
     }
 
 
     // TopHad + WHad
-    else if( count_j==5 && count_m==0 && count_l==0) {
+    else if( false && count_j==5 && count_m==0 && count_l==0) {
       if(pass){
 	++itoy;
 	cout << "Generate event " << itoy << "/" << ntoys << endl;
       }
 
+      if( debug>=0 && itoy!=debug ) continue;
+
       // fill jets
       for( auto fs : out ){
 	if( (fs.type=='q' || fs.type=='b') && fs.p4.Pt()>30 && TMath::Abs(fs.p4.Eta())<2.5 ){
 	  tester->push_back_object( fs.p4  , 'j');
-          if(btag) tester->add_object_observables( "BTAG", fs.obs["BTAG"] , 'j');
+          if(btag)   tester->add_object_observables( "BTAG",     fs.obs["BTAG"] ,     'j');
+	  if(btag>1) tester->add_object_observables( "BTAG_RND", fs.obs["BTAG_RND"] , 'j');
 	}
       }
 

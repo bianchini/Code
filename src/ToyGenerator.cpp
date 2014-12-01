@@ -122,9 +122,9 @@ void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, c
     out2.init(p4_qbar, 'q');
     out3.init(p4_b,    'b');
     if(btag){
-      assign_rnd_btag( Algo::QuarkTypeUp,     out1 );
-      assign_rnd_btag( Algo::QuarkTypeDown,   out2 );
-      assign_rnd_btag( Algo::QuarkTypeBottom, out3 );
+      assign_rnd_btag( Algo::QuarkTypeUp,     out1 , btag);
+      assign_rnd_btag( Algo::QuarkTypeDown,   out2 , btag);
+      assign_rnd_btag( Algo::QuarkTypeBottom, out3 , btag);
     }
     out.push_back( out1 );
     out.push_back( out2 );
@@ -139,7 +139,7 @@ void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, c
     out2.init( p4_q,    'l');
     out3.init( p4_qbar, 'm');   
     if(btag){
-      assign_rnd_btag( Algo::QuarkTypeBottom, out1 ); 
+      assign_rnd_btag( Algo::QuarkTypeBottom, out1 , btag); 
     }
     out.push_back( out1 );
     out.push_back( out2 );
@@ -153,8 +153,8 @@ void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, c
     out1.init( p4_q,    'q');
     out2.init( p4_qbar, 'q');
     if(btag){
-      assign_rnd_btag( Algo::QuarkTypeUp,   out1 );
-      assign_rnd_btag( Algo::QuarkTypeDown, out2 );
+      assign_rnd_btag( Algo::QuarkTypeUp,   out1 , btag);
+      assign_rnd_btag( Algo::QuarkTypeDown, out2 , btag);
     }
     out.push_back( out1 );
     out.push_back( out2 );
@@ -167,18 +167,28 @@ void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, c
     out1.init( p4_bh,    'b');
     out2.init( p4_bbarh, 'b');
     if(btag){
-      assign_rnd_btag( Algo::QuarkTypeBottom,   out1 ); 
-      assign_rnd_btag( Algo::QuarkTypeBottom,   out2 ); 
+      assign_rnd_btag( Algo::QuarkTypeBottom,   out1 , btag); 
+      assign_rnd_btag( Algo::QuarkTypeBottom,   out2 , btag); 
     }
     out.push_back( out1 );
     out.push_back( out2 );
     break;
-  case Decay::Radiation_q:
+  case Decay::Radiation_u:
     if(smear) 
       smear_by_TF(p4_q, 'q');
     out1.init( p4_q,    'q');
     if(btag){
-      assign_rnd_btag( Algo::QuarkTypeDown,   out1 ); 
+      assign_rnd_btag( Algo::QuarkTypeDown,   out1 , btag); 
+    }
+    out.push_back( out1 );
+    break;
+  case Decay::Radiation_g:
+  case Decay::Radiation_d:
+    if(smear)
+      smear_by_TF(p4_qbar, 'q');
+    out1.init( p4_qbar,    'q');
+    if(btag){
+      assign_rnd_btag( Algo::QuarkTypeDown,   out1 , btag);
     }
     out.push_back( out1 );
     break;
@@ -187,11 +197,10 @@ void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, c
       smear_by_TF(p4_b, 'b');
     out1.init( p4_b,    'b');
     if(btag){
-      assign_rnd_btag( Algo::QuarkTypeBottom,   out1 ); 
+      assign_rnd_btag( Algo::QuarkTypeBottom,   out1 , btag); 
     }
     out.push_back( out1 );
     break;
-
   default:
     break;
   }
@@ -199,7 +208,26 @@ void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, c
   return;
 }
 
-void Algo::ToyGenerator::assign_rnd_btag( const Algo::QuarkType type, Object& obj){
+void Algo::ToyGenerator::assign_rnd_btag( const Algo::QuarkType type, Object& obj, const int& btag){
+
+  if(btag>1){
+    obj.addObs( "BTAG_RND", 0. );  
+    switch( type ){
+    case QuarkType::QuarkTypeUp:
+      // get random value for it
+      break;
+    case QuarkType::QuarkTypeDown:
+      obj.addObs( "BTAG", 0. );
+      return;
+    case QuarkType::QuarkTypeBottom:
+      obj.addObs( "BTAG", 1. ); 
+      return;
+    default:
+      break;
+    }
+  }
+  
+  
   TF1 pdf("pdf_btag", Algo::pdf_btag , 0., 1., 3);
   pdf.SetParameter(0, static_cast<int>(type) );
   pdf.SetParameter(1, obj.p4.Pt()  ); 

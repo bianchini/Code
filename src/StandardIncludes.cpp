@@ -35,8 +35,12 @@ void Algo::TransferFunction::add_pdf_obs( const string& name, const Object& obj,
       pdf.SetParameter(0, type);
       pdf.SetParameter(1, obj.p4.Pt()  );
       pdf.SetParameter(2, obj.p4.Eta() );
-      pdfs[name] = pdf.Eval( (obj.obs).find(name)->second );
-      if( verbose>0 ){
+      if( (obj.obs).find(name+"_RND")!=(obj.obs).end() && (obj.obs).find(name+"_RND")->second<0.5 )
+	pdfs[name] = 1.0;
+      else	
+	pdfs[name] = pdf.Eval( (obj.obs).find(name)->second );
+
+      if( verbose>1 ){
 	cout << "\t\tAlgo::TransferFunction::add_pdf_obs(): init pdf name " << name << " with function: " << endl;
 	cout << "\t\tpdf(x=" << (obj.obs).find(name)->second << ") = " <<  pdfs[name] << endl;
       }    
@@ -89,8 +93,11 @@ void Algo::CombBuilder::add(DecayBuilder* dec) {
 
 double Algo::CombBuilder::eval(const double* xx) {
 
+  if(verbose>1) cout << "\tCombBuilder::eval(): BEGIN" << endl;
+
   double val{1.};
 
+  // this vector contains the total 4-momentum from invisible particles
   LV invisible(0.,0.,0.,0.);
 
   int count {0};  
@@ -98,14 +105,14 @@ double Algo::CombBuilder::eval(const double* xx) {
     double val_tmp = dec->eval(xx, invisible);
     val *= val_tmp;
     if(verbose>1){
-      cout << "\tEval block " << count << " += " << (val_tmp>0. ? -TMath::Log( val_tmp ) : 0.) ;
-      if( invisible.Px()>0. || invisible.Py()>0.) 
-	cout << ", Invisible = " << "(eng=" << invisible.E() << ", eta=" << invisible.Eta() << ", phi=" << invisible.Phi() << ")" << endl;
-      else
-	cout << endl;
+      cout << "\tEval block " << count << " += " << (val_tmp>0. ? -TMath::Log( val_tmp ) : numeric_limits<double>::max() ) ;
+      cout << "; Invisible = " << "(E=" << invisible.E() << ", cos(theta)=" 
+	   << TMath::Cos(invisible.Theta()) << ", phi=" << invisible.Phi() << ")" << endl;
     }
     ++count;
   }
+
+  if(verbose>1) cout << "\tCombBuilder::eval(): END" << endl;
 
   return val;
 }
@@ -119,6 +126,18 @@ void Algo::CombBuilder::print(ostream& os){
   os << "\t\tCombBuilder contains " << combined.size() << " block(s):" << endl; 
   for(auto dec : combined) 
     dec->print(os);
+}
+
+Algo::DecayBuilder* Algo::CombBuilder::at( const size_t& pos ){
+  return ( (pos>=0 && pos<combined.size()) ? combined[pos] : nullptr);
+}
+
+size_t Algo::CombBuilder::size(){
+  return combined.size();
+}
+
+Algo::Decay Algo::CombBuilder::get_decay(){
+  return Decay::UNKNOWN;
 }
 
 //////////////////////////////////////////////////////
@@ -156,6 +175,8 @@ void Algo::METBuilder::fix_vars(){
 
 double Algo::METBuilder::eval(const double* xx,  LV& lv) {
 
+  if(verbose>1) cout << "\tMETBuilder::eval()" << endl;
+
   double val{1.};
   
   if( saturate==0 )
@@ -173,6 +194,9 @@ void Algo::METBuilder::print(ostream& os){
   if(tf_met!=nullptr)  os << "\t\t\tTF MET   : " << tf_met->getFormula() << endl;
 }
 
+Algo::Decay Algo::METBuilder::get_decay(){
+  return Decay::MET;
+}
 
 //////////////////////////////////////////////////////
 
@@ -255,7 +279,12 @@ double Algo::TopHadBuilder::eval( const double *xx, LV& invisible ) {
 
   double E1 = xx[ index_q ];
 
-  if(verbose>1) cout << "\tTopHadBuilder::eval xx[" << index_q << "]=" << E1 << endl;
+  if(verbose>1) cout << "\tTopHadBuilder::eval() xx[" << index_q << "]=" << E1 << endl;
+
+  if( TMath::IsNaN(E1) ){
+    if(verbose>1) cout << "xx[" << index_q << "] is nan" << endl;
+    return val;
+  }
 
   double E2, E3;
 
@@ -328,7 +357,15 @@ double Algo::TopHadBuilder::eval( const double *xx, LV& invisible ) {
   return val;
 }
 
+Algo::Decay Algo::TopHadBuilder::get_decay(){
+  return Decay::TopHad;
+}
 
+vector<size_t> Algo::TopHadBuilder::get_variables(){
+  vector<size_t> out;
+  out.push_back( index_q );
+  return out;
+}
 //////////////////////////////////////////////////////
 
 Algo::WHadBuilder::WHadBuilder () {
@@ -360,7 +397,6 @@ void Algo::WHadBuilder::print(ostream& os){
   if(tf_q!=nullptr)    os << "\t\t\tTF q   : " << tf_q->getFormula() << endl;
   if(tf_qbar!=nullptr) os << "\t\t\tTF qbar: " << tf_qbar->getFormula() << endl;
 }
-
 
 
 void Algo::WHadBuilder::init( const FinalState& fs, const Object& obj, const size_t& sz ){
@@ -398,8 +434,12 @@ double Algo::WHadBuilder::eval( const double *xx, LV& invisible ) {
   double E1 = xx[ index_q ];
   double E2;
 
-  if(verbose>1) cout << "\tWHadBuilder::eval xx[" << index_q << "]=" << E1 << endl;
+  if(verbose>1) cout << "\tWHadBuilder::eval() xx[" << index_q << "]=" << E1 << endl;
   
+  if( TMath::IsNaN(E1) ){
+    if(verbose>1) cout << "xx[" << index_q << "] is nan" << endl;
+    return val;
+  }
 
   double a12 = (p4_q.Vect()).Angle(p4_qbar.Vect());
   
@@ -416,6 +456,16 @@ double Algo::WHadBuilder::eval( const double *xx, LV& invisible ) {
 
   return val;
 
+}
+
+Algo::Decay Algo::WHadBuilder::get_decay(){
+  return Decay::WHad;
+}
+
+vector<size_t> Algo::WHadBuilder::get_variables(){
+  vector<size_t> out;
+  out.push_back( index_q );
+  return out;
 }
 
 //////////////////////////////////////////////////////
@@ -487,9 +537,13 @@ double Algo::HiggsBuilder::eval( const double *xx, LV& invisible ) {
   double E1 = xx[ index_b ];
   double E2;
 
-  if(verbose>1) cout << "\tHiggsBuilder::eval xx[" << index_b << "]=" << E1 << endl;
+  if(verbose>1) cout << "\tHiggsBuilder::eval() xx[" << index_b << "]=" << E1 << endl;
 
-
+  if( TMath::IsNaN(E1) ){
+    if(verbose>1) cout << "xx[" << index_b << "] is nan" << endl;
+    return val;
+  }
+  
   int nSol = 0;
 
   if(E1<MB){
@@ -559,6 +613,15 @@ double Algo::HiggsBuilder::eval( const double *xx, LV& invisible ) {
 
 }
 
+Algo::Decay Algo::HiggsBuilder::get_decay(){
+  return Decay::Higgs;
+}
+
+vector<size_t> Algo::HiggsBuilder::get_variables(){
+  vector<size_t> out;
+  out.push_back( index_b );
+  return out;
+}
 
 //////////////////////////////////////////////////////
 
@@ -622,16 +685,25 @@ double Algo::TopLepBuilder::eval( const double *xx, LV& invisible ) {
   int nSol {0};
 
   double Elep     = p4_l.E();
-  double nuPhi    = xx[ index_l   ] ; // fill here
-  double nuTheta  = xx[ index_l +1] ; // fill here
+  double nuPhi    = xx[ index_l    ] ;
+  double nuTheta  = xx[ index_l + 1] ;
   
-  if(verbose>1) cout << "\tTopLepBuilder::eval xx[" << index_l << "]=" << nuPhi << ", xx[" << index_l +1 << "]=" << nuTheta << endl;
+  if(verbose>1) cout << "\tTopLepBuilder::eval() xx[" << index_l << "]=" << nuPhi << ", xx[" << (index_l+1) << "]=" << nuTheta << endl;
+
+  if( TMath::IsNaN(nuPhi) ){
+    if(verbose>1) cout << "xx[" << index_l << "] is nan" << endl;
+    return val;
+  }
+  if( TMath::IsNaN(nuTheta) ){
+    if(verbose>1) cout << "xx[" << index_l +1 << "] is nan" << endl;
+    return val;
+  }
 
   double Enu, Eb;
 
   TVector3 e3(0.,0.,1.); // neutrino
   e3.SetTheta( TMath::ACos( nuTheta ) );
-  e3.SetPhi ( nuPhi);
+  e3.SetPhi ( nuPhi );
   e3.SetMag ( 1.);
   
   double a12 = p4_l.Angle(p4_b.Vect()); // lep - b
@@ -700,7 +772,16 @@ double Algo::TopLepBuilder::eval( const double *xx, LV& invisible ) {
   
 }
 
+Algo::Decay Algo::TopLepBuilder::get_decay(){
+  return Decay::TopLep;
+}
 
+vector<size_t> Algo::TopLepBuilder::get_variables(){
+  vector<size_t> out;
+  out.push_back( index_l );
+  out.push_back( index_l + 1);
+  return out;
+}
 //////////////////////////////////////////////////////
 
 
@@ -727,8 +808,14 @@ Algo::RadiationBuilder::~RadiationBuilder() {
   if( tf_g   != nullptr ) delete tf_g;
 };
 
-Algo::Decay Algo::RadiationBuilder::get_decay() const {
+Algo::Decay Algo::RadiationBuilder::get_decay() {
   return decay;
+}
+
+vector<size_t> Algo::RadiationBuilder::get_variables(){
+  vector<size_t> out;
+  out.push_back( index_g );
+  return out;
 }
 
 void Algo::RadiationBuilder::print(ostream& os){
@@ -788,7 +875,12 @@ double Algo::RadiationBuilder::eval( const double *xx, LV& invisible ) {
 
   double E = xx[ index_g ];
 
-  if(verbose>1) cout << "\tRadiationBuilder::eval xx[" << index_g << "]=" << E << endl;
+  if(verbose>1) cout << "\tRadiationBuilder::eval() xx[" << index_g << "]=" << E << endl;
+
+  if( TMath::IsNaN(E) ){
+    if(verbose>1) cout << "xx[" << index_g << "] is nan" << endl;
+    return val;
+  }
 
   val += tf_g->eval(p4_g.E(), E);
 

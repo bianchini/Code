@@ -37,7 +37,7 @@ namespace Algo {
   private:
     int verbose;
     void generate_hypo( vector<Algo::Object>& , Algo::Decay, const int&, const int&);
-    void assign_rnd_btag( const Algo::QuarkType, Algo::Object&);
+    void assign_rnd_btag( const Algo::QuarkType, Algo::Object&, const int&);
     void smear_by_TF( TLorentzVector&, const char);
     TRandom3* ran;
 
