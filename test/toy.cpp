@@ -12,18 +12,27 @@
 #include "TLorentzVector.h"
 
 
+enum GEN_HYPO  : int { GEN_tH_wH=0 ,  GEN_tH_tL=1,   GEN_tH_tL_hH=2,  GEN_tL_tL_hH=3,  GEN_tH_tH_hH=4,
+		       GEN_tH_bb=5 ,  GEN_udb_tL=6,  GEN_tH_tL_bb=7,  GEN_tL_tL_bb=8,  GEN_tH_tH_bb=9,
+		     };
+
+enum TEST_HYPO : int { TEST_tH_wH=0 , TEST_tH_tL=1, TEST_tH_tL_hH=2, TEST_tL_tL_hH=3, TEST_tH_tH_hH=4};
+
+
 using namespace std;
 
 int main(int argc, char *argv[]){
 
   string fname = "tmp.root";
-  int ntoys    = 1;  
+  int ntoys    = 1;
+  int pass     = 1;  
   int smear    = 0;
   int btag     = 0;
   int verbose  = 0;
-  int pass     = 0;
   int debug    = -1;
   int seed     = 4357; // default seed
+  GEN_HYPO  gen_hypo  = GEN_HYPO::GEN_tH_tL;
+  TEST_HYPO test_hypo = TEST_HYPO::TEST_tH_tL;
 
   static struct option long_options[] = {
     {"toys",     optional_argument,   0, 't' },
@@ -35,12 +44,14 @@ int main(int argc, char *argv[]){
     {"pass",     optional_argument,   0, 'p' },
     {"help",     optional_argument,   0, 'h' },
     {"debug",    optional_argument,   0, 'd' },
+    {"gen",      optional_argument,   0, 'G' },
+    {"test",     optional_argument,   0, 'T' },
     {0, 0, 0, 0 }
   };
 
   int long_index  = 0;
   int opt;
-  while ((opt = getopt_long(argc, argv,"t:o:gb:v:s:phd:",
+  while ((opt = getopt_long(argc, argv,"t:o:gb:v:s:phd:G:T:",
 			    long_options, &long_index )) != -1) {
     switch (opt) {
     case 't' : ntoys   = atoi(optarg);
@@ -59,8 +70,12 @@ int main(int argc, char *argv[]){
       break;
     case 'd' : debug   = atoi(optarg);
       break;
+    case 'G' : gen_hypo  = static_cast<GEN_HYPO>(atoi(optarg));
+      break;
+    case 'T' : test_hypo = static_cast<TEST_HYPO>(atoi(optarg));
+      break;
     case 'h' :
-      cout << "Usage: toy [-t TOYS] [-o OUTFILENAME.root] [-g] [-b] [-v VERBOSE] [-s SEED] [-p] [-d DEBUGEVTNUM]" << endl; 
+      cout << "Usage: toy [-t TOYS] [-o OUTFILENAME.root] [-g] [-b BTAG] [-v VERBOSE] [-s SEED] [-p] [-d DEBUGEVTNUM] [-G GENHYPO] [-T TESTHYPO]" << endl; 
       return 0;
     case '?':
       cout << "Unknown option " << opt << endl;
@@ -79,18 +94,63 @@ int main(int argc, char *argv[]){
   Algo::ToyGenerator* toyGenerator = new Algo::ToyGenerator(verbose, seed);
 
   vector<Algo::Decay> decays;
-  decays.push_back( Algo::Decay::TopHad );
-  //decays.push_back( Algo::Decay::TopHad );
-  //decays.push_back( Algo::Decay::TopLep );
-  decays.push_back( Algo::Decay::TopLep );
-  decays.push_back( Algo::Decay::Higgs );
-  //decays.push_back( Algo::Decay::Radiation_u );
-  //decays.push_back( Algo::Decay::Radiation_d );
-  //decays.push_back( Algo::Decay::Radiation_b );
-  //decays.push_back( Algo::Decay::Radiation_b );
 
-  //const int ntoy  = argc>1 ? atoi(argv[1]) : 1 ;
-  //const int smear = argc>2 ? atoi(argv[2]) : 0 ;
+  switch( gen_hypo ){
+  case GEN_tH_wH:
+    decays.push_back( Algo::Decay::TopHad );
+    decays.push_back( Algo::Decay::Higgs ); 
+    break;
+  case GEN_tH_tL:
+    decays.push_back( Algo::Decay::TopHad );  
+    decays.push_back( Algo::Decay::TopLep );   
+    break;
+  case GEN_tH_tL_hH:
+    decays.push_back( Algo::Decay::TopHad );
+    decays.push_back( Algo::Decay::TopLep ); 
+    decays.push_back( Algo::Decay::Higgs );
+    break;
+  case GEN_tL_tL_hH:
+    decays.push_back( Algo::Decay::TopLep );  
+    decays.push_back( Algo::Decay::TopLep );  
+    decays.push_back( Algo::Decay::Higgs );   
+    break;
+  case GEN_tH_tH_hH:
+    decays.push_back( Algo::Decay::TopHad );  
+    decays.push_back( Algo::Decay::TopHad );  
+    decays.push_back( Algo::Decay::Higgs );  
+    break;
+  case GEN_tH_bb:
+    decays.push_back( Algo::Decay::TopHad ); 
+    decays.push_back( Algo::Decay::Radiation_b );  
+    decays.push_back( Algo::Decay::Radiation_b );  
+    break;
+  case GEN_udb_tL:
+    decays.push_back( Algo::Decay::Radiation_u );       
+    decays.push_back( Algo::Decay::Radiation_d );        
+    decays.push_back( Algo::Decay::Radiation_b ); 
+    decays.push_back( Algo::Decay::TopLep );  
+    break;
+  case GEN_tH_tL_bb:
+    decays.push_back( Algo::Decay::TopHad );  
+    decays.push_back( Algo::Decay::TopLep );        
+    decays.push_back( Algo::Decay::Radiation_b );     
+    decays.push_back( Algo::Decay::Radiation_b );  
+    break;
+  case GEN_tL_tL_bb:
+    decays.push_back( Algo::Decay::TopLep ); 
+    decays.push_back( Algo::Decay::TopLep );  
+    decays.push_back( Algo::Decay::Radiation_b );     
+    decays.push_back( Algo::Decay::Radiation_b );  
+    break;
+  case GEN_tH_tH_bb:
+    decays.push_back( Algo::Decay::TopHad ); 
+    decays.push_back( Algo::Decay::TopHad ); 
+    decays.push_back( Algo::Decay::Radiation_b );  
+    decays.push_back( Algo::Decay::Radiation_b );  
+    break;
+  default:
+    break;
+  }
 
   int itoy = 0;
   while( itoy < ntoys ){
@@ -119,7 +179,7 @@ int main(int argc, char *argv[]){
     }
 
     // TopHad + TopLep
-    if( false && count_j==4 && count_l==1 && count_m==1 ) {
+    if(test_hypo==TEST_HYPO::TEST_tH_tL && count_j==4 && count_l==1 && count_m==1 ) {
       if(pass){
 	++itoy;
 	cout << "Generate event " << itoy << "/" << ntoys << endl;
@@ -141,14 +201,14 @@ int main(int argc, char *argv[]){
 
       map<string, vector<Algo::Decay> > hypotheses;
       hypotheses["H0"] = {Algo::Decay::TopHad, Algo::Decay::TopLep};
-      //hypotheses["H1"] = {Algo::Decay::TopLep, Algo::Decay::Radiation_u, Algo::Decay::Radiation_d, Algo::Decay::Radiation_b};
+      hypotheses["H1"] = {Algo::Decay::TopLep, Algo::Decay::Radiation_u, Algo::Decay::Radiation_d, Algo::Decay::Radiation_b};
       if(verbose>0) tester->print(cout);
       tester->test( hypotheses );
     }
 
 
     // TopHad + TopLep + Higgs
-    if( count_j==6 && count_l==1 && count_m==1 ) {
+    if( test_hypo==TEST_HYPO::TEST_tH_tL_hH && count_j==6 && count_l==1 && count_m==1 ) {
       if(pass){
 	++itoy;
 	cout << "Generate event " << itoy << "/" << ntoys << endl;
@@ -170,13 +230,13 @@ int main(int argc, char *argv[]){
 
       map<string, vector<Algo::Decay> > hypotheses;
       hypotheses["H0"] = {Algo::Decay::TopHad, Algo::Decay::TopLep, Algo::Decay::Higgs};
-      //hypotheses["H1"] = {Algo::Decay::TopHad, Algo::Decay::TopLep, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b};
+      hypotheses["H1"] = {Algo::Decay::TopHad, Algo::Decay::TopLep, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b};
       if(verbose>0) tester->print(cout);
       tester->test( hypotheses );
     }
 
     // TopLep + TopLep + Higgs                                                                                                                       
-    if( false && count_j==4 && count_l==2 && count_m==2 ) {
+    if( test_hypo==TEST_HYPO::TEST_tL_tL_hH && count_j==4 && count_l==2 && count_m==2 ) {
       if(pass){
         ++itoy;
         cout << "Generate event " << itoy << "/" << ntoys << endl;
@@ -204,7 +264,7 @@ int main(int argc, char *argv[]){
     }
 
     // TopHad + TopHad + Higgs                                                                                                                        
-    if( false && count_j==8 && count_l==0 && count_m==0 ) {
+    if( test_hypo==TEST_HYPO::TEST_tH_tH_hH && count_j==8 && count_l==0 && count_m==0 ) {
       if(pass){
         ++itoy;
         cout << "Generate event " << itoy << "/" << ntoys << endl;
@@ -230,7 +290,7 @@ int main(int argc, char *argv[]){
 
 
     // TopHad + WHad
-    else if( false && count_j==5 && count_m==0 && count_l==0) {
+    else if( test_hypo==TEST_HYPO::TEST_tH_wH && count_j==5 && count_m==0 && count_l==0) {
       if(pass){
 	++itoy;
 	cout << "Generate event " << itoy << "/" << ntoys << endl;
