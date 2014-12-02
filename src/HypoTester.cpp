@@ -533,8 +533,11 @@ void Algo::HypoTester::setup_minimizer( const Algo::Strategy str){
       }
 
       if(event!=nullptr){
-	event->treeStruct.obs     [ event->treeStruct.n_dim + count_param ] = inVal;     
-	event->treeStruct.obs_BTAG[ event->treeStruct.n_dim + count_param ] = 
+	event->treeStruct.obs_e   [ event->treeStruct.n_dim + count_param ] = inVal;     
+	event->treeStruct.obs_pt  [ event->treeStruct.n_dim + count_param ] = p4_Jet[p].p4.Pt();     
+	event->treeStruct.obs_eta [ event->treeStruct.n_dim + count_param ] = p4_Jet[p].p4.Eta();     
+	event->treeStruct.obs_phi [ event->treeStruct.n_dim + count_param ] = p4_Jet[p].p4.Phi();     
+	event->treeStruct.obs_btag[ event->treeStruct.n_dim + count_param ] = 
 	  (p4_Jet[p].obs).find("BTAG")!=(p4_Jet[p].obs).end() ? (p4_Jet[p].obs)["BTAG"] : 0.;  	
       }
       ++count_param;
@@ -571,9 +574,12 @@ void Algo::HypoTester::setup_minimizer( const Algo::Strategy str){
       }
       
       if(event!=nullptr){
-	event->treeStruct.obs     [ event->treeStruct.n_dim + count_param ] =  
+	event->treeStruct.obs_e   [ event->treeStruct.n_dim + count_param ] = p4_MET[0].p4.E(); 
+	event->treeStruct.obs_pt  [ event->treeStruct.n_dim + count_param ] = p4_MET[0].p4.Pt();
+	event->treeStruct.obs_eta [ event->treeStruct.n_dim + count_param ] = 0. ;
+	event->treeStruct.obs_phi [ event->treeStruct.n_dim + count_param ] = 
 	  (p%2==0 ? p4_MET[0].p4.Phi() : TMath::Cos(p4_MET[0].p4.Theta()) );
-	event->treeStruct.obs_BTAG[ event->treeStruct.n_dim + count_param ] = 0.;
+	event->treeStruct.obs_btag[ event->treeStruct.n_dim + count_param ] = 0.;
       }
       ++count_param;
     }    

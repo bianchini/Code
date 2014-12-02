@@ -20,8 +20,11 @@ namespace Algo {
     int    dim      [HMAX]; // num of parameters per hypo 
     int    perm     [HMAX]; // num of permutations per hypo
     double param    [PMAX]; // minimzed parameters [ [p_0,...,p_dim[0]], ... ]
-    double obs      [PMAX]; // input observables
-    double obs_BTAG [PMAX]; // input observables
+    double obs_e    [PMAX]; // input observables
+    double obs_pt   [PMAX]; // input observables
+    double obs_eta  [PMAX]; // input observables
+    double obs_phi  [PMAX]; // input observables
+    double obs_btag [PMAX]; // input observables
     void print(ostream& os){
       os << "TreeStruct contains: " << endl;
       os << "\tall_time = " << all_time << " msec" << endl;
@@ -38,8 +41,11 @@ namespace Algo {
 	os << ", dim["      << i << "] = " << dim[i] << endl;
 	for(int j = 0 ; j < dim[i] ; ++j){	  
 	  os << "\t\tparam["  << j << "] = " << param[it_p] 
-	     << ", obs["      << j << "] = " << obs[it_p]   
-	     << ", obs_BTAG[" << j << "] = " << obs_BTAG[it_p] << endl; 
+	     << ", obs_e["    << j << "] = " << obs_e[it_p]   
+	     << ", obs_pt["   << j << "] = " << obs_pt[it_p]   
+	     << ", obs_eta["  << j << "] = " << obs_eta[it_p]   
+	     << ", obs_phi["  << j << "] = " << obs_phi[it_p]   
+	     << ", obs_btag[" << j << "] = " << obs_btag[it_p] << endl; 
 	  ++it_p;
 	}
       }

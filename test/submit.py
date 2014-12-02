@@ -25,6 +25,7 @@ def processAllBatch( jobName , extra, t, g, b , G, T ):
 
 ###########################################################################     
 
+'''
 # TopHad + WHad
 for p in range(5):    
     processAllBatch( 'tH_wH', '_p'+str(p), 100, 0,0,  0,0 )
@@ -37,8 +38,7 @@ for p in range(5):
     processAllBatch( 'tH_wH', '_p'+str(p), 100, 1,1,  5,0 ) 
 for p in range(5):
     processAllBatch( 'tH_wH', '_p'+str(p), 100, 1,2,  0,0 )
-    processAllBatch( 'tH_wH', '_p'+str(p), 100, 1,2,  5,0 )    
-
+    processAllBatch( 'tH_wH', '_p'+str(p), 100, 1,2,  5,0 )
 '''
 
 # TopHad + TopLep
@@ -89,8 +89,6 @@ for p in range(10):
 for p in range(10):
     processAllBatch( 'tH_tH_Hh', '_p'+str(p), 50, 1,2,  4,4 )
     processAllBatch( 'tH_tH_Hh', '_p'+str(p), 50, 1,2,  9,4 )
-            
-'''
 
 
 

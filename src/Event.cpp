@@ -34,8 +34,11 @@ void Algo::Event::createBranches(){
   outTree->Branch( "test__dim",       &(treeStruct.dim),       "test__dim[test__n_hyp]/I");
   outTree->Branch( "test__perm",      &(treeStruct.perm),      "test__perm[test__n_hyp]/I");
   outTree->Branch( "test__param",     &(treeStruct.param),     "test__param[test__n_dim]/D");
-  outTree->Branch( "test__obs",       &(treeStruct.obs),       "test__obs[test__n_dim]/D");
-  outTree->Branch( "test__obs_BTAG",  &(treeStruct.obs_BTAG),  "test__obs_BTAG[test__n_dim]/D");
+  outTree->Branch( "test__obs_e",     &(treeStruct.obs_e),     "test__obs_e[test__n_dim]/D");
+  outTree->Branch( "test__obs_pt",    &(treeStruct.obs_pt),    "test__obs_pt[test__n_dim]/D");
+  outTree->Branch( "test__obs_eta",   &(treeStruct.obs_eta),   "test__obs_eta[test__n_dim]/D");
+  outTree->Branch( "test__obs_phi",   &(treeStruct.obs_phi),   "test__obs_phi[test__n_dim]/D");
+  outTree->Branch( "test__obs_btag",  &(treeStruct.obs_btag),  "test__obs_btag[test__n_dim]/D");
 }
 
 

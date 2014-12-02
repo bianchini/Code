@@ -31,13 +31,21 @@ vector<Algo::Object> Algo::ToyGenerator::generate( const vector<Decay>& decays, 
 
 void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, const int& smear, const int& btag ){
   
-  double pt_top  = 20.;
+
+  double pt_rad  = ran->Exp(+50.); 
+  TF1 f_eta_rad("f_eta_rad", "2+TMath::Cos(x)", -3,3);
+  double eta_rad = f_eta_rad.GetRandom();
+  double phi_rad = ran->Uniform(-TMath::Pi(),TMath::Pi());
+  LV p4_rad;
+  p4_rad.SetPtEtaPhiM( pt_rad, eta_rad, phi_rad, 0. );
+
+  double pt_top  = 20.;//ran->Exp(-50.);
   double eta_top = ran->Uniform(-2.5,2.5);
   double phi_top = ran->Uniform(-TMath::Pi(),TMath::Pi());
   LV p4_top;
   p4_top.SetPtEtaPhiM( pt_top, eta_top, phi_top, MTOP );
 
-  double pt_h  = 20.;
+  double pt_h  = 20.;//ran->Exp(-50.);
   double eta_h = ran->Uniform(-2.5,2.5);
   double phi_h = ran->Uniform(-TMath::Pi(),TMath::Pi());
   LV p4_h;
@@ -175,8 +183,8 @@ void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, c
     break;
   case Decay::Radiation_u:
     if(smear) 
-      smear_by_TF(p4_q, 'q');
-    out1.init( p4_q,    'q');
+      smear_by_TF(p4_rad, 'q');
+    out1.init( p4_rad,    'q');
     if(btag){
       assign_rnd_btag( Algo::QuarkTypeDown,   out1 , btag); 
     }
@@ -185,8 +193,8 @@ void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, c
   case Decay::Radiation_g:
   case Decay::Radiation_d:
     if(smear)
-      smear_by_TF(p4_qbar, 'q');
-    out1.init( p4_qbar,    'q');
+      smear_by_TF(p4_rad, 'q');
+    out1.init( p4_rad,    'q');
     if(btag){
       assign_rnd_btag( Algo::QuarkTypeDown,   out1 , btag);
     }
@@ -194,8 +202,8 @@ void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, c
     break;
   case Decay::Radiation_b:
     if(smear)
-      smear_by_TF(p4_b, 'b');
-    out1.init( p4_b,    'b');
+      smear_by_TF(p4_rad, 'b');
+    out1.init( p4_rad,    'b');
     if(btag){
       assign_rnd_btag( Algo::QuarkTypeBottom,   out1 , btag); 
     }
