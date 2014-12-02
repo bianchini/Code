@@ -170,7 +170,36 @@ int main(int argc, char *argv[]){
 	++count_m;
       }
     }
+
+    if(verbose>0){
+      cout << "*************" << endl;
+      for( auto fs : out ){
+	cout <<  fs.type << ": " << fs.p4.Pt() << "," << fs.p4.Eta() << "," << fs.p4.Phi() << endl;
+      }
+    }
   
+    int overlap {0};
+    for( size_t i = 0 ; i < out.size()-1 ; i++ ){
+      if( !( ((out[i].type=='q' || out[i].type=='b') && out[i].p4.Pt()>30 && TMath::Abs(out[i].p4.Eta())<2.5) ||
+	     (out[i].type=='l' && out[i].p4.Pt()>20 && TMath::Abs(out[i].p4.Eta())<2.5)
+	     ) ) continue;
+      for( size_t j = i+1 ; j < out.size() ; j++ ){
+	if( !( ((out[j].type=='q' || out[j].type=='b') && out[j].p4.Pt()>30 && TMath::Abs(out[j].p4.Eta())<2.5) || 
+	       (out[j].type=='l' && out[j].p4.Pt()>20 && TMath::Abs(out[j].p4.Eta())<2.5)
+	       ) ) continue;
+	if( TMath::Sqrt( TMath::Power(out[i].p4.Eta()-out[j].p4.Eta(), 2) + TMath::Power(out[i].p4.Phi()-out[j].p4.Phi(), 2) )<0.5 ) {
+	  ++overlap;
+	  if(verbose>0){
+	    cout << "Overlap: " << i << " and " << j << endl;
+	    cout << out[i].type << " and " << out[j].type << ": (" << out[i].p4.Eta() << ", " << out[j].p4.Eta() << ")" 
+		 << ", (" << out[i].p4.Phi() << ", " << out[j].p4.Phi() << ")" << endl;	    
+	  }
+	}
+      }
+    }
+    
+
+
     if(pass==0) cout << "Generate event " << itoy+1 << "/" << ntoys << endl;
     if(verbose>0){
       cout << "\tNumber of jets: " << count_j << endl;
@@ -179,7 +208,7 @@ int main(int argc, char *argv[]){
     }
 
     // TopHad + TopLep
-    if(test_hypo==TEST_HYPO::TEST_tH_tL && count_j==4 && count_l==1 && count_m==1 ) {
+    if(test_hypo==TEST_HYPO::TEST_tH_tL && count_j==4 && count_l==1 && count_m==1 && overlap==0) {
       if(pass){
 	++itoy;
 	cout << "Generate event " << itoy << "/" << ntoys << endl;
@@ -208,7 +237,7 @@ int main(int argc, char *argv[]){
 
 
     // TopHad + TopLep + Higgs
-    if( test_hypo==TEST_HYPO::TEST_tH_tL_hH && count_j==6 && count_l==1 && count_m==1 ) {
+    if( test_hypo==TEST_HYPO::TEST_tH_tL_hH && count_j==6 && count_l==1 && count_m==1 && overlap==0) {
       if(pass){
 	++itoy;
 	cout << "Generate event " << itoy << "/" << ntoys << endl;
@@ -236,7 +265,7 @@ int main(int argc, char *argv[]){
     }
 
     // TopLep + TopLep + Higgs                                                                                                                       
-    if( test_hypo==TEST_HYPO::TEST_tL_tL_hH && count_j==4 && count_l==2 && count_m==2 ) {
+    if( test_hypo==TEST_HYPO::TEST_tL_tL_hH && count_j==4 && count_l==2 && count_m==2 && overlap==0) {
       if(pass){
         ++itoy;
         cout << "Generate event " << itoy << "/" << ntoys << endl;
@@ -264,7 +293,7 @@ int main(int argc, char *argv[]){
     }
 
     // TopHad + TopHad + Higgs                                                                                                                        
-    if( test_hypo==TEST_HYPO::TEST_tH_tH_hH && count_j==8 && count_l==0 && count_m==0 ) {
+    if( test_hypo==TEST_HYPO::TEST_tH_tH_hH && count_j==8 && count_l==0 && count_m==0 && overlap==0 ) {
       if(pass){
         ++itoy;
         cout << "Generate event " << itoy << "/" << ntoys << endl;
@@ -290,7 +319,7 @@ int main(int argc, char *argv[]){
 
 
     // TopHad + WHad
-    else if( test_hypo==TEST_HYPO::TEST_tH_wH && count_j==5 && count_m==0 && count_l==0) {
+    else if( test_hypo==TEST_HYPO::TEST_tH_wH && count_j==5 && count_m==0 && count_l==0 && overlap==0) {
       if(pass){
 	++itoy;
 	cout << "Generate event " << itoy << "/" << ntoys << endl;
