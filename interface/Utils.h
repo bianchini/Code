@@ -66,14 +66,24 @@ namespace Algo {
   size_t eta_to_bin( const double& );
   size_t eta_to_bin( const LV& );
  
-  enum class Decay { TopLep, TopHad, WHad, Higgs, Radiation_u, Radiation_d, Radiation_b, Radiation_g, MET, UNKNOWN };
+  enum class Decay { TopLep, TopHad, WHad, Higgs, Radiation_u, Radiation_d, Radiation_b, Radiation_g, Lepton, MET, UNKNOWN };
   string translateDecay(Decay&);
 
-  enum class FinalState { TopLep_l=0, TopLep_b,
-      TopHad_q,   TopHad_qbar,  TopHad_b,
-      WHad_q,     WHad_qbar,
-      Higgs_b, Higgs_bbar,
-      Radiation_u, Radiation_d, Radiation_b, Radiation_g };
+  enum class FinalState { 
+    TopLep_l,      // lep   from top decay   () 
+      TopLep_b,    // b     from top decay   (TF and btag[B])
+      TopHad_q,    // q     from top decay   (TF and btag[0.5*LF+0.5*C])
+      TopHad_qbar, // qbar  from top decay   (TF and btag[LF]) 
+      TopHad_b,    // b     from top decay   (TF and btag[B])
+      WHad_q,      // q     from top decay   (TF and btag[0.5*LF+0.5*C])     
+      WHad_qbar,   // qbar  from top decay   (TF and btag[LF])
+      Higgs_b,     // b     from Higgs decay (TF and btag[B]) 
+      Higgs_bbar,  // bbar  from Higgs decay (TF and btag[B]) 
+      Radiation_u, // extra quark            (TF and btag[0.5*LF+0.5*C])
+      Radiation_d, // extra quark            (TF and btag[LF])
+      Radiation_b, // extra quark            (TF and btag[B])  
+      Radiation_g  // extra quark            (TF, no flavour assignment)  
+      };
 
   struct CompFinalState {
     bool operator()(pair<FinalState,size_t> a, pair<FinalState,size_t> b){

@@ -35,6 +35,7 @@ void Algo::TransferFunction::add_pdf_obs( const string& name, const Object& obj,
       pdf.SetParameter(0, type);
       pdf.SetParameter(1, obj.p4.Pt()  );
       pdf.SetParameter(2, obj.p4.Eta() );
+      // RND=0 means that btagging is used as YES/NO variable, then do not use btag likelihood  
       if( (obj.obs).find(name+"_RND")!=(obj.obs).end() && (obj.obs).find(name+"_RND")->second<0.5 )
 	pdfs[name] = 1.0;
       else	
@@ -195,7 +196,7 @@ void Algo::METBuilder::print(ostream& os){
 }
 
 Algo::Decay Algo::METBuilder::get_decay(){
-  return Decay::MET;
+  return decay;
 }
 
 //////////////////////////////////////////////////////
@@ -358,7 +359,7 @@ double Algo::TopHadBuilder::eval( const double *xx, LV& invisible ) {
 }
 
 Algo::Decay Algo::TopHadBuilder::get_decay(){
-  return Decay::TopHad;
+  return decay;
 }
 
 vector<size_t> Algo::TopHadBuilder::get_variables(){
@@ -459,7 +460,7 @@ double Algo::WHadBuilder::eval( const double *xx, LV& invisible ) {
 }
 
 Algo::Decay Algo::WHadBuilder::get_decay(){
-  return Decay::WHad;
+  return decay;
 }
 
 vector<size_t> Algo::WHadBuilder::get_variables(){
@@ -614,7 +615,7 @@ double Algo::HiggsBuilder::eval( const double *xx, LV& invisible ) {
 }
 
 Algo::Decay Algo::HiggsBuilder::get_decay(){
-  return Decay::Higgs;
+  return decay;
 }
 
 vector<size_t> Algo::HiggsBuilder::get_variables(){
@@ -773,7 +774,7 @@ double Algo::TopLepBuilder::eval( const double *xx, LV& invisible ) {
 }
 
 Algo::Decay Algo::TopLepBuilder::get_decay(){
-  return Decay::TopLep;
+  return decay;
 }
 
 vector<size_t> Algo::TopLepBuilder::get_variables(){
@@ -858,8 +859,8 @@ void Algo::RadiationBuilder::init( const FinalState& fs, const Object& obj, cons
     p4_g    = obj.p4;
     index_g = sz;
     tf = new TransferFunction("tf_q", TF_Q , verbose);
-    tf->init( TF_Q_param[Algo::eta_to_bin(obj.p4)] );
-    for(auto iobs : obj.obs ) tf->add_pdf_obs( iobs.first, obj, Algo::QuarkTypeDown );
+    tf->init( TF_Q_param[Algo::eta_to_bin(obj.p4)] );    
+    //for(auto iobs : obj.obs ) tf->add_pdf_obs( iobs.first, obj, Algo::QuarkTypeDown );
     tf_g    = tf;
     break;
   default:

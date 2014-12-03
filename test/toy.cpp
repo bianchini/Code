@@ -13,10 +13,12 @@
 
 
 enum GEN_HYPO  : int { GEN_tH_wH=0 ,  GEN_tH_tL=1,   GEN_tH_tL_hH=2,  GEN_tL_tL_hH=3,  GEN_tH_tH_hH=4,
-		       GEN_tH_bb=5 ,  GEN_udb_tL=6,  GEN_tH_tL_bb=7,  GEN_tL_tL_bb=8,  GEN_tH_tH_bb=9,
+		     GEN_tH_bb=5 ,  GEN_udb_tL=6,  GEN_tH_tL_bb=7,  GEN_tL_tL_bb=8,  GEN_tH_tH_bb=9,
+		     GEN_tL_ggggg=10, GEN_lm_gggggg=11, 
 		     };
 
-enum TEST_HYPO : int { TEST_tH_wH=0 , TEST_tH_tL=1, TEST_tH_tL_hH=2, TEST_tL_tL_hH=3, TEST_tH_tH_hH=4};
+enum TEST_HYPO : int { TEST_tH_wH=0 , TEST_tH_tL=1, TEST_tH_tL_hH=2, TEST_tL_tL_hH=3, TEST_tH_tH_hH=4,
+		     TEST_tL=5};
 
 
 using namespace std;
@@ -148,6 +150,24 @@ int main(int argc, char *argv[]){
     decays.push_back( Algo::Decay::Radiation_b );  
     decays.push_back( Algo::Decay::Radiation_b );  
     break;
+  case GEN_tL_ggggg:
+    decays.push_back( Algo::Decay::TopLep );
+    decays.push_back( Algo::Decay::Radiation_g );
+    decays.push_back( Algo::Decay::Radiation_g );
+    decays.push_back( Algo::Decay::Radiation_g );
+    //decays.push_back( Algo::Decay::Radiation_g );
+    //decays.push_back( Algo::Decay::Radiation_g );
+    break;
+  case GEN_lm_gggggg:
+    decays.push_back( Algo::Decay::Lepton );
+    decays.push_back( Algo::Decay::MET );
+    decays.push_back( Algo::Decay::Radiation_g );
+    decays.push_back( Algo::Decay::Radiation_g );
+    decays.push_back( Algo::Decay::Radiation_g );
+    decays.push_back( Algo::Decay::Radiation_g );
+    //decays.push_back( Algo::Decay::Radiation_g );
+    //decays.push_back( Algo::Decay::Radiation_g );
+    break;
   default:
     break;
   }
@@ -187,7 +207,7 @@ int main(int argc, char *argv[]){
 	if( !( ((out[j].type=='q' || out[j].type=='b') && out[j].p4.Pt()>30 && TMath::Abs(out[j].p4.Eta())<2.5) || 
 	       (out[j].type=='l' && out[j].p4.Pt()>20 && TMath::Abs(out[j].p4.Eta())<2.5)
 	       ) ) continue;
-	if( TMath::Sqrt( TMath::Power(out[i].p4.Eta()-out[j].p4.Eta(), 2) + TMath::Power(out[i].p4.Phi()-out[j].p4.Phi(), 2) )<0.5 ) {
+	if( TMath::Sqrt( TMath::Power(out[i].p4.Eta()-out[j].p4.Eta(), 2) + TMath::Power(out[i].p4.Phi()-out[j].p4.Phi(), 2) )<0.4 ) {
 	  ++overlap;
 	  if(verbose>0){
 	    cout << "Overlap: " << i << " and " << j << endl;
@@ -292,16 +312,16 @@ int main(int argc, char *argv[]){
       tester->test( hypotheses );
     }
 
-    // TopHad + TopHad + Higgs                                                                                                                        
+    // TopHad + TopHad + Higgs
     if( test_hypo==TEST_HYPO::TEST_tH_tH_hH && count_j==8 && count_l==0 && count_m==0 && overlap==0 ) {
       if(pass){
         ++itoy;
         cout << "Generate event " << itoy << "/" << ntoys << endl;
       }
-
+      
       if( debug>=0 && itoy!=debug ) continue;
 
-      // fill jets                                                                                                                                  
+      // fill jets                                                                                                                            
       for( auto fs : out ){
         if( (fs.type=='q' || fs.type=='b') && fs.p4.Pt()>30 && TMath::Abs(fs.p4.Eta())<2.5 ){
           tester->push_back_object( fs.p4  , 'j');
@@ -342,6 +362,37 @@ int main(int argc, char *argv[]){
       if(verbose>0) tester->print(cout);
       tester->test( hypotheses );
     }
+
+    //TopLep + other jets
+
+    else if(test_hypo==TEST_HYPO::TEST_tL && count_j==4 && count_m>=0 && count_l>=0 && overlap==0){
+      if(pass){
+        ++itoy;
+        cout << "Generate event " << itoy << "/" << ntoys << endl;
+      }
+
+      if( debug>=0 && itoy!=debug ) continue;
+      
+      // fill jets                                                                                                                             
+      for( auto fs : out ){
+        if( (fs.type=='q' || fs.type=='b') && fs.p4.Pt()>30 && TMath::Abs(fs.p4.Eta())<2.5 ){
+          tester->push_back_object( fs.p4  , 'j');
+          if(btag)   tester->add_object_observables( "BTAG",     fs.obs["BTAG"] ,     'j');
+          if(btag>1) tester->add_object_observables( "BTAG_RND", fs.obs["BTAG_RND"] , 'j');
+        }
+	if( fs.type=='l' )
+          tester->push_back_object( fs.p4  , 'l');
+      }
+      tester->push_back_object( invisible  , 'm');
+
+      map<string, vector<Algo::Decay> > hypotheses;
+      hypotheses["H0"] = { Algo::Decay::TopLep };
+      hypotheses["H1"] = { Algo::Decay::Radiation_g, Algo::Decay::Radiation_g,Algo::Decay::Radiation_g,
+			   Algo::Decay::Radiation_g /*, Algo::Decay::Radiation_g,Algo::Decay::Radiation_g*/};
+      if(verbose>0) tester->print(cout);
+      tester->test( hypotheses );
+    }
+
 
     // other final state
     else{ /* ... */ }

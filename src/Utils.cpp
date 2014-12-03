@@ -81,9 +81,13 @@ string Algo::translateDecay(Algo::Decay& decay){
   case Algo::Decay::Radiation_g:
     name = "Radiation_g";
     break;
+  case Algo::Decay::Lepton:
+    name = "Lepton";
+    break;
   case Algo::Decay::MET:
     name = "MET";
-    break;
+    break;    
+  case Algo::Decay::UNKNOWN:
   default:
     name = "UNKNOWN";
     break;
@@ -131,8 +135,11 @@ bool Algo::filter_by_btag( const std::vector<std::pair<FinalState,size_t>>& part
 
     double btag = (jets[count].obs).find("BTAG")->second;
     switch( p.first ){
+    case FinalState::TopHad_q:
     case FinalState::TopHad_qbar:
+    case FinalState::WHad_q:
     case FinalState::WHad_qbar:
+    case FinalState::Radiation_u:
     case FinalState::Radiation_d:
     case FinalState::Radiation_g:
       if( btag>0.5 ){

@@ -255,7 +255,7 @@ void Algo::HypoTester::unpack_assumptions(){
      nParam_j += 1;
      break;
 
-   default:
+   default:     
      break;
 
    }    
@@ -291,8 +291,11 @@ void Algo::HypoTester::init(){
   // number of jets at least as large as num of quarks
   assert( particles.size()<=p4_Jet.size() );
 
-  // if >0 topLep, need leptons
-  assert( count_TopLep==p4_Lepton.size()  );
+  // number of leptons at least as large as num of leptonic tops
+  assert( count_TopLep<=p4_Lepton.size()  );
+  if( count_TopLep>0 && count_TopLep<p4_Lepton.size() ) 
+    cout << "Algo::HypoTester::init(): Warning: only the first " 
+	 << count_TopLep << " leptons will be used (no permutations among leptons)" << endl;
 
   // if >0 topLep, need MET
   assert( count_TopLep==0 || (count_TopLep>0 && p4_MET.size()>0)  );
@@ -306,45 +309,53 @@ void Algo::HypoTester::init(){
   // bookkeep to remove unnecessary permutations
   vector<vector<std::pair<FinalState,size_t>>> logbook;
 
-  // permutations using std library
-  do {
-    
-    // skip unnecessary permutations
-    bool skip = false;
-    if(logbook.size()==0) 
-      logbook.push_back(particles);
-    else{
-      for( auto log : logbook ){
-	if(  isSame        ( log, particles ) ) skip = true;	
-      }
-      if(!skip) 
-	logbook.push_back(particles);             
+  try{
+    // permutations using std library
+    do {    
+
+      // filter out permutations with invalid quark <-> jet assignment
+      // (only if BTAG_RND is filled and its value less than 0.5)
+      if( !filter_by_btag( particles , p4_Jet ) ) continue;	
+
+      // skip unnecessary permutations: this can take some time
+      bool skip = false;
+      if(logbook.size()==0) 
+	logbook.push_back(particles);
       else{
-	if(verbose>2) cout << "\tDo not consider this permutation  " << endl;
-	continue;
-      }
-    }    
+	for( auto log : logbook ){
+	  if( isSame( log, particles ) ) skip = true;	
+	}
+	if(!skip) 
+	  logbook.push_back(particles);             
+	else{
+	  if(verbose>2) cout << "\tDo not consider this permutation  " << endl;
+	  continue;
+	}
+      }         
+      
+      if(verbose>2){ cout << "\tPermutation number " << count_perm << ":" << endl; }
+      
+      // this vector will contain all blocks 
+      // E.g. block = TopHad * TopLep * Rad * Rad * ... * MET
+      vector<Algo::DecayBuilder*> decays; 
+      
+      // pass by reference: here the group is formed
+      group_particles( decays );
+      
+      // add block list of permutations
+      // a block is assembled by CombBuilder
+      permutations.push_back( new Algo::CombBuilder(decays, verbose) );
+      
+      // increment counter
+      ++count_perm;
+      
+    } while ( next_permutation(particles.begin(), particles.end(), MyComp  ) );
+  }
+  catch(...){
+    cout << "Algo::HypoTester::init() has thrown an exception: cannot compute all permutations. Return." << endl;
+    return;
+  }
 
-    if( !filter_by_btag( particles , p4_Jet ) ) continue;	
-
-    if(verbose>2){ cout << "\tPermutation number " << count_perm << ":" << endl; }
-
-    // this vector will contain all blocks 
-    // E.g. block = TopHad * TopLep * Rad * Rad * ... * MET
-    vector<Algo::DecayBuilder*> decays; 
-
-    // pass by reference: here the group is formed
-    group_particles( decays );
-    
-    // add block list of permutations
-    // a block is assembled by CombBuilder
-    permutations.push_back( new Algo::CombBuilder(decays, verbose) );
-    
-    // increment counter
-    ++count_perm;
-    
-  } while ( next_permutation(particles.begin(), particles.end(), MyComp  ) );
-  
   if(verbose>0) {
     cout << "\tTotal of  " << count_perm << " permutations created:" << endl;
     size_t count {0};
@@ -474,7 +485,6 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
 
   // if there are invisible particles, add MET as last element                                                                            
   if(invisible>0){
-
     Algo::METBuilder* met = new Algo::METBuilder(verbose);
     assert( p4_MET.size()>0 );
     met->init( p4_MET[0] );
@@ -482,7 +492,6 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
   }
   // if there are not invisible particles, but MET is an input, eval MET tf at (0.,0.)                                                      
   else if( p4_MET.size()>0 ){
-
     Algo::METBuilder* met = new Algo::METBuilder(verbose);
     met->init( p4_MET[0] );
     met->fix_vars();
@@ -717,26 +726,26 @@ bool Algo::HypoTester::is_variable_used( const size_t pos ){
 
       switch( decay->get_decay() ){
       case Decay::TopHad:
-	vars = (reinterpret_cast<TopHadBuilder*>(decay))->get_variables();
+	vars = (static_cast<TopHadBuilder*>(decay))->get_variables();
 	if( pos==vars[0] ) return true;
 	break;
       case Decay::WHad:
-	vars = (reinterpret_cast<WHadBuilder*>(decay))->get_variables();
+	vars = (static_cast<WHadBuilder*>(decay))->get_variables();
 	if( pos==vars[0] ) return true; 
 	break;
       case Decay::Higgs:
-	vars = (reinterpret_cast<HiggsBuilder*>(decay))->get_variables();  
+	vars = (static_cast<HiggsBuilder*>(decay))->get_variables();  
 	if( pos==vars[0] ) return true; 
 	break;
       case Decay::TopLep:
-	vars = (reinterpret_cast<TopLepBuilder*>(decay))->get_variables(); 
+	vars = (static_cast<TopLepBuilder*>(decay))->get_variables(); 
 	if( pos==vars[0] || pos==vars[1] ) return true;
 	break;
       case Decay::Radiation_u:
       case Decay::Radiation_d:
       case Decay::Radiation_g:
       case Decay::Radiation_b:
-	vars = (reinterpret_cast<RadiationBuilder*>(decay))->get_variables();
+	vars = (static_cast<RadiationBuilder*>(decay))->get_variables();
         if( pos==vars[0] ) return true;
         break;
       default:

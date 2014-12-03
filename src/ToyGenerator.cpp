@@ -33,7 +33,13 @@ void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, c
   
   TF1 f_eta_rad("f_eta_rad", "2+TMath::Cos(x)", -3,3);
 
-  double pt_rad  = TMath::Max(ran->Exp(+50.), 20.); 
+  int break_loop = 0;
+  double pt_rad  = 20.;
+  while( pt_rad<30. || break_loop>100 ){
+    pt_rad = ran->Exp(+50.);     
+    ++break_loop;
+  }
+
   double eta_rad = f_eta_rad.GetRandom();
   double phi_rad = ran->Uniform(-TMath::Pi(),TMath::Pi());
   LV p4_rad;
@@ -51,6 +57,7 @@ void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, c
   LV p4_h;
   p4_h.SetPtEtaPhiM( pt_h, eta_h, phi_h, MH );
 
+  LV p4_noise(0., 0., 0., 0.);  
 
   double phiS_w    = ran->Uniform(-TMath::Pi(),TMath::Pi());
   double cthetaS_w = ran->Uniform(-1.,1.);
@@ -217,6 +224,16 @@ void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, c
     }
     out.push_back( out1 );
     break;
+  case Decay::Lepton:
+    out1.init( p4_q,    'l');
+    out.push_back( out1 );
+    break;
+  case Decay::MET:
+    if(smear)
+      smear_by_TF(p4_noise, 'm');
+    out1.init( p4_noise,    'm');
+    out.push_back( out1 );
+    break;
   default:
     break;
   }
@@ -231,7 +248,9 @@ void Algo::ToyGenerator::assign_rnd_btag( const Algo::QuarkType type, Object& ob
     switch( type ){
     case QuarkType::QuarkTypeUp:
       // get random value for it
-      break;
+      // break;
+      obj.addObs( "BTAG", 0. );
+      return;
     case QuarkType::QuarkTypeDown:
       obj.addObs( "BTAG", 0. );
       return;
