@@ -263,6 +263,16 @@ void doall(TString dir="./" ){
                 "H_{0}", "H_{1}", dir+"TopLep_TopLep_Higgs_ROC_btag2.png");
 
   
+  roc_comp_ROC( dir+"Test_toys25_smear1_btag2_gen4_test4.root", dir+"Test_toys25_smear1_btag2_gen9_test4.root",
+                0.1, 0., 50.,
+                "TopHad + TopHad + Higgs (smear+btag+filter)",
+                "H_{0}", "H_{1}", dir+"TopHad_TopHad_Higgs_ROC_btag2.png");
+
+  roc_comp_ROC( dir+"Test_toys25_smear1_btag1_gen10_test5.root", dir+"Test_toys25_smear1_btag1_gen11_test5.root",
+                0.1, 0., 50.,
+                "TopLep + X (smear+btag)",
+                "H_{0}", "H_{1}", dir+"TopLep_X_ROC_btag1.png");
+
   /////////////////////////////////////////////////////////////////
 
 

@@ -14,11 +14,12 @@
 
 enum GEN_HYPO  : int { GEN_tH_wH=0 ,  GEN_tH_tL=1,   GEN_tH_tL_hH=2,  GEN_tL_tL_hH=3,  GEN_tH_tH_hH=4,
 		     GEN_tH_bb=5 ,  GEN_udb_tL=6,  GEN_tH_tL_bb=7,  GEN_tL_tL_bb=8,  GEN_tH_tH_bb=9,
-		     GEN_tL_ggggg=10, GEN_lm_gggggg=11, 
+		     GEN_tL_ggggg=10, GEN_lm_gggggg=11		     
 		     };
 
 enum TEST_HYPO : int { TEST_tH_wH=0 , TEST_tH_tL=1, TEST_tH_tL_hH=2, TEST_tL_tL_hH=3, TEST_tH_tH_hH=4,
-		     TEST_tL=5};
+		     TEST_tL=5
+		     };
 
 
 using namespace std;
@@ -155,8 +156,8 @@ int main(int argc, char *argv[]){
     decays.push_back( Algo::Decay::Radiation_g );
     decays.push_back( Algo::Decay::Radiation_g );
     decays.push_back( Algo::Decay::Radiation_g );
-    //decays.push_back( Algo::Decay::Radiation_g );
-    //decays.push_back( Algo::Decay::Radiation_g );
+    decays.push_back( Algo::Decay::Radiation_g );
+    decays.push_back( Algo::Decay::Radiation_g );
     break;
   case GEN_lm_gggggg:
     decays.push_back( Algo::Decay::Lepton );
@@ -165,8 +166,8 @@ int main(int argc, char *argv[]){
     decays.push_back( Algo::Decay::Radiation_g );
     decays.push_back( Algo::Decay::Radiation_g );
     decays.push_back( Algo::Decay::Radiation_g );
-    //decays.push_back( Algo::Decay::Radiation_g );
-    //decays.push_back( Algo::Decay::Radiation_g );
+    decays.push_back( Algo::Decay::Radiation_g );
+    decays.push_back( Algo::Decay::Radiation_g );
     break;
   default:
     break;
@@ -357,6 +358,7 @@ int main(int argc, char *argv[]){
       }
 
       map<string, vector<Algo::Decay> > hypotheses;
+      //hypotheses["H0"] = {Algo::Decay::TopHadLost, Algo::Decay::Higgs, Algo::Decay::Radiation_g};
       hypotheses["H0"] = {Algo::Decay::TopHad, Algo::Decay::Higgs};
       hypotheses["H1"] = {Algo::Decay::TopHad, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b};
       if(verbose>0) tester->print(cout);
@@ -364,8 +366,7 @@ int main(int argc, char *argv[]){
     }
 
     //TopLep + other jets
-
-    else if(test_hypo==TEST_HYPO::TEST_tL && count_j==4 && count_m>=0 && count_l>=0 && overlap==0){
+    else if(test_hypo==TEST_HYPO::TEST_tL && count_j==6 && count_m>=0 && count_l>=0 && overlap==0){
       if(pass){
         ++itoy;
         cout << "Generate event " << itoy << "/" << ntoys << endl;
@@ -384,11 +385,11 @@ int main(int argc, char *argv[]){
           tester->push_back_object( fs.p4  , 'l');
       }
       tester->push_back_object( invisible  , 'm');
-
+      
       map<string, vector<Algo::Decay> > hypotheses;
       hypotheses["H0"] = { Algo::Decay::TopLep };
       hypotheses["H1"] = { Algo::Decay::Radiation_g, Algo::Decay::Radiation_g,Algo::Decay::Radiation_g,
-			   Algo::Decay::Radiation_g /*, Algo::Decay::Radiation_g,Algo::Decay::Radiation_g*/};
+			   Algo::Decay::Radiation_g, Algo::Decay::Radiation_g,Algo::Decay::Radiation_g};
       if(verbose>0) tester->print(cout);
       tester->test( hypotheses );
     }

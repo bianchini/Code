@@ -18,12 +18,15 @@ namespace Algo {
     void init(const double*);
     const string getFormula() const; 
     double eval       (const double& , const double&) const ;
-    void   add_pdf_obs(const string&, const Object&, const int&);
+    void   add_pdf_obs(const string&, const Object&, const int&);    
+    double get_threshold() const;
+    void   set_threshold(const double&) ;
   private:
     double get_pdfs() const;
     string formula;
     TFormula* f;
     map<string,double> pdfs;
+    double threshold;
     int verbose;
   };
   
@@ -102,6 +105,7 @@ namespace Algo {
     Decay decay;
     size_t errFlag;
     int verbose;
+    int qbar_lost;
   };
 
   

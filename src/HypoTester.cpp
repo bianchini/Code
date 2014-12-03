@@ -6,9 +6,11 @@ Algo::HypoTester::HypoTester(){
   // reset variables
   nParam_j          = 0;
   nParam_n          = 0;
+  nParam_m          = 0;
   count_hypo        = 0;
   count_perm        = 0;
   count_TopHad      = 0;
+  count_TopHadLost  = 0;
   count_TopLep      = 0;
   count_Higgs       = 0;
   count_Radiation_u = 0;
@@ -25,9 +27,11 @@ Algo::HypoTester::HypoTester(TTree* t){
   // reset variables
   nParam_j          = 0;
   nParam_n          = 0;
+  nParam_m          = 0;
   count_hypo        = 0;
   count_perm        = 0;
   count_TopHad      = 0;
+  count_TopHadLost  = 0;
   count_TopLep      = 0;
   count_Higgs       = 0;
   count_Radiation_u = 0;
@@ -141,8 +145,10 @@ void Algo::HypoTester::reset(){
   permutations.clear();
   nParam_j          = 0;
   nParam_n          = 0;
+  nParam_m          = 0;
   count_perm        = 0;
   count_TopHad      = 0;
+  count_TopHadLost  = 0;
   count_WHad        = 0;
   count_TopLep      = 0;
   count_Higgs       = 0;
@@ -180,7 +186,9 @@ void Algo::HypoTester::unpack_assumptions(){
   // reset
   nParam_j          = 0;
   nParam_n          = 0;
+  nParam_m          = 0;
   count_TopHad      = 0;
+  count_TopHadLost  = 0;
   count_WHad        = 0;
   count_TopLep      = 0;
   count_Higgs       = 0;
@@ -200,6 +208,15 @@ void Algo::HypoTester::unpack_assumptions(){
      ++count_TopHad;
      nParam_j += 3;
      if(verbose>0){ cout << "\tAdded TopHad" << endl; }
+     break;
+
+   case Algo::Decay::TopHadLost:
+     particles.push_back( make_pair( FinalState::TopHad_q,        count_TopHadLost) );
+     particles.push_back( make_pair( FinalState::TopHad_b,        count_TopHadLost) );
+     ++count_TopHadLost;
+     nParam_j += 2;
+     nParam_m += 2;
+     if(verbose>0){ cout << "\tAdded TopHadLost" << endl; }
      break;
 
    case Algo::Decay::WHad:
@@ -276,7 +293,7 @@ void Algo::HypoTester::unpack_assumptions(){
 
   }
     
-  if(verbose>0){ cout << "\tTotal number of parameters: nParam_j=" << nParam_j << ", nParam_n=" << nParam_n << endl; }
+  if(verbose>0){ cout << "\tTotal number of parameters: nParam_j=" << nParam_j << ", nParam_n=" << nParam_n << ", nParam_m=" << nParam_m << endl; }
 
 }
 
@@ -385,6 +402,24 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
       ++pos;
     }
     decayed.push_back( topHad );
+  }
+
+
+  //  get all leptonically decaying tops                                                                                                                   
+  for( size_t t_had_lost = 0; t_had_lost < count_TopHadLost; ++t_had_lost ){
+    if(verbose>1) cout << "\tProcessing " << t_had_lost << "th TopHadLost" << endl;
+    Algo::TopHadBuilder* topHadLost = new Algo::TopHadBuilder(verbose);
+    Object dummy;
+    dummy.init( LV(0.,0.,0.,0.), 'j');
+    topHadLost->init( FinalState::TopHadLost_qbar , dummy , 2*t_had_lost + nParam_j + nParam_n ); // offset
+    size_t pos = 0;
+    for( auto part : particles ){
+      if( part.second == t_had_lost ){
+	  topHadLost->init( part.first, p4_Jet[pos] , pos );
+      }
+      ++pos;
+    }
+    decayed.push_back( topHadLost );
   }
 
   // get all hadronically decaying tops
@@ -557,14 +592,14 @@ void Algo::HypoTester::setup_minimizer( const Algo::Strategy str){
       char name[6];
       double inVal, inVal_lo, inVal_hi, step;
       if( p%2==0 ){
-	sprintf(name, "phi%lu", p);
+	sprintf(name, "phi%lu", nParam_j+p);
 	inVal    = p4_MET[0].p4.Phi();
 	inVal_lo = -TMath::Pi() ;
 	inVal_hi = +TMath::Pi() ;
 	step     = step_Phi;     
       }
       else{
-	sprintf(name, "cos%lu", p/2);
+	sprintf(name, "cos%lu", nParam_j+p/2);
 	inVal    = 0.;
 	inVal_lo = -1.;
 	inVal_hi = +1.;
@@ -591,7 +626,49 @@ void Algo::HypoTester::setup_minimizer( const Algo::Strategy str){
 	event->treeStruct.obs_btag[ event->treeStruct.n_dim + count_param ] = 0.;
       }
       ++count_param;
-    }    
+    }
+
+
+    for( size_t p = 0 ; p < nParam_m ; p++){
+      
+      char name[6];
+      double inVal, inVal_lo, inVal_hi, step;
+      if( p%2==0 ){
+        sprintf(name, "phi%lu", nParam_j+nParam_n+p);
+        inVal    = 0.;
+        inVal_lo = -TMath::Pi() ;
+        inVal_hi = +TMath::Pi() ;
+        step     = step_Phi;
+      }
+      else{
+        sprintf(name, "cos%lu", nParam_j+nParam_n+p/2);
+        inVal    = 0.;
+        inVal_lo = -1.;
+        inVal_hi = +1.;
+        step     = step_Cos;
+      }
+
+      if( !is_variable_used(nParam_j+nParam_n+p) ){
+        minimizer->SetFixedVariable(nParam_j+nParam_n+p, name, inVal );
+        if(verbose>0)
+          printf("\tParam[%lu] = %s set to FIXED value %.0f\n", nParam_j+nParam_n+p, name, inVal);
+      }
+      else{
+        minimizer->SetLimitedVariable(nParam_j+nParam_n+p, name,  inVal , step, inVal_lo , inVal_hi);
+        if(verbose>0)
+          printf("\tParam[%lu] = %s set to %.0f. Range: [%.2f,%.2f]\n", nParam_j+nParam_n+p,name, inVal, inVal_lo, inVal_hi );
+      }
+
+      if(event!=nullptr){
+        event->treeStruct.obs_e   [ event->treeStruct.n_dim + count_param ] = 0.;
+        event->treeStruct.obs_pt  [ event->treeStruct.n_dim + count_param ] = 0.;
+        event->treeStruct.obs_eta [ event->treeStruct.n_dim + count_param ] = 0.;
+        event->treeStruct.obs_phi [ event->treeStruct.n_dim + count_param ] = 0.;
+        event->treeStruct.obs_btag[ event->treeStruct.n_dim + count_param ] = 0.;
+      }
+      ++count_param;   
+    }
+    
     
     // sanity check
     assert( minimizer->NDim()==count_param );
@@ -614,7 +691,7 @@ void Algo::HypoTester::run(){
     return;
   }
 
-  ROOT::Math::Functor f0( this , &Algo::HypoTester::eval, nParam_j + nParam_n); 
+  ROOT::Math::Functor f0( this , &Algo::HypoTester::eval, nParam_j + nParam_n + nParam_m); 
   minimizer->SetFunction(f0);
 
   Strategy strategy = Strategy::FirstTrial;
@@ -726,6 +803,10 @@ bool Algo::HypoTester::is_variable_used( const size_t pos ){
 
       switch( decay->get_decay() ){
       case Decay::TopHad:
+	vars = (static_cast<TopHadBuilder*>(decay))->get_variables();
+	if( pos==vars[0] ||  pos==vars[1] ||  pos==vars[2] ) return true;
+	break;
+      case Decay::TopHadLost:
 	vars = (static_cast<TopHadBuilder*>(decay))->get_variables();
 	if( pos==vars[0] ) return true;
 	break;

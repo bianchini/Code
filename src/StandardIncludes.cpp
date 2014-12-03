@@ -2,9 +2,10 @@
 
 
 Algo::TransferFunction::TransferFunction(const string& name, const string& form, const int verb){
-  formula = form;
-  f       = new TFormula(name.c_str(), formula.c_str());
-  verbose = verb;
+  formula   = form;
+  f         = new TFormula(name.c_str(), formula.c_str());
+  verbose   = verb;
+  threshold = 0.;
 }
 
 Algo::TransferFunction::~TransferFunction(){
@@ -21,6 +22,14 @@ double Algo::TransferFunction::eval(const double& rec, const double& gen) const 
   val *= get_pdfs();
   val *= f->Eval(rec,gen);
   return val;
+}
+
+double Algo::TransferFunction::get_threshold() const{
+  return threshold;
+}
+
+void  Algo::TransferFunction::set_threshold(const double& val){
+  threshold = val;
 }
 
 void Algo::TransferFunction::add_pdf_obs( const string& name, const Object& obj, const int& type){
@@ -202,21 +211,23 @@ Algo::Decay Algo::METBuilder::get_decay(){
 //////////////////////////////////////////////////////
 
 Algo::TopHadBuilder::TopHadBuilder () {
-  decay   = Decay::TopHad;
-  errFlag = 0;
-  tf_q    = nullptr;
-  tf_qbar = nullptr;
-  tf_b    = nullptr;
-  verbose = 0;
+  decay     = Decay::TopHad;
+  errFlag   = 0;
+  tf_q      = nullptr;
+  tf_qbar   = nullptr;
+  tf_b      = nullptr;
+  verbose   = 0;
+  qbar_lost = 0;
 }
 
 Algo::TopHadBuilder::TopHadBuilder (const int& verb) {
-  decay   = Decay::TopHad;
-  errFlag = 0;
-  tf_q    = nullptr;
-  tf_qbar = nullptr;
-  tf_b    = nullptr;
-  verbose = verb;
+  decay     = Decay::TopHad;
+  errFlag   = 0;
+  tf_q      = nullptr;
+  tf_qbar   = nullptr;
+  tf_b      = nullptr;
+  verbose   = verb;
+  qbar_lost = 0;
 }
 
 Algo::TopHadBuilder::~TopHadBuilder() {
@@ -229,7 +240,8 @@ Algo::TopHadBuilder::~TopHadBuilder() {
 void Algo::TopHadBuilder::print(ostream& os){
   os << "\t\t\tDecay: " <<  Algo::translateDecay(decay) << endl; 
   os << "\t\t\tq    [" << index_q    << "]: p4 = (" << p4_q.Pt() << ", " << p4_q.Eta()  << ", " << p4_q.Phi() << ", " << p4_q.M() << ")" << endl; 
-  os << "\t\t\tqbar [" << index_qbar << "]: p4 = (" << p4_qbar.Pt() << ", " << p4_qbar.Eta()  << ", " << p4_qbar.Phi() << ", " << p4_qbar.M() << ")" <<endl; 
+  if(qbar_lost==0)
+    os << "\t\t\tqbar [" << index_qbar << "]: p4 = (" << p4_qbar.Pt() << ", " << p4_qbar.Eta()  << ", " << p4_qbar.Phi() << ", " << p4_qbar.M() << ")" <<endl; 
   os << "\t\t\tb    [" << index_b    << "]: p4 = (" << p4_b.Pt() << ", " << p4_b.Eta()  << ", " << p4_b.Phi() << ", " << p4_b.M() << ")" <<endl; 
   if(tf_q!=nullptr)    os << "\t\t\tTF q   : " << tf_q->getFormula() << endl;
   if(tf_qbar!=nullptr) os << "\t\t\tTF qbar: " << tf_qbar->getFormula() << endl;
@@ -259,6 +271,13 @@ void Algo::TopHadBuilder::init( const FinalState& fs, const Object& obj, const s
     for(auto iobs : obj.obs ) tf->add_pdf_obs( iobs.first, obj, Algo::QuarkTypeDown );      
     tf_qbar    = tf;
     break;
+  case FinalState::TopHadLost_qbar:
+    index_qbar = sz;
+    tf = new TransferFunction("tfLost_qbar", TF_Q_CUM , verbose);
+    tf->set_threshold(PTTHRESHOLD);
+    tf_qbar    = tf;
+    ++qbar_lost;
+    break;
   case FinalState::TopHad_b:
     p4_b    = obj.p4;
     index_b = sz;
@@ -277,20 +296,34 @@ double Algo::TopHadBuilder::eval( const double *xx, LV& invisible ) {
 
   // return value
   double val {0.};
+  int nSol   {0};
 
   double E1 = xx[ index_q ];
 
-  if(verbose>1) cout << "\tTopHadBuilder::eval() xx[" << index_q << "]=" << E1 << endl;
+  if(verbose>1) cout << "\tTopHadBuilder::eval() xx[" << index_q << "]=" << E1;
 
   if( TMath::IsNaN(E1) ){
     if(verbose>1) cout << "xx[" << index_q << "] is nan" << endl;
     return val;
   }
 
+  // is the second quark reconstructed ?
+  if( qbar_lost ){
+    double qbarPhi   =  xx[ index_qbar ] ;
+    double qbarTheta =  xx[ index_qbar + 1] ;
+    if(verbose>1) cout << ", xx[" << index_qbar << "]=" << qbarPhi << ", xx[" << index_qbar+1 << "]=" << qbarTheta <<  endl;
+    TVector3 e2(0.,0.,1.);
+    e2.SetTheta( TMath::ACos( qbarTheta ) );
+    e2.SetPhi ( qbarPhi );
+    e2.SetMag ( 1.);
+    p4_qbar = LV(e2, 1.0 );
+    tf_qbar->init( TF_Q_param[Algo::eta_to_bin(p4_qbar)] );
+  }
+  else{
+    if(verbose>1) cout << endl;
+  }
+
   double E2, E3;
-
-  int nSol = 0;
-
   double a12 = p4_q.Angle(p4_qbar.Vect());
   double a13 = p4_q.Angle(p4_b.Vect());
   double a23 = p4_qbar.Angle(p4_b.Vect());
@@ -345,6 +378,15 @@ double Algo::TopHadBuilder::eval( const double *xx, LV& invisible ) {
   }
 
   invisible += LV(0.,0.,0.,0.);
+  
+  if(qbar_lost){
+    double acc = 1.0;
+    if( p4_qbar.Eta()<2.5 )
+      acc = tf_qbar->eval( tf_qbar->get_threshold()/TMath::Sin(p4_qbar.Theta()) , E2) ;
+    val += tf_q->eval(p4_q.E(), E1) * acc * tf_b->eval(p4_b.E(), E3);
+    if(verbose>2) cout << "\tAcceptance: " << acc << " for E=" <<  E2 << " (Pt=" <<  E2*TMath::Sin(p4_qbar.Theta()) << ")" << endl;
+    return val;
+  }
 
   val += tf_q->eval(p4_q.E(), E1) * tf_qbar->eval(p4_qbar.E(), E2) * tf_b->eval(p4_b.E(), E3);
 
@@ -365,6 +407,10 @@ Algo::Decay Algo::TopHadBuilder::get_decay(){
 vector<size_t> Algo::TopHadBuilder::get_variables(){
   vector<size_t> out;
   out.push_back( index_q );
+  if(qbar_lost){
+    out.push_back( index_qbar );
+    out.push_back( index_qbar + 1 );
+  }
   return out;
 }
 //////////////////////////////////////////////////////

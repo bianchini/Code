@@ -85,10 +85,12 @@ namespace Algo {
 
     size_t nParam_j;
     size_t nParam_n;
+    size_t nParam_m;
 
     int    count_hypo;
     int    count_perm;
     size_t count_TopHad;
+    size_t count_TopHadLost;
     size_t count_WHad;
     size_t count_TopLep;
     size_t count_Higgs;
