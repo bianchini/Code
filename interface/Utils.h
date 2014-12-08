@@ -72,24 +72,24 @@ namespace Algo {
   size_t eta_to_bin( const double& );
   size_t eta_to_bin( const LV& );
  
-  enum class Decay { TopLep, TopHad, TopHadLost, WHad, Higgs, Radiation_u, Radiation_d, Radiation_b, Radiation_g, Lepton, MET, UNKNOWN };
+  enum class Decay { TopLep=0, TopHad, TopHadLost, WHad, Higgs, Radiation_u, Radiation_d, Radiation_b, Radiation_g, Lepton, MET, UNKNOWN };
   string translateDecay(Decay&);
 
   enum class FinalState { 
-    TopLep_l,      // lep   from top decay   () 
-      TopLep_b,    // b     from top decay   (TF and btag[B])
-      TopHad_q,    // q     from top decay   (TF and btag[0.5*LF+0.5*C])
-      TopHad_qbar, // qbar  from top decay   (TF and btag[LF]) 
-  TopHadLost_qbar, // lost qbar  from top decay   (Acceptance) 
-      TopHad_b,    // b     from top decay   (TF and btag[B])
-      WHad_q,      // q     from top decay   (TF and btag[0.5*LF+0.5*C])     
-      WHad_qbar,   // qbar  from top decay   (TF and btag[LF])
-      Higgs_b,     // b     from Higgs decay (TF and btag[B]) 
-      Higgs_bbar,  // bbar  from Higgs decay (TF and btag[B]) 
-      Radiation_u, // extra quark            (TF and btag[0.5*LF+0.5*C])
-      Radiation_d, // extra quark            (TF and btag[LF])
-      Radiation_b, // extra quark            (TF and btag[B])  
-      Radiation_g  // extra quark            (TF, no flavour assignment)  
+    TopLep_l=0,      // lep   from top decay   () 
+      TopLep_b=1,    // b     from top decay   (TF and btag[B])
+      TopHad_q=2,    // q     from top decay   (TF and btag[0.5*LF+0.5*C])
+      TopHad_qbar=3, // qbar  from top decay   (TF and btag[LF]) 
+  TopHadLost_qbar=4, // lost qbar  from top decay   (Acceptance) 
+      TopHad_b=5,    // b     from top decay   (TF and btag[B])
+      WHad_q=6,      // q     from top decay   (TF and btag[0.5*LF+0.5*C])     
+      WHad_qbar=7,   // qbar  from top decay   (TF and btag[LF])
+      Higgs_b=8,     // b     from Higgs decay (TF and btag[B]) 
+      Higgs_bbar=9,  // bbar  from Higgs decay (TF and btag[B]) 
+      Radiation_u=10, // extra quark            (TF and btag[0.5*LF+0.5*C])
+      Radiation_d=11, // extra quark            (TF and btag[LF])
+      Radiation_b=12, // extra quark            (TF and btag[B])  
+      Radiation_g=13  // extra quark            (TF, no flavour assignment)  
       };
 
   struct CompFinalState {
@@ -98,19 +98,30 @@ namespace Algo {
     }
   };
   
+  FinalState partner(const FinalState fs);
+
   struct Object {   
     LV p4;
     map<string,double> obs; 
     char type;
     void init(const LV& p, const char typ)     { p4 = p; type = typ; }    
     void addObs(const string& name, double val){ obs.insert( make_pair(name, val) ); }    
+    bool isDiscriminating(const string& var) const{
+      if( obs.find(var)==obs.end() ) return false;
+      if( obs.find(var+"_RND")!=obs.end() && 
+	  obs.find(var+"_RND")->second<0.5 ) return false;
+      return true;
+    }
   };
 
-  bool isSame( const std::vector<std::pair<FinalState,size_t>>&, 
-	       const std::vector<std::pair<FinalState,size_t>>&);
+  int diff( const vector<std::pair<FinalState,size_t>>&, 
+	    const vector<std::pair<FinalState,size_t>>&,
+	    const vector<Algo::Object>&);
 
-  bool filter_by_btag( const std::vector<std::pair<FinalState,size_t>>&,
+  bool filter_by_btag( const vector<std::pair<FinalState,size_t>>&,
 		       const vector<Algo::Object>&  );
+
+  bool isRadiation(const FinalState);
 
   enum Strategy : int { FirstTrial=0, StartFromLastMinimum=1 };
 

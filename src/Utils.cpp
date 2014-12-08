@@ -97,15 +97,60 @@ string Algo::translateDecay(Algo::Decay& decay){
 }
 
 
-bool Algo::isSame( const std::vector<std::pair<FinalState,size_t>>& a, const std::vector<std::pair<FinalState,size_t>>& b){
-
-  if(a.size()!=b.size()) return false;
+int Algo::diff( const std::vector<std::pair<FinalState,size_t>>& a, 
+		const std::vector<std::pair<FinalState,size_t>>& b, 
+		const vector<Algo::Object>& jets){
+  
+  if(a.size()!=b.size())    return -1;
+  if(jets.size()!=a.size()) return -1;
 
   for(size_t i = 0 ; i < a.size() ; ++i ){
 
-    //printf("A: [%d,%d]\t", int(a[i].first), int(a[i].second)) ;
-    //printf("B: [%d,%d]\n", int(b[i].first), int(b[i].second)) ;
+    auto fs_a = a[i].first;
+    auto fs_b = b[i].first;
+    auto id_a = a[i].second;
+    auto id_b = b[i].second;
 
+    FinalState fs_abar = Algo::partner(fs_a);
+    bool btagd  = (jets[i]).isDiscriminating("BTAG");
+    bool same   = (id_a==id_b);
+    bool matchL = (fs_abar==fs_b);
+    bool matchT = (fs_a==fs_b);
+    bool israd  = isRadiation(fs_b);
+
+    //matchL = matchT;
+
+    switch(fs_a){
+    case FinalState::Radiation_g:
+    case FinalState::Radiation_u:
+    case FinalState::Radiation_d:
+    case FinalState::Radiation_b:      
+      if( btagd && !(matchT || matchL)) return 1;
+      if(!btagd && !israd)  return 2;
+      continue;
+      break;
+    case FinalState::TopHad_q: 
+    case FinalState::TopHad_qbar:  
+    case FinalState::WHad_q:   
+    case FinalState::WHad_qbar:   
+      if(!same)             return 3;
+      if( btagd && !matchT) return 4;
+      if(!btagd && !(matchL || matchT)) return 5;
+      continue;
+      break;       
+    case FinalState::Higgs_b: 
+    case FinalState::Higgs_bbar: 
+      if(!same)                return 6;
+      if(!(matchL || matchT) ) return 7;        
+      continue;
+      break;
+    default:
+      if( !same || !matchT )   return 8;
+      continue;
+      break;
+    }
+
+    /*
     if( !( a[i].first == FinalState::Radiation_u || a[i].first == FinalState::Radiation_d || 
 	   a[i].first == FinalState::Radiation_b || a[i].first == FinalState::Radiation_g )){
       if( a[i].first != b[i].first || a[i].second != b[i].second ) return false;
@@ -113,13 +158,21 @@ bool Algo::isSame( const std::vector<std::pair<FinalState,size_t>>& a, const std
     else{
       if( a[i].first != b[i].first ) return false;
     }
-
+    */
   }
   
-  return true;
+  return 0;
 
 }
 
+
+/*
+  Decide whether a permutation assigns quark flavours to correct jets
+  (b <-> tagged, u/d/g <-> untagged)
+  The decision is taken ONLY if "BTAG" and "BTAG_RND" are filled, and "BTAG_RND"=0
+   Input:  a = test, b = target                                                                                                                        
+   Output: true if it is a good permutation, false otherwise 
+*/
 bool Algo::filter_by_btag( const std::vector<std::pair<FinalState,size_t>>& particles, const vector<Algo::Object>& jets ){
   
   bool passes {true};
@@ -164,6 +217,37 @@ bool Algo::filter_by_btag( const std::vector<std::pair<FinalState,size_t>>& part
   }
 
   return passes;
+}
+
+Algo::FinalState Algo::partner( const Algo::FinalState fs){
+  switch( fs ){
+  case FinalState::TopHad_q:
+    return FinalState::TopHad_qbar;
+    break;
+  case FinalState::TopHad_qbar:
+    return FinalState::TopHad_q;
+    break;
+  case FinalState::WHad_q:
+    return FinalState::WHad_qbar;
+    break;
+  case FinalState::WHad_qbar:
+    return FinalState::WHad_q;
+    break;
+  case FinalState::Higgs_b:
+    return FinalState::Higgs_bbar;
+    break;
+  case FinalState::Higgs_bbar:
+    return FinalState::Higgs_b;
+    break;
+  default:
+    return fs;
+    break;
+  }
+  return fs;
+}
+
+bool Algo::isRadiation( const Algo::FinalState fs ){
+  return (fs==FinalState::Radiation_u || fs==FinalState::Radiation_d || fs==FinalState::Radiation_b || fs==FinalState::Radiation_g);
 }
 
 

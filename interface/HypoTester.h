@@ -15,11 +15,8 @@ namespace Algo {
     
   public:
    
-    // constructor
-    HypoTester();
-    
     // constructor with output file
-    HypoTester(TTree*);
+    HypoTester(TTree* =nullptr);
     
     // destructor
     ~HypoTester();
@@ -64,13 +61,19 @@ namespace Algo {
     void unpack_assumptions();
 
     // group particles
-    void group_particles(vector<Algo::DecayBuilder*>& );
+    vector<Algo::DecayBuilder*> group_particles();
 
-    // eval
+    // eval method (called by Minuit)
     double eval(const double* );
 
     // check whether a given variable is in at least one permutation
     bool is_variable_used( const size_t );
+
+    // print permutation  
+    void print_permutation(const vector<std::pair<FinalState,size_t>>&) const;
+
+    // filter out permutations
+    bool go_to_next(vector<vector<std::pair<FinalState,size_t>>> &);
 
     ROOT::Math::Minimizer* minimizer;     
 

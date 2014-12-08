@@ -1,27 +1,6 @@
 #include "interface/HypoTester.h"
 
 
-Algo::HypoTester::HypoTester(){
-
-  // reset variables
-  nParam_j          = 0;
-  nParam_n          = 0;
-  nParam_m          = 0;
-  count_hypo        = 0;
-  count_perm        = 0;
-  count_TopHad      = 0;
-  count_TopHadLost  = 0;
-  count_TopLep      = 0;
-  count_Higgs       = 0;
-  count_Radiation_u = 0;
-  count_Radiation_d = 0;
-  count_Radiation_b = 0;
-  count_Radiation_g = 0;
-  invisible         = 0;
-  verbose           = 0;
-  event             = nullptr;
-}
-
 Algo::HypoTester::HypoTester(TTree* t){
 
   // reset variables
@@ -41,10 +20,15 @@ Algo::HypoTester::HypoTester(TTree* t){
   invisible         = 0;
   verbose           = 0;
 
-  cout << "Algo::HypoTester::HypoTester(): Creating branches to output file" << endl;
-  event  = new Event(t);
-  event->createBranches();
-  event->reset();
+  if(t!=nullptr){
+    cout << "Algo::HypoTester::HypoTester(): Creating branches to output file" << endl;
+    event  = new Event(t);
+    event->createBranches();
+    event->reset();
+  }
+  else{
+    event = nullptr;
+  }
 }
 
 Algo::HypoTester::~HypoTester(){
@@ -117,12 +101,19 @@ void Algo::HypoTester::test( const map<string, vector<Decay>>& all ){
     reset();
     for( auto decay : hypo.second ){
       assume( decay );
-    }    
-    init();
+    }
+    try{    
+      init();
+    }
+    catch(...){
+      cout << "Algo::HypoTester::init() has thrown an exception:"
+	" cannot compute all permutations. Try with next hypothesis" << endl;      
+      return;
+    }
     run();
     ++count_hypo;
   }
-
+  
   // stop clock
   auto t1 = high_resolution_clock::now();
   if(event!=nullptr){
@@ -326,52 +317,13 @@ void Algo::HypoTester::init(){
   // bookkeep to remove unnecessary permutations
   vector<vector<std::pair<FinalState,size_t>>> logbook;
 
-  try{
-    // permutations using std library
-    do {    
-
-      // filter out permutations with invalid quark <-> jet assignment
-      // (only if BTAG_RND is filled and its value less than 0.5)
-      if( !filter_by_btag( particles , p4_Jet ) ) continue;	
-
-      // skip unnecessary permutations: this can take some time
-      bool skip = false;
-      if(logbook.size()==0) 
-	logbook.push_back(particles);
-      else{
-	for( auto log : logbook ){
-	  if( isSame( log, particles ) ) skip = true;	
-	}
-	if(!skip) 
-	  logbook.push_back(particles);             
-	else{
-	  if(verbose>2) cout << "\tDo not consider this permutation  " << endl;
-	  continue;
-	}
-      }         
-      
-      if(verbose>2){ cout << "\tPermutation number " << count_perm << ":" << endl; }
-      
-      // this vector will contain all blocks 
-      // E.g. block = TopHad * TopLep * Rad * Rad * ... * MET
-      vector<Algo::DecayBuilder*> decays; 
-      
-      // pass by reference: here the group is formed
-      group_particles( decays );
-      
-      // add block list of permutations
-      // a block is assembled by CombBuilder
-      permutations.push_back( new Algo::CombBuilder(decays, verbose) );
-      
-      // increment counter
-      ++count_perm;
-      
-    } while ( next_permutation(particles.begin(), particles.end(), MyComp  ) );
-  }
-  catch(...){
-    cout << "Algo::HypoTester::init() has thrown an exception: cannot compute all permutations. Return." << endl;
-    return;
-  }
+  // permutations using std library
+  do {            
+    if(verbose>2){ cout << "\tPermutation number " << count_perm << ":" << endl; }    
+    if( go_to_next(logbook) ) continue;
+    permutations.push_back( new Algo::CombBuilder( group_particles() , verbose) );    
+    ++count_perm;    
+  } while ( next_permutation(particles.begin(), particles.end(), MyComp  ) );
 
   if(verbose>0) {
     cout << "\tTotal of  " << count_perm << " permutations created:" << endl;
@@ -385,12 +337,12 @@ void Algo::HypoTester::init(){
   
 }
 
-
-
-void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
-
+vector<Algo::DecayBuilder*> Algo::HypoTester::group_particles(){
+  
   if(verbose>2){ cout << "Algo::HypoTester::group_particles()" << endl; }
-
+  
+  vector<DecayBuilder*> decayed;
+  
   //  get all hadronically decaying tops
   for( size_t t_had = 0; t_had < count_TopHad; ++t_had ){
     if(verbose>1) cout << "\tProcessing " << t_had << "th TopHad" << endl;
@@ -404,8 +356,7 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
     decayed.push_back( topHad );
   }
 
-
-  //  get all leptonically decaying tops                                                                                                                   
+  //  get all leptonically decaying tops
   for( size_t t_had_lost = 0; t_had_lost < count_TopHadLost; ++t_had_lost ){
     if(verbose>1) cout << "\tProcessing " << t_had_lost << "th TopHadLost" << endl;
     Algo::TopHadBuilder* topHadLost = new Algo::TopHadBuilder(verbose);
@@ -449,7 +400,6 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
     decayed.push_back( topLep );
   }
 
-
   //  get all radiation
   for( size_t r_had_u = 0; r_had_u < count_Radiation_u; ++r_had_u ){
     if(verbose>1) cout << "\tProcessing " << r_had_u << "th Radiaton (u)" << endl;
@@ -475,8 +425,7 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
     decayed.push_back( rad );
   }
 
-
-  //  get all radiation                                                                                                                               
+  //  get all radiation                                                                                                                  
   for( size_t r_had_b = 0; r_had_b < count_Radiation_b; ++r_had_b ){
     if(verbose>1) cout << "\tProcessing " << r_had_b << "th Radiaton (b)" << endl;
     Algo::RadiationBuilder* rad = new Algo::RadiationBuilder(verbose, Decay::Radiation_b);
@@ -514,9 +463,7 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
     decayed.push_back( hig );
   }
 
-
   /* Add other blocks here */
-
 
   // if there are invisible particles, add MET as last element                                                                            
   if(invisible>0){
@@ -534,6 +481,7 @@ void Algo::HypoTester::group_particles(vector<DecayBuilder*>& decayed){
   }
   else{ /* do nothing */ }
 
+  return decayed;
 
 }
 
@@ -559,21 +507,20 @@ void Algo::HypoTester::setup_minimizer( const Algo::Strategy str){
   case Strategy::FirstTrial:    
 
     for( size_t p = 0 ; p < nParam_j ; p++){
-      char name[6];
-      sprintf(name, "j%lu", p);
+      string name = "jet"+to_string(p);
       double inVal    {p4_Jet[p].p4.E()};
       double inVal_lo {inVal/3.0};
       double inVal_hi {inVal*3.0};      
 
       if( !is_variable_used(p) ){
-	minimizer->SetFixedVariable(p, name, inVal);
+	minimizer->SetFixedVariable(p, name.c_str(), inVal);
 	if(verbose>0)
-	  printf("\tParam[%lu] = %s set to FIXED value %.0f\n", p,name, inVal);      
+	  printf("\tParam[%lu] = %s set to FIXED value %.0f\n", p,name.c_str(), inVal);      
       }
       else{
-	minimizer->SetLimitedVariable(p, name, inVal  , step_E, inVal_lo , inVal_hi);
+	minimizer->SetLimitedVariable(p, name.c_str(), inVal  , step_E, inVal_lo , inVal_hi);
 	if(verbose>0)
-	  printf("\tParam[%lu] = %s set to %.0f. Range: [%.0f,%.0f]\n", p,name, inVal, inVal_lo, inVal_hi );      
+	  printf("\tParam[%lu] = %s set to %.0f. Range: [%.0f,%.0f]\n", p,name.c_str(), inVal, inVal_lo, inVal_hi );      
       }
 
       if(event!=nullptr){
@@ -589,17 +536,17 @@ void Algo::HypoTester::setup_minimizer( const Algo::Strategy str){
 
     for( size_t p = 0 ; p < nParam_n ; p++){
 
-      char name[6];
+      string name;
       double inVal, inVal_lo, inVal_hi, step;
       if( p%2==0 ){
-	sprintf(name, "phi%lu", nParam_j+p);
+	name = "phi"+to_string(nParam_j+p);
 	inVal    = p4_MET[0].p4.Phi();
 	inVal_lo = -TMath::Pi() ;
 	inVal_hi = +TMath::Pi() ;
 	step     = step_Phi;     
       }
       else{
-	sprintf(name, "cos%lu", nParam_j+p/2);
+	name = "cos"+to_string(nParam_j+p/2);
 	inVal    = 0.;
 	inVal_lo = -1.;
 	inVal_hi = +1.;
@@ -607,14 +554,14 @@ void Algo::HypoTester::setup_minimizer( const Algo::Strategy str){
       }
       
       if( !is_variable_used(nParam_j+p) ){
-        minimizer->SetFixedVariable(nParam_j+p, name, inVal );
+        minimizer->SetFixedVariable(nParam_j+p, name.c_str(), inVal );
 	if(verbose>0)
-	  printf("\tParam[%lu] = %s set to FIXED value %.0f\n", nParam_j+p, name, inVal);
+	  printf("\tParam[%lu] = %s set to FIXED value %.0f\n", nParam_j+p, name.c_str(), inVal);
       }
       else{
-	minimizer->SetLimitedVariable(nParam_j+p, name,  inVal , step, inVal_lo , inVal_hi);   
+	minimizer->SetLimitedVariable(nParam_j+p, name.c_str(),  inVal , step, inVal_lo , inVal_hi);   
 	if(verbose>0)
-	  printf("\tParam[%lu] = %s set to %.0f. Range: [%.2f,%.2f]\n", nParam_j+p,name, inVal, inVal_lo, inVal_hi );	
+	  printf("\tParam[%lu] = %s set to %.0f. Range: [%.2f,%.2f]\n", nParam_j+p,name.c_str(), inVal, inVal_lo, inVal_hi );	
       }
       
       if(event!=nullptr){
@@ -631,17 +578,17 @@ void Algo::HypoTester::setup_minimizer( const Algo::Strategy str){
 
     for( size_t p = 0 ; p < nParam_m ; p++){
       
-      char name[6];
+      string name;
       double inVal, inVal_lo, inVal_hi, step;
       if( p%2==0 ){
-        sprintf(name, "phi%lu", nParam_j+nParam_n+p);
+	name     = "phi"+to_string(nParam_j+nParam_n+p);
         inVal    = 0.;
         inVal_lo = -TMath::Pi() ;
         inVal_hi = +TMath::Pi() ;
         step     = step_Phi;
       }
       else{
-        sprintf(name, "cos%lu", nParam_j+nParam_n+p/2);
+	name     = "cos"+to_string(nParam_j+nParam_n+p/2);
         inVal    = 0.;
         inVal_lo = -1.;
         inVal_hi = +1.;
@@ -649,14 +596,14 @@ void Algo::HypoTester::setup_minimizer( const Algo::Strategy str){
       }
 
       if( !is_variable_used(nParam_j+nParam_n+p) ){
-        minimizer->SetFixedVariable(nParam_j+nParam_n+p, name, inVal );
+        minimizer->SetFixedVariable(nParam_j+nParam_n+p, name.c_str(), inVal );
         if(verbose>0)
-          printf("\tParam[%lu] = %s set to FIXED value %.0f\n", nParam_j+nParam_n+p, name, inVal);
+          printf("\tParam[%lu] = %s set to FIXED value %.0f\n", nParam_j+nParam_n+p, name.c_str(), inVal);
       }
       else{
-        minimizer->SetLimitedVariable(nParam_j+nParam_n+p, name,  inVal , step, inVal_lo , inVal_hi);
+        minimizer->SetLimitedVariable(nParam_j+nParam_n+p, name.c_str(),  inVal , step, inVal_lo , inVal_hi);
         if(verbose>0)
-          printf("\tParam[%lu] = %s set to %.0f. Range: [%.2f,%.2f]\n", nParam_j+nParam_n+p,name, inVal, inVal_lo, inVal_hi );
+          printf("\tParam[%lu] = %s set to %.0f. Range: [%.2f,%.2f]\n", nParam_j+nParam_n+p,name.c_str(), inVal, inVal_lo, inVal_hi );
       }
 
       if(event!=nullptr){
@@ -668,8 +615,7 @@ void Algo::HypoTester::setup_minimizer( const Algo::Strategy str){
       }
       ++count_param;   
     }
-    
-    
+        
     // sanity check
     assert( minimizer->NDim()==count_param );
     break;
@@ -889,4 +835,54 @@ void Algo::HypoTester::print(ostream& os){
 
 void Algo::HypoTester::set_verbosity(const int& verb){
   verbose = verb;
+}
+
+void Algo::HypoTester::print_permutation(const vector<std::pair<Algo::FinalState,size_t>>& perm) const {
+  size_t count{0};
+  cout << "\t[";
+  for(auto p : perm){
+    cout << "(" << p.second << ", " <<  static_cast<int>(p.first) << "), ";
+    ++count;
+  }
+  cout << "]" << endl;
+}
+
+bool Algo::HypoTester::go_to_next(vector<vector<std::pair<Algo::FinalState,size_t>>> & logbook){
+
+  // filter out permutations with invalid quark <-> jet assignment                                                                                     
+  // (only if BTAG_RND is filled and its value less than 0.5)                                                                                          
+  if( !filter_by_btag( particles , p4_Jet ) ) return true;
+  
+  // skip unnecessary permutations: this can take some time                                                                                            
+  int isnew {1};
+  if(logbook.size()==0)
+    logbook.push_back(particles);
+  else{
+    size_t count{0};
+    for( auto log : logbook ){
+      if( !(isnew = diff( log, particles , p4_Jet)) ) break;
+      if(verbose>1){
+	cout << "\t" << count << ": This permutation is new (code:" << isnew << ")" << endl;
+	cout << "\t...Current: " << endl;
+	print_permutation(particles);
+	cout << "\t...Logbook: " << endl;
+	print_permutation(logbook[count]);
+      }
+      ++count;
+    }
+    if(isnew){
+      logbook.push_back(particles);
+    }
+    else{
+      if(verbose>1){
+	cout << "\tDo not consider this permutation, match between " << endl;
+	cout << "\t...Current: " << endl;
+	print_permutation(particles);
+	cout << "\t...Logbook: " << endl;
+	print_permutation(logbook[count]);
+      }
+      return true;
+    }
+  }
+  return false;
 }

@@ -45,14 +45,14 @@ void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, c
   LV p4_rad;
   p4_rad.SetPtEtaPhiM( pt_rad, eta_rad, phi_rad, 0. );
 
-  double pt_top  = ran->Exp(+100.);
-  double eta_top = ran->Uniform(-2.5,2.5);
+  double pt_top  = ran->Exp(+50.);
+  double eta_top = ran->Uniform(-1.5,1.5);
   double phi_top = ran->Uniform(-TMath::Pi(),TMath::Pi());
   LV p4_top;
   p4_top.SetPtEtaPhiM( pt_top, eta_top, phi_top, MTOP );
 
-  double pt_h  = ran->Exp(+100.);
-  double eta_h = ran->Uniform(-2.5,2.5);
+  double pt_h  = ran->Exp(+50.);
+  double eta_h = ran->Uniform(-1.5,2.5);
   double phi_h = ran->Uniform(-TMath::Pi(),TMath::Pi());
   LV p4_h;
   p4_h.SetPtEtaPhiM( pt_h, eta_h, phi_h, MH );
@@ -111,11 +111,14 @@ void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, c
   p4_bh.Boost   ( p4_h.BoostVector() );
   p4_bbarh.Boost( p4_h.BoostVector() );
 
+
   if(verbose>2){
+    cout << "Top Pt    = " << (p4_q + p4_qbar + p4_b).Pt() << " (" << p4_top.Pt() << ")" << endl;
     cout << "Top E    = " << (p4_q + p4_qbar + p4_b).E() << " (" << p4_top.E() << ")" << endl;
     cout << "Top Px   = " << (p4_q + p4_qbar + p4_b).Px() << " (" << p4_top.Px() << ")" << endl;
     cout << "Top Py   = " << (p4_q + p4_qbar + p4_b).Py() << " (" << p4_top.Py() << ")" << endl;
     cout << "Top Pz   = " << (p4_q + p4_qbar + p4_b).Pz() << " (" << p4_top.Pz() << ")" << endl;
+    cout << "Higgs Pt  = " << (p4_bh + p4_bbarh ).Pt() << " (" << p4_h.Pt() << ")" << endl;
     cout << "Higgs E  = " << (p4_bh + p4_bbarh ).E() << " (" << p4_h.E() << ")" << endl;
     cout << "Higgs Px = " << (p4_bh + p4_bbarh ).Px() << " (" << p4_h.Px() << ")" << endl;
     cout << "Higgs Py = " << (p4_bh + p4_bbarh ).Py() << " (" << p4_h.Py() << ")" << endl;

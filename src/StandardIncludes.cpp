@@ -74,32 +74,20 @@ void Algo::TransferFunction::init(const double* param){
 
 //////////////////////////////////////////////////////
 
-Algo::CombBuilder::CombBuilder() {
-  verbose = 0;
-}
-
-Algo::CombBuilder::CombBuilder(vector<DecayBuilder*>& comb) {
-  combined = comb;
-  verbose  = 0;
-}
-
-Algo::CombBuilder::CombBuilder(vector<DecayBuilder*>& comb, const int& verb) {
-  combined = comb;
+Algo::CombBuilder::CombBuilder(vector<DecayBuilder*>&& comb, int verb) {
+  combined = move(comb);
   verbose  = verb;
 }
 
-
 Algo::CombBuilder::~CombBuilder() {
   if(verbose>2) cout << "Destroy CombBuilder" << endl;
-  for(auto dec : combined) 
-    delete dec;
+  for(auto comb : combined) 
+    delete comb;
 }
 
-
-void Algo::CombBuilder::add(DecayBuilder* dec) {
-  combined.push_back(dec);
+void Algo::CombBuilder::add(DecayBuilder* comb) {
+  combined.push_back(comb);
 }
-
 
 double Algo::CombBuilder::eval(const double* xx) {
 
@@ -111,8 +99,8 @@ double Algo::CombBuilder::eval(const double* xx) {
   LV invisible(0.,0.,0.,0.);
 
   int count {0};  
-  for(auto dec : combined){
-    double val_tmp = dec->eval(xx, invisible);
+  for(auto comb : combined){
+    double val_tmp = comb->eval(xx, invisible);
     val *= val_tmp;
     if(verbose>1){
       cout << "\tEval block " << count << " += " << (val_tmp>0. ? -TMath::Log( val_tmp ) : numeric_limits<double>::max() ) ;
@@ -134,8 +122,8 @@ double Algo::CombBuilder::eval(const double* xx,  LV& lv) {
 
 void Algo::CombBuilder::print(ostream& os){
   os << "\t\tCombBuilder contains " << combined.size() << " block(s):" << endl; 
-  for(auto dec : combined) 
-    dec->print(os);
+  for(auto comb : combined) 
+    comb->print(os);
 }
 
 Algo::DecayBuilder* Algo::CombBuilder::at( const size_t& pos ){
@@ -153,14 +141,7 @@ Algo::Decay Algo::CombBuilder::get_decay(){
 //////////////////////////////////////////////////////
 
 
-Algo::METBuilder::METBuilder() {
-  decay    = Decay::MET;
-  tf_met   = nullptr;
-  verbose  = 0;
-  saturate = 0;
-}
-
-Algo::METBuilder::METBuilder(const int& verb) {
+Algo::METBuilder::METBuilder(int verb) {
   decay    = Decay::MET;
   tf_met   = nullptr;
   verbose  = verb;
@@ -210,17 +191,7 @@ Algo::Decay Algo::METBuilder::get_decay(){
 
 //////////////////////////////////////////////////////
 
-Algo::TopHadBuilder::TopHadBuilder () {
-  decay     = Decay::TopHad;
-  errFlag   = 0;
-  tf_q      = nullptr;
-  tf_qbar   = nullptr;
-  tf_b      = nullptr;
-  verbose   = 0;
-  qbar_lost = 0;
-}
-
-Algo::TopHadBuilder::TopHadBuilder (const int& verb) {
+Algo::TopHadBuilder::TopHadBuilder (int verb) {
   decay     = Decay::TopHad;
   errFlag   = 0;
   tf_q      = nullptr;
@@ -415,15 +386,7 @@ vector<size_t> Algo::TopHadBuilder::get_variables(){
 }
 //////////////////////////////////////////////////////
 
-Algo::WHadBuilder::WHadBuilder () {
-  decay   = Decay::WHad;
-  errFlag = 0;
-  tf_q    = nullptr;
-  tf_qbar = nullptr;
-  verbose = 0;
-};
-
-Algo::WHadBuilder::WHadBuilder (const int& verb) {
+Algo::WHadBuilder::WHadBuilder (int verb) {
   decay   = Decay::WHad;
   errFlag = 0;
   tf_q    = nullptr;
@@ -517,15 +480,7 @@ vector<size_t> Algo::WHadBuilder::get_variables(){
 
 //////////////////////////////////////////////////////
 
-Algo::HiggsBuilder::HiggsBuilder () {
-  decay   = Decay::Higgs;
-  errFlag = 0;
-  tf_b    = nullptr;
-  tf_bbar = nullptr;
-  verbose = 0;
-};
-
-Algo::HiggsBuilder::HiggsBuilder (const int& verb) {
+Algo::HiggsBuilder::HiggsBuilder (int verb) {
   decay   = Decay::Higgs;
   errFlag = 0;
   tf_b    = nullptr;
@@ -672,15 +627,7 @@ vector<size_t> Algo::HiggsBuilder::get_variables(){
 
 //////////////////////////////////////////////////////
 
-Algo::TopLepBuilder::TopLepBuilder () {
-  decay   = Decay::TopLep;
-  errFlag = 0;
-  tf_b    = nullptr;
-  verbose = 0;
-}
-
-
-Algo::TopLepBuilder::TopLepBuilder (const int& verb) {
+Algo::TopLepBuilder::TopLepBuilder (int verb) {
   decay   = Decay::TopLep;
   errFlag = 0;
   tf_b    = nullptr;
@@ -831,23 +778,10 @@ vector<size_t> Algo::TopLepBuilder::get_variables(){
 }
 //////////////////////////////////////////////////////
 
-
-Algo::RadiationBuilder::RadiationBuilder () {
-  decay   = Decay::Radiation_g;
-  tf_g    = nullptr;
-  verbose = 0;
-};
-
-Algo::RadiationBuilder::RadiationBuilder (const int& verb) {
-  decay   = Decay::Radiation_g;
-  tf_g    = nullptr;
-  verbose = verb;
-};
-
-Algo::RadiationBuilder::RadiationBuilder (const int& verb, const Decay& type) { 
+Algo::RadiationBuilder::RadiationBuilder (int verb, Decay type) { 
   decay   = type;
-  tf_g    = nullptr; 
-  verbose = verb;  
+  verbose = verb;
+  tf_g    = nullptr;   
 }; 
 
 Algo::RadiationBuilder::~RadiationBuilder() {
