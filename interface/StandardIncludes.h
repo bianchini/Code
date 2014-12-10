@@ -1,5 +1,5 @@
-#ifndef StandardIncludes_h
-#define StandardIncludes_h
+#ifndef STANDARDINCLUDES_H
+#define STANDARDINCLUDES_H
 
 #include "interface/Utils.h"
 

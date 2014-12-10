@@ -1,5 +1,5 @@
-#ifndef Utils_h
-#define Utils_h
+#ifndef UTILS_H
+#define UTILS_H
 
 #include "TLorentzVector.h"
 #include "TVector3.h"

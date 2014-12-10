@@ -840,7 +840,7 @@ void Algo::RadiationBuilder::init( const FinalState& fs, const Object& obj, cons
     index_g = sz;
     tf = new TransferFunction("tf_q", TF_Q , verbose);
     tf->init( TF_Q_param[Algo::eta_to_bin(obj.p4)] );    
-    //for(auto iobs : obj.obs ) tf->add_pdf_obs( iobs.first, obj, Algo::QuarkTypeDown );
+    for(auto iobs : obj.obs ) tf->add_pdf_obs( iobs.first, obj, Algo::QuarkTypeDown );
     tf_g    = tf;
     break;
   default:

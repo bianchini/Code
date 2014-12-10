@@ -19,6 +19,8 @@ Algo::HypoTester::HypoTester(TTree* t){
   count_Radiation_g = 0;
   invisible         = 0;
   verbose           = 0;
+  error_code        = 0;
+  minimizer         = nullptr;
 
   if(t!=nullptr){
     cout << "Algo::HypoTester::HypoTester(): Creating branches to output file" << endl;
@@ -34,7 +36,6 @@ Algo::HypoTester::HypoTester(TTree* t){
 Algo::HypoTester::~HypoTester(){
   cout << "Algo::HypoTester::~HypoTester(): Removing HypoTester" << endl;
   for( auto perm : permutations ) delete perm;
-  //delete minimizer;
   delete event;
 }
 
@@ -107,7 +108,9 @@ void Algo::HypoTester::test( const map<string, vector<Decay>>& all ){
     }
     catch(...){
       cout << "Algo::HypoTester::init() has thrown an exception:"
-	" cannot compute all permutations. Try with next hypothesis" << endl;      
+	" cannot compute all permutations. Return" << endl;      
+      error_code = 1;
+      next_event();
       return;
     }
     run();
@@ -524,12 +527,13 @@ void Algo::HypoTester::setup_minimizer( const Algo::Strategy str){
       }
 
       if(event!=nullptr){
+	double btag = (p4_Jet[p].obs).find("BTAG")!=(p4_Jet[p].obs).end() ?  (p4_Jet[p].obs).find("BTAG")->second : 0.; 
 	event->treeStruct.obs_e   [ event->treeStruct.n_dim + count_param ] = inVal;     
 	event->treeStruct.obs_pt  [ event->treeStruct.n_dim + count_param ] = p4_Jet[p].p4.Pt();     
 	event->treeStruct.obs_eta [ event->treeStruct.n_dim + count_param ] = p4_Jet[p].p4.Eta();     
 	event->treeStruct.obs_phi [ event->treeStruct.n_dim + count_param ] = p4_Jet[p].p4.Phi();     
-	event->treeStruct.obs_btag[ event->treeStruct.n_dim + count_param ] = 
-	  (p4_Jet[p].obs).find("BTAG")!=(p4_Jet[p].obs).end() ? (p4_Jet[p].obs)["BTAG"] : 0.;  	
+	event->treeStruct.obs_btag[ event->treeStruct.n_dim + count_param ] = btag;
+	if(btag>0.5) ++(event->treeStruct.n_btag);
       }
       ++count_param;
     }
@@ -835,6 +839,10 @@ void Algo::HypoTester::print(ostream& os){
 
 void Algo::HypoTester::set_verbosity(const int& verb){
   verbose = verb;
+}
+
+int Algo::HypoTester::get_status(){
+  return error_code;
 }
 
 void Algo::HypoTester::print_permutation(const vector<std::pair<Algo::FinalState,size_t>>& perm) const {

@@ -1,5 +1,5 @@
-#ifndef ToyGenerator_h
-#define ToyGenerator_h
+#ifndef TOYGENERATOR_H
+#define TOYGENERATOR_H
 
 #include "TRandom3.h"
 #include "TF1.h"

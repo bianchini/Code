@@ -14,7 +14,7 @@
 
 enum GEN_HYPO  : int { GEN_tH_wH=0 ,  GEN_tH_tL=1,   GEN_tH_tL_hH=2,  GEN_tL_tL_hH=3,  GEN_tH_tH_hH=4,
 		     GEN_tH_bb=5 ,  GEN_udb_tL=6,  GEN_tH_tL_bb=7,  GEN_tL_tL_bb=8,  GEN_tH_tH_bb=9,
-		     GEN_tL_ggggg=10, GEN_lm_gggggg=11		     
+		     GEN_tL_ggggg=10, GEN_lm_gggggg=11, GEN_tH_tL_dd=12, GEN_tL_tL_dd=13, GEN_tH_tH_dd=14		     
 		     };
 
 enum TEST_HYPO : int { TEST_tH_wH=0 , TEST_tH_tL=1, TEST_tH_tL_hH=2, TEST_tL_tL_hH=3, TEST_tH_tH_hH=4,
@@ -139,17 +139,35 @@ int main(int argc, char *argv[]){
     decays.push_back( Algo::Decay::Radiation_b );     
     decays.push_back( Algo::Decay::Radiation_b );  
     break;
+  case GEN_tH_tL_dd:
+    decays.push_back( Algo::Decay::TopHad );
+    decays.push_back( Algo::Decay::TopLep );
+    decays.push_back( Algo::Decay::Radiation_g );
+    decays.push_back( Algo::Decay::Radiation_g );
+    break;
   case GEN_tL_tL_bb:
     decays.push_back( Algo::Decay::TopLep ); 
     decays.push_back( Algo::Decay::TopLep );  
     decays.push_back( Algo::Decay::Radiation_b );     
     decays.push_back( Algo::Decay::Radiation_b );  
     break;
+  case GEN_tL_tL_dd:
+    decays.push_back( Algo::Decay::TopLep );
+    decays.push_back( Algo::Decay::TopLep );
+    decays.push_back( Algo::Decay::Radiation_d );
+    decays.push_back( Algo::Decay::Radiation_d );
+    break;
   case GEN_tH_tH_bb:
     decays.push_back( Algo::Decay::TopHad ); 
     decays.push_back( Algo::Decay::TopHad ); 
     decays.push_back( Algo::Decay::Radiation_b );  
     decays.push_back( Algo::Decay::Radiation_b );  
+    break;
+  case GEN_tH_tH_dd:
+    decays.push_back( Algo::Decay::TopHad );
+    decays.push_back( Algo::Decay::TopHad );
+    decays.push_back( Algo::Decay::Radiation_d );
+    decays.push_back( Algo::Decay::Radiation_d );
     break;
   case GEN_tL_ggggg:
     decays.push_back( Algo::Decay::TopLep );
@@ -254,6 +272,7 @@ int main(int argc, char *argv[]){
       hypotheses["H1"] = {Algo::Decay::TopLep, Algo::Decay::Radiation_u, Algo::Decay::Radiation_d, Algo::Decay::Radiation_b};
       if(verbose>0) tester->print(cout);
       tester->test( hypotheses );
+      if(tester->get_status()>0) cerr << "ERROR STATUS for tester" << endl;
     }
 
 
@@ -281,8 +300,10 @@ int main(int argc, char *argv[]){
       map<string, vector<Algo::Decay> > hypotheses;
       hypotheses["H0"] = {Algo::Decay::TopHad, Algo::Decay::TopLep, Algo::Decay::Higgs};
       hypotheses["H1"] = {Algo::Decay::TopHad, Algo::Decay::TopLep, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b};
+      hypotheses["H2"] = {Algo::Decay::TopHad, Algo::Decay::TopLep, Algo::Decay::Radiation_d, Algo::Decay::Radiation_d};
       if(verbose>0) tester->print(cout);
       tester->test( hypotheses );
+      if(tester->get_status()>0) cerr << "ERROR STATUS for tester" << endl;
     }
 
     // TopLep + TopLep + Higgs                                                                                                                       
@@ -311,6 +332,7 @@ int main(int argc, char *argv[]){
       hypotheses["H1"] = {Algo::Decay::TopLep, Algo::Decay::TopLep, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b};
       if(verbose>0) tester->print(cout);
       tester->test( hypotheses );
+      if(tester->get_status()>0) cerr << "ERROR STATUS for tester" << endl;
     }
 
     // TopHad + TopHad + Higgs
@@ -336,6 +358,7 @@ int main(int argc, char *argv[]){
       hypotheses["H1"] = {Algo::Decay::TopHad, Algo::Decay::TopHad, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b};
       if(verbose>0) tester->print(cout);
       tester->test( hypotheses );
+      if(tester->get_status()>0) cerr << "ERROR STATUS for tester" << endl;
     }
 
 
@@ -363,6 +386,7 @@ int main(int argc, char *argv[]){
       hypotheses["H1"] = {Algo::Decay::TopHad, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b};
       if(verbose>0) tester->print(cout);
       tester->test( hypotheses );
+      if(tester->get_status()>0) cerr << "ERROR STATUS for tester" << endl;
     }
 
     //TopLep + other jets
@@ -392,6 +416,7 @@ int main(int argc, char *argv[]){
 			   Algo::Decay::Radiation_g, Algo::Decay::Radiation_g,Algo::Decay::Radiation_g};
       if(verbose>0) tester->print(cout);
       tester->test( hypotheses );
+      if(tester->get_status()>0) cerr << "ERROR STATUS for tester" << endl;
     }
 
 

@@ -1,3 +1,6 @@
+#ifndef EVENT_H
+#define EVENT_H
+
 #include <TTree.h>
 #include <iostream>
 
@@ -13,6 +16,7 @@ namespace Algo {
     size_t n_h;             // num of hypo
     size_t n_dim;           // total number of dimensions
     int    all_time;        // total CPU time (msec)
+    int    n_btag;          // n btag
     double nll      [HMAX]; // nll per hypo
     int    status   [HMAX]; // status per hypo
     int    strategy [HMAX]; // strategy per hypo
@@ -26,14 +30,15 @@ namespace Algo {
     double obs_phi  [PMAX]; // input observables
     double obs_btag [PMAX]; // input observables
     void print(ostream& os){
-      os << "TreeStruct contains: " << endl;
+      os << "TreeStruct contains: "   << endl;
       os << "\tall_time = " << all_time << " msec" << endl;
-      os << "\tn_h      = " << n_h << endl;
-      os << "\tn_dim    = " << n_dim << endl;
+      os << "\tn_h      = " << n_h    << endl;
+      os << "\tn_dim    = " << n_dim  << endl;
+      os << "\tn_btag   = " << n_btag << endl;
       size_t it_p {0};
       for( size_t i = 0 ; (i < n_h && i < (size_t)HMAX) ; ++i){
 	os << "\tHypo "     << i << ": "   << endl;
-	os << "status["     << i << "] = " << status[i];
+	os << "\tstatus["     << i << "] = " << status[i];
 	os << ", strategy[" << i << "] = " << strategy[i];
 	os << ", perm["     << i << "] = " << perm[i];
 	os << ", nll["      << i << "] = " << nll[i];
@@ -49,27 +54,21 @@ namespace Algo {
 	  ++it_p;
 	}
       }
-      //for( size_t i = 0 ; (i < n_dim && i < (size_t)PMAX) ; ++i)
-      //os << "\tparam[" << i << "] = " << param[i] << endl;
     }
   };
 
   struct Event {
-
     Event (TTree*) ;
-
     ~Event();
-
     void fillTree () ;
     void printTree() ;
     void createBranches () ;
     void reset();
-
     TreeStruct treeStruct ;
-
     private :
     TTree* outTree ;
-
   };
 
 }
+
+#endif

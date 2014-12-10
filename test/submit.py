@@ -14,7 +14,7 @@ def processAllBatch( jobName , extra, t, g, b , G, T ):
     f.write('eval `scramv1 runtime -sh`\n')
     f.write('cd /shome/bianchi/Studies/Code\n')
     f.write('\n')
-    f.write('./bin/toy -s 0 -t '+str(t)+' -p '+' -g '+str(g)+' -b '+str(b)+' -v 0'+' -G '+str(G)+' -T '+str(T)+' -o Test_toys'+str(t)+'_smear'+str(g)+'_btag'+str(b)+'_gen'+str(G)+'_test'+str(T)+extra+'.root'+'\n')
+    f.write('./bin/toy -s 0 -t '+str(t)+' -p '+' -g '+str(g)+' -b '+str(b)+' -v 0'+' -G '+str(G)+' -T '+str(T)+' -o Test_'+jobName+'_smear'+str(g)+'_btag'+str(b)+'_gen'+str(G)+'_test'+str(T)+extra+'.root'+'\n')
     f.close()
 
     os.system('chmod +x '+'job_'+jobName+extra+'.sh')
@@ -25,78 +25,27 @@ def processAllBatch( jobName , extra, t, g, b , G, T ):
 
 ###########################################################################     
 
-for p in range(20):
-        processAllBatch( 'tL_ggggg',  '_p'+str(p), 25, 1,1,  10,5 )
-        processAllBatch( 'lm_gggggg', '_p'+str(p), 25, 1,1,  11,5 )   
+# TopLep + 5 jets radiation
+#for p in range(20):
+#    processAllBatch( 'tL_ggggg',  '_p'+str(p), 25, 1,1,  10,5 )
+#    processAllBatch( 'lm_gggggg', '_p'+str(p), 25, 1,1,  11,5 )   
 
-
-'''
 # TopHad + TopHad + Higgs
-for p in range(20):
-    processAllBatch( 'tH_tH_hH', '_p'+str(p), 25, 1,2,  4,4 )
-    processAllBatch( 'tH_tH_hH', '_p'+str(p), 25, 1,2,  9,4 )  
-
-# TopHad + WHad
-#for p in range(5):    
-#    processAllBatch( 'tH_wH', '_p'+str(p), 100, 0,0,  0,0 )
-#    processAllBatch( 'tH_wH', '_p'+str(p), 100, 0,0,  5,0 )
-for p in range(5):
-    processAllBatch( 'tH_wH', '_p'+str(p), 100, 1,0,  0,0 )
-    processAllBatch( 'tH_wH', '_p'+str(p), 100, 1,0,  5,0 )   
-for p in range(5):
-    processAllBatch( 'tH_wH', '_p'+str(p), 100, 1,1,  0,0 )
-    processAllBatch( 'tH_wH', '_p'+str(p), 100, 1,1,  5,0 ) 
-for p in range(5):
-    processAllBatch( 'tH_wH', '_p'+str(p), 100, 1,2,  0,0 )
-    processAllBatch( 'tH_wH', '_p'+str(p), 100, 1,2,  5,0 )
-
-# TopHad + TopLep
-#for p in range(10):
-#    processAllBatch( 'tH_tL', '_p'+str(p), 50, 0,0,  1,1 )
-#    processAllBatch( 'tH_tL', '_p'+str(p), 50, 0,0,  6,1 )
-for p in range(10):
-    processAllBatch( 'tH_tL', '_p'+str(p), 50, 1,0,  1,1 )
-    processAllBatch( 'tH_tL', '_p'+str(p), 50, 1,0,  6,1 )
-for p in range(10):
-    processAllBatch( 'tH_tL', '_p'+str(p), 50, 1,1,  1,1 )
-    processAllBatch( 'tH_tL', '_p'+str(p), 50, 1,1,  6,1 )
-for p in range(10):
-    processAllBatch( 'tH_tL', '_p'+str(p), 50, 1,2,  1,1 )
-    processAllBatch( 'tH_tL', '_p'+str(p), 50, 1,2,  6,1 )
+#for p in range(25):
+#    processAllBatch( 'tH_tH_hH', '_p'+str(p), 20, 1,2,  4,4 )
+#    processAllBatch( 'tH_tH_hH', '_p'+str(p), 20, 1,2,  9,4 )
+#    processAllBatch( 'tH_tH_hH', '_p'+str(p), 20, 1,1, 14,4 )  
     
 # TopHad + TopLep + Higgs
-#for p in range(10):
-#    processAllBatch( 'tH_tL_Hh', '_p'+str(p), 50, 0,0,  2,2 )
-#    processAllBatch( 'tH_tL_Hh', '_p'+str(p), 50, 0,0,  7,2 )
 for p in range(10):
-    processAllBatch( 'tH_tL_Hh', '_p'+str(p), 50, 1,0,  2,2 )
-    processAllBatch( 'tH_tL_Hh', '_p'+str(p), 50, 1,0,  7,2 )
-for p in range(10):
-    processAllBatch( 'tH_tL_Hh', '_p'+str(p), 50, 1,1,  2,2 )
-    processAllBatch( 'tH_tL_Hh', '_p'+str(p), 50, 1,1,  7,2 )
-for p in range(10):
-    processAllBatch( 'tH_tL_Hh', '_p'+str(p), 50, 1,2,  2,2 )
-    processAllBatch( 'tH_tL_Hh', '_p'+str(p), 50, 1,2,  7,2 )
+    #processAllBatch( 'tH_tL_Hh', '_p'+str(p), 50, 1,1,  2,2 )
+    #processAllBatch( 'tH_tL_Hh', '_p'+str(p), 50, 1,1,  7,2 )
+    processAllBatch( 'tH_tL_Hh', '_p'+str(p), 50, 1,1, 12,2 )
     
 # TopLep + TopLep + Higgs
 #for p in range(10):
-#    processAllBatch( 'tL_tL_Hh', '_p'+str(p), 50, 0,0,  3,3 )
-#    processAllBatch( 'tL_tL_Hh', '_p'+str(p), 50, 0,0,  8,3 )
-for p in range(10):
-    processAllBatch( 'tL_tL_Hh', '_p'+str(p), 50, 1,0,  3,3 )
-    processAllBatch( 'tL_tL_Hh', '_p'+str(p), 50, 1,0,  8,3 )
-for p in range(10):
-    processAllBatch( 'tL_tL_Hh', '_p'+str(p), 50, 1,1,  3,3 )
-    processAllBatch( 'tL_tL_Hh', '_p'+str(p), 50, 1,1,  8,3 )
-for p in range(10):
-    processAllBatch( 'tL_tL_Hh', '_p'+str(p), 50, 1,2,  3,3 )
-    processAllBatch( 'tL_tL_Hh', '_p'+str(p), 50, 1,2,  8,3 )
-
-
-    # TopHad + TopHad + Higgs 
-#for p in range(10):
-#    processAllBatch( 'tH_tH_Hh', '_p'+str(p), 50, 1,2,  4,4 )
-#    processAllBatch( 'tH_tH_Hh', '_p'+str(p), 50, 1,2,  9,4 )
-'''
+#    processAllBatch( 'tL_tL_Hh', '_p'+str(p), 50, 1,1,  3,3 )
+#    processAllBatch( 'tL_tL_Hh', '_p'+str(p), 50, 1,1,  8,3 )
+#    processAllBatch( 'tL_tL_Hh', '_p'+str(p), 50, 1,1, 13,3 )
 
 

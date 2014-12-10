@@ -1,5 +1,5 @@
-#ifndef HypoTester_h
-#define HypoTester_h
+#ifndef HYPOTESTER_H
+#define HYPOTESTER_H
 
 #include "Math/Minimizer.h"
 #include "Math/Factory.h"
@@ -31,65 +31,81 @@ namespace Algo {
     // add multiple hypotheses
     void test( const map< string,vector<Decay>>& );
 
-    // clean content
-    void reset();
-
-    // prepare for next event
-    void next_event();
-
-    // add hypotheses
-    void assume(Decay);  
-
-    // read
-    void init();
-      
-    // run
-    void run();
-
     // print objects
     void print(ostream&);
 
     // set verbosity
     void set_verbosity(const int&);
 
-    // set minimizer
-    void setup_minimizer( const Algo::Strategy );
-
+    // validity
+    int get_status();
+    
   private:
 
-    // unpack hypotheses
+    // Add hypothesis. Called by test()
+    void assume(Decay); 
+
+    // Read the parameters and do permutations. Uses:
+    //   - unpack_assumptions()
+    //   - group_particles()
+    void init(); 
+
+    // unpack decays providing list of particles
     void unpack_assumptions();
 
-    // group particles
+    // assign jet to particles
     vector<Algo::DecayBuilder*> group_particles();
+
+    // clean content, but not input parameters 
+    void reset();
+
+    // clean content, including input parameters
+    // prepare for following event
+    void next_event();
+
+    // call to Minui2 minimize method. Uses:
+    //  - setup_minimizer() 
+    void run();
 
     // eval method (called by Minuit)
     double eval(const double* );
 
-    // check whether a given variable is in at least one permutation
+    // set minimizer options. Uses:
+    //  - is_variable_used()
+    void setup_minimizer( const Algo::Strategy );    
+
+    // check whether a given variable is 
+    // in at least one permutation
     bool is_variable_used( const size_t );
 
     // print permutation  
     void print_permutation(const vector<std::pair<FinalState,size_t>>&) const;
 
-    // filter out permutations
+    // filter out permutations. Uses:
+    //  - print_permutation()
     bool go_to_next(vector<vector<std::pair<FinalState,size_t>>> &);
 
+    // the minimizer
     ROOT::Math::Minimizer* minimizer;     
 
+    // vector of jets, leptons, and MET
     vector<Algo::Object> p4_Jet;  
     vector<Algo::Object> p4_Lepton;  
     vector<Algo::Object> p4_MET;  
 
+    // filled by test()
     vector<Decay> decays;
+
+    // vector or particles. Filled by unpack_assumptions()
+    // it gets permutated by init()
     vector<pair<FinalState,size_t>> particles;
 
+    // the actual permutations
     vector<Algo::CombBuilder*> permutations;
 
     size_t nParam_j;
     size_t nParam_n;
     size_t nParam_m;
-
     int    count_hypo;
     int    count_perm;
     size_t count_TopHad;
@@ -103,6 +119,7 @@ namespace Algo {
     size_t count_Radiation_g;
     size_t invisible;
     int verbose;
+    int error_code;
 
     Event* event;
 
