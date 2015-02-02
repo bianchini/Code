@@ -827,6 +827,14 @@ void Algo::RadiationBuilder::init( const FinalState& fs, const Object& obj, cons
     for(auto iobs : obj.obs ) tf->add_pdf_obs( iobs.first, obj, Algo::QuarkTypeDown );
     tf_g    = tf;
     break;
+  case FinalState::Radiation_c:
+    p4_g    = obj.p4;
+    index_g = sz;
+    tf = new TransferFunction("tf_q", TF_Q , verbose);
+    tf->init( TF_Q_param[Algo::eta_to_bin(obj.p4)] );
+    for(auto iobs : obj.obs ) tf->add_pdf_obs( iobs.first, obj, Algo::QuarkTypeCharm );
+    tf_g    = tf;
+    break;
   case FinalState::Radiation_b:
     p4_g    = obj.p4;
     index_g = sz;
@@ -835,12 +843,12 @@ void Algo::RadiationBuilder::init( const FinalState& fs, const Object& obj, cons
     for(auto iobs : obj.obs ) tf->add_pdf_obs( iobs.first, obj, Algo::QuarkTypeBottom );      
     tf_g    = tf;
     break;
-  case FinalState::Radiation_g:
+  case FinalState::Radiation_g: //do not assume the parton flavour
     p4_g    = obj.p4;
     index_g = sz;
     tf = new TransferFunction("tf_q", TF_Q , verbose);
     tf->init( TF_Q_param[Algo::eta_to_bin(obj.p4)] );    
-    for(auto iobs : obj.obs ) tf->add_pdf_obs( iobs.first, obj, Algo::QuarkTypeDown );
+    //for(auto iobs : obj.obs ) tf->add_pdf_obs( iobs.first, obj, Algo::QuarkTypeDown );
     tf_g    = tf;
     break;
   default:

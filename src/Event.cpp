@@ -22,6 +22,8 @@ void Algo::Event::reset(){
   treeStruct.n_dim     = 0;  
   treeStruct.all_time  = 0;
   treeStruct.n_btag    = 0; 
+  treeStruct.n_jet     = 0; 
+  treeStruct.n_lep     = 0; 
 }
 
 void Algo::Event::createBranches(){  
@@ -29,6 +31,8 @@ void Algo::Event::createBranches(){
   outTree->Branch( "test__n_dim",     &(treeStruct.n_dim),     "test__n_dim/i");
   outTree->Branch( "test__all_time",  &(treeStruct.all_time),  "test__all_time/I");
   outTree->Branch( "test__n_btag",    &(treeStruct.n_btag),    "test__n_btag/I");
+  outTree->Branch( "test__n_jet",     &(treeStruct.n_jet),     "test__n_jet/I");
+  outTree->Branch( "test__n_lep",     &(treeStruct.n_lep),     "test__n_lep/I");
   outTree->Branch( "test__nll",       &(treeStruct.nll),       "test__nll[test__n_hyp]/D");
   outTree->Branch( "test__status",    &(treeStruct.status),    "test__status[test__n_hyp]/I");
   outTree->Branch( "test__strategy",  &(treeStruct.strategy),  "test__strategy[test__n_hyp]/I");

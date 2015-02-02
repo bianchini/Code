@@ -15,6 +15,7 @@ Algo::HypoTester::HypoTester(TTree* t){
   count_Higgs       = 0;
   count_Radiation_u = 0;
   count_Radiation_d = 0;
+  count_Radiation_c = 0;
   count_Radiation_b = 0;
   count_Radiation_g = 0;
   invisible         = 0;
@@ -60,6 +61,17 @@ void Algo::HypoTester::push_back_object( const LV& p4, char type ){
     break;
   }
 
+  if(event!=nullptr){
+    for(auto jet : p4_Jet){
+      double btag = (jet.obs).find("BTAG")!=(jet.obs).end() ? (jet.obs).find("BTAG")->second : 0.; 
+      if(btag>0.5) ++(event->treeStruct.n_btag);
+      ++(event->treeStruct.n_jet);
+    }
+    for(auto lep : p4_Lepton){ 
+      ++(event->treeStruct.n_lep); 
+    }
+  }
+	
 }
 
 void Algo::HypoTester::add_object_observables( const string& name, const double& val, const char type){
@@ -88,6 +100,9 @@ void Algo::HypoTester::test( const map<string, vector<Decay>>& all ){
   auto t0 = high_resolution_clock::now();
 
   if(event!=nullptr) event->reset();
+
+  // save event-dependent variables 
+  save_global_variables();
 
   // create minimizer once for all hypotheses
   // the function is however set inside the run() block
@@ -148,6 +163,7 @@ void Algo::HypoTester::reset(){
   count_Higgs       = 0;
   count_Radiation_u = 0;
   count_Radiation_d = 0;
+  count_Radiation_c = 0;
   count_Radiation_b = 0;
   count_Radiation_g = 0;
   invisible         = 0;
@@ -188,6 +204,7 @@ void Algo::HypoTester::unpack_assumptions(){
   count_Higgs       = 0;
   count_Radiation_u = 0;
   count_Radiation_d = 0;
+  count_Radiation_c = 0;
   count_Radiation_b = 0;
   count_Radiation_g = 0;
 
@@ -249,6 +266,13 @@ void Algo::HypoTester::unpack_assumptions(){
      particles.push_back( make_pair( FinalState::Radiation_d,   count_Radiation_d) );
      if(verbose>0){ cout << "\tAdded Radiation (d)" << endl; }
      ++count_Radiation_d;
+     nParam_j += 1;
+     break;
+
+   case Algo::Decay::Radiation_c:
+     particles.push_back( make_pair( FinalState::Radiation_c,   count_Radiation_c) );
+     if(verbose>0){ cout << "\tAdded Radiation (c)" << endl; }
+     ++count_Radiation_c;
      nParam_j += 1;
      break;
 
@@ -428,6 +452,18 @@ vector<Algo::DecayBuilder*> Algo::HypoTester::group_particles(){
     decayed.push_back( rad );
   }
 
+  for( size_t r_had_c = 0; r_had_c < count_Radiation_c; ++r_had_c ){
+    if(verbose>1) cout << "\tProcessing " << r_had_c << "th Radiaton (c)" << endl;
+    Algo::RadiationBuilder* rad = new Algo::RadiationBuilder(verbose, Decay::Radiation_c);
+    size_t pos = 0;
+    for( auto part : particles ){
+      if( part.second == r_had_c && part.first==FinalState::Radiation_c )
+        rad->init( part.first, p4_Jet[pos] , pos );
+      ++pos;
+    }
+    decayed.push_back( rad );
+  }
+  
   //  get all radiation                                                                                                                  
   for( size_t r_had_b = 0; r_had_b < count_Radiation_b; ++r_had_b ){
     if(verbose>1) cout << "\tProcessing " << r_had_b << "th Radiaton (b)" << endl;
@@ -533,7 +569,6 @@ void Algo::HypoTester::setup_minimizer( const Algo::Strategy str){
 	event->treeStruct.obs_eta [ event->treeStruct.n_dim + count_param ] = p4_Jet[p].p4.Eta();     
 	event->treeStruct.obs_phi [ event->treeStruct.n_dim + count_param ] = p4_Jet[p].p4.Phi();     
 	event->treeStruct.obs_btag[ event->treeStruct.n_dim + count_param ] = btag;
-	if(btag>0.5) ++(event->treeStruct.n_btag);
       }
       ++count_param;
     }
@@ -774,6 +809,7 @@ bool Algo::HypoTester::is_variable_used( const size_t pos ){
 	break;
       case Decay::Radiation_u:
       case Decay::Radiation_d:
+      case Decay::Radiation_c:
       case Decay::Radiation_g:
       case Decay::Radiation_b:
 	vars = (static_cast<RadiationBuilder*>(decay))->get_variables();
@@ -843,6 +879,20 @@ void Algo::HypoTester::set_verbosity(const int& verb){
 
 int Algo::HypoTester::get_status(){
   return error_code;
+}
+
+void Algo::HypoTester::save_global_variables() {
+  if(verbose>0){ cout << "Algo::HypoTester::save_global_variables()" << endl; }
+  if(event==nullptr) return;
+
+  for(auto jet : p4_Jet){
+    double btag = (jet.obs).find("BTAG")!=(jet.obs).end() ? (jet.obs).find("BTAG")->second : 0.;
+    if(btag>0.5) ++(event->treeStruct.n_btag);
+    ++(event->treeStruct.n_jet);
+  }
+  for(auto lep : p4_Lepton){
+    ++(event->treeStruct.n_lep);
+  } 
 }
 
 void Algo::HypoTester::print_permutation(const vector<std::pair<Algo::FinalState,size_t>>& perm) const {

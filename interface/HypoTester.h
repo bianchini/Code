@@ -28,7 +28,7 @@ namespace Algo {
     // they will be accessible in the form of a map
     void add_object_observables ( const string&, const double& , const char);
      
-    // add multiple hypotheses
+    // method called by user
     void test( const map< string,vector<Decay>>& );
 
     // print objects
@@ -85,6 +85,9 @@ namespace Algo {
     //  - print_permutation()
     bool go_to_next(vector<vector<std::pair<FinalState,size_t>>> &);
 
+    // internal method to save global variables
+    void save_global_variables();
+
     // the minimizer
     ROOT::Math::Minimizer* minimizer;     
 
@@ -115,6 +118,7 @@ namespace Algo {
     size_t count_Higgs;
     size_t count_Radiation_u;
     size_t count_Radiation_d;
+    size_t count_Radiation_c;
     size_t count_Radiation_b;
     size_t count_Radiation_g;
     size_t invisible;

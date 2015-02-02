@@ -8,7 +8,7 @@ def processAllBatch( jobName , extra, t, g, b , G, T ):
 
     f = open('job_'+jobName+extra+'.sh','w')
     f.write('#!/bin/bash\n\n')
-    f.write('cd /shome/bianchi/CMSSW_5_3_3_patch2_New/src/\n')
+    f.write('cd /shome/bianchi/tthbb13/CMSSW/src\n')
     f.write('export SCRAM_ARCH="slc5_amd64_gcc462"\n')
     f.write('source $VO_CMS_SW_DIR/cmsset_default.sh\n')
     f.write('eval `scramv1 runtime -sh`\n')
@@ -37,10 +37,10 @@ def processAllBatch( jobName , extra, t, g, b , G, T ):
 #    processAllBatch( 'tH_tH_hH', '_p'+str(p), 20, 1,1, 14,4 )  
     
 # TopHad + TopLep + Higgs
-for p in range(10):
-    #processAllBatch( 'tH_tL_Hh', '_p'+str(p), 50, 1,1,  2,2 )
-    #processAllBatch( 'tH_tL_Hh', '_p'+str(p), 50, 1,1,  7,2 )
-    processAllBatch( 'tH_tL_Hh', '_p'+str(p), 50, 1,1, 12,2 )
+#for p in range(40):
+#    processAllBatch( 'tH_tL_Hh', '_p'+str(p), 50, 1,1,  2,2 )
+#    processAllBatch( 'tH_tL_Hh', '_p'+str(p), 50, 1,1,  7,2 )
+#    processAllBatch( 'tH_tL_Hh', '_p'+str(p), 50, 1,1, 12,2 )
     
 # TopLep + TopLep + Higgs
 #for p in range(10):
@@ -48,4 +48,17 @@ for p in range(10):
 #    processAllBatch( 'tL_tL_Hh', '_p'+str(p), 50, 1,1,  8,3 )
 #    processAllBatch( 'tL_tL_Hh', '_p'+str(p), 50, 1,1, 13,3 )
 
+# TopHad + TopLep + Higgs: all hypos 
+for p in range(25):
+    # l+gggggg
+    processAllBatch( 'tH_tL_Hh-Ha' , '_p'+str(p), 50, 1,1,  11,6 )
+
+    # tH+tL+dd
+    processAllBatch( 'tH_tL_Hh-Hb1', '_p'+str(p), 50, 1,1,  12,6 )
+
+    # tH+tL+bb
+    processAllBatch( 'tH_tL_Hh-Hb2', '_p'+str(p), 50, 1,1,   7,6 )
+
+    # tH+tL+Hh
+    processAllBatch( 'tH_tL_Hh-Hs',  '_p'+str(p), 50, 1,1,   2,6 )
 

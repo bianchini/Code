@@ -218,6 +218,15 @@ void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, c
     }
     out.push_back( out1 );
     break;
+  case Decay::Radiation_c:
+    if(smear)
+      smear_by_TF(p4_rad, 'q');
+    out1.init( p4_rad,    'q');
+    if(btag){
+      assign_rnd_btag( Algo::QuarkTypeCharm,   out1 , btag); 
+    }
+    out.push_back( out1 );
+    break;
   case Decay::Radiation_b:
     if(smear)
       smear_by_TF(p4_rad, 'b');
@@ -255,6 +264,9 @@ void Algo::ToyGenerator::assign_rnd_btag( const Algo::QuarkType type, Object& ob
       obj.addObs( "BTAG", 0. );
       return;
     case QuarkType::QuarkTypeDown:
+      obj.addObs( "BTAG", 0. );
+      return;
+    case QuarkType::QuarkTypeCharm:
       obj.addObs( "BTAG", 0. );
       return;
     case QuarkType::QuarkTypeBottom:

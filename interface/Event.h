@@ -17,6 +17,8 @@ namespace Algo {
     size_t n_dim;           // total number of dimensions
     int    all_time;        // total CPU time (msec)
     int    n_btag;          // n btag
+    int    n_jet;           // n jet
+    int    n_lep;           // n lep
     double nll      [HMAX]; // nll per hypo
     int    status   [HMAX]; // status per hypo
     int    strategy [HMAX]; // strategy per hypo
@@ -35,6 +37,8 @@ namespace Algo {
       os << "\tn_h      = " << n_h    << endl;
       os << "\tn_dim    = " << n_dim  << endl;
       os << "\tn_btag   = " << n_btag << endl;
+      os << "\tn_jet    = " << n_jet  << endl;
+      os << "\tn_lep    = " << n_lep  << endl;
       size_t it_p {0};
       for( size_t i = 0 ; (i < n_h && i < (size_t)HMAX) ; ++i){
 	os << "\tHypo "     << i << ": "   << endl;

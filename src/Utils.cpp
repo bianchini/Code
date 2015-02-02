@@ -3,7 +3,7 @@
 
 double Algo::pdf_btag(double* x, double* par){
 
-  // par[0] = flavour: 0=u, 1=d, 2=b
+  // par[0] = flavour: 0=u, 1=d, 2=c, b=3
   // par[1] = pt
   // par[2] = eta
 
@@ -28,6 +28,11 @@ double Algo::pdf_btag(double* x, double* par){
     if( pt>20. && pt<9999.) 
       val =
 	(btag<0.5)*(Algo::BTAG_Q_param[bin][0]) + (btag>0.5)*(Algo::BTAG_Q_param[bin][1]);
+    break;
+  case Algo::QuarkTypeCharm: // pure C quarks
+    if( pt>20. && pt<9999.) 
+      val =
+	(btag<0.5)*(Algo::BTAG_C_param[bin][0]) + (btag>0.5)*(Algo::BTAG_C_param[bin][1]);
     break;
   case Algo::QuarkTypeBottom: // pure B quarks
     if( pt>20. && pt<9999.) 
@@ -74,6 +79,9 @@ string Algo::translateDecay(Algo::Decay& decay){
     break;
   case Algo::Decay::Radiation_d:
     name = "Radiation_d";  
+    break;
+  case Algo::Decay::Radiation_c:
+    name = "Radiation_c";
     break;
   case Algo::Decay::Radiation_b:
     name = "Radiation_b";
@@ -124,6 +132,7 @@ int Algo::diff( const std::vector<std::pair<FinalState,size_t>>& a,
     case FinalState::Radiation_g:
     case FinalState::Radiation_u:
     case FinalState::Radiation_d:
+    case FinalState::Radiation_c:
     case FinalState::Radiation_b:      
       if( btagd && !(matchT || matchL)) return 1;
       if(!btagd && !israd)  return 2;
@@ -194,6 +203,7 @@ bool Algo::filter_by_btag( const std::vector<std::pair<FinalState,size_t>>& part
     case FinalState::WHad_qbar:
     case FinalState::Radiation_u:
     case FinalState::Radiation_d:
+    case FinalState::Radiation_c:
     case FinalState::Radiation_g:
       if( btag>0.5 ){
 	passes = false;
@@ -247,7 +257,7 @@ Algo::FinalState Algo::partner( const Algo::FinalState fs){
 }
 
 bool Algo::isRadiation( const Algo::FinalState fs ){
-  return (fs==FinalState::Radiation_u || fs==FinalState::Radiation_d || fs==FinalState::Radiation_b || fs==FinalState::Radiation_g);
+  return (fs==FinalState::Radiation_u || fs==FinalState::Radiation_d || fs==FinalState::Radiation_c || fs==FinalState::Radiation_b || fs==FinalState::Radiation_g);
 }
 
 

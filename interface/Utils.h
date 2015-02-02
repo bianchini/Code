@@ -66,30 +66,31 @@ namespace Algo {
        {0.30, 0.70}
      };
 
-  enum QuarkType : int { QuarkTypeUp=0, QuarkTypeDown=1, QuarkTypeBottom=2 };
+  enum QuarkType : int { QuarkTypeUp=0, QuarkTypeDown=1, QuarkTypeCharm=2, QuarkTypeBottom=3};
 
   double pdf_btag(double*, double*);
   size_t eta_to_bin( const double& );
   size_t eta_to_bin( const LV& );
  
-  enum class Decay { TopLep=0, TopHad, TopHadLost, WHad, Higgs, Radiation_u, Radiation_d, Radiation_b, Radiation_g, Lepton, MET, UNKNOWN };
+  enum class Decay { TopLep=0, TopHad, TopHadLost, WHad, Higgs, Radiation_u, Radiation_d, Radiation_c, Radiation_b, Radiation_g, Lepton, MET, UNKNOWN };
   string translateDecay(Decay&);
 
   enum class FinalState { 
-    TopLep_l=0,      // lep   from top decay   () 
-      TopLep_b=1,    // b     from top decay   (TF and btag[B])
-      TopHad_q=2,    // q     from top decay   (TF and btag[0.5*LF+0.5*C])
-      TopHad_qbar=3, // qbar  from top decay   (TF and btag[LF]) 
-  TopHadLost_qbar=4, // lost qbar  from top decay   (Acceptance) 
-      TopHad_b=5,    // b     from top decay   (TF and btag[B])
-      WHad_q=6,      // q     from top decay   (TF and btag[0.5*LF+0.5*C])     
-      WHad_qbar=7,   // qbar  from top decay   (TF and btag[LF])
-      Higgs_b=8,     // b     from Higgs decay (TF and btag[B]) 
-      Higgs_bbar=9,  // bbar  from Higgs decay (TF and btag[B]) 
-      Radiation_u=10, // extra quark            (TF and btag[0.5*LF+0.5*C])
-      Radiation_d=11, // extra quark            (TF and btag[LF])
-      Radiation_b=12, // extra quark            (TF and btag[B])  
-      Radiation_g=13  // extra quark            (TF, no flavour assignment)  
+      TopLep_l=0,        // lep   from top decay   () 
+      TopLep_b=1,        // b     from top decay   (TF and btag[B])
+      TopHad_q=2,        // q     from top decay   (TF and btag[0.5*LF+0.5*C])
+      TopHad_qbar=3,     // qbar  from top decay   (TF and btag[LF]) 
+      TopHadLost_qbar=4, // lost qbar  from top decay   (Acceptance) 
+      TopHad_b=5,        // b     from top decay   (TF and btag[B])
+      WHad_q=6,          // q     from top decay   (TF and btag[0.5*LF+0.5*C])     
+      WHad_qbar=7,       // qbar  from top decay   (TF and btag[LF])
+      Higgs_b=8,         // b     from Higgs decay (TF and btag[B]) 
+      Higgs_bbar=9,      // bbar  from Higgs decay (TF and btag[B]) 
+      Radiation_u=10,    // extra quark            (TF and btag[0.5*LF+0.5*C])
+      Radiation_d=11,    // extra quark            (TF and btag[LF])
+      Radiation_c=12,    // extra quark            (TF and btag[C])  
+      Radiation_b=13,    // extra quark            (TF and btag[B])  
+      Radiation_g=14     // extra quark            (TF, no flavour assignment)  
       };
 
   struct CompFinalState {
