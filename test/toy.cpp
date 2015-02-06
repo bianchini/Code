@@ -14,11 +14,16 @@
  
 enum GEN_HYPO  : int { GEN_tH_wH   =0 , GEN_tH_tL    =1,   GEN_tH_tL_hH=2,  GEN_tL_tL_hH=3,  GEN_tH_tH_hH=4,
 		       GEN_tH_bb   =5 , GEN_udb_tL   =6,   GEN_tH_tL_bb=7,  GEN_tL_tL_bb=8,  GEN_tH_tH_bb=9,
-		       GEN_tL_ggggg=10, GEN_lm_gggggg=11,  GEN_tH_tL_dd=12, GEN_tL_tL_dd=13, GEN_tH_tH_dd=14		     
+                       GEN_tL_ggggg=10, GEN_lm_gggggg=11,  GEN_tH_tL_dd=12, GEN_tL_tL_dd=13, GEN_tH_tH_dd=14,
+                       GEN_lm_ggggbb=15,                   GEN_tH_tL_cc=16,  
+                       GEN_tHLost_tL_Hh_d=17, GEN_tHLost_tL_ddd=18, GEN_tHLost_tL_bbd=19
 		     };
 
 enum TEST_HYPO : int { TEST_tH_wH=0 , TEST_tH_tL=1, TEST_tH_tL_hH=2, TEST_tL_tL_hH=3, TEST_tH_tH_hH=4,
-                       TEST_tL=5, TEST_all=6
+    TEST_tL =5, 
+    TEST_all=6, 
+    TEST_tHLost_tL_hH_d=7, 
+    TEST_tHLost_tL_all=8
 		     };
 
 
@@ -139,6 +144,12 @@ int main(int argc, char *argv[]){
     decays.push_back( Algo::Decay::Radiation_b );     
     decays.push_back( Algo::Decay::Radiation_b );  
     break;
+  case GEN_tH_tL_cc:
+    decays.push_back( Algo::Decay::TopHad );  
+    decays.push_back( Algo::Decay::TopLep );        
+    decays.push_back( Algo::Decay::Radiation_c );     
+    decays.push_back( Algo::Decay::Radiation_c );  
+    break;
   case GEN_tH_tL_dd:
     decays.push_back( Algo::Decay::TopHad );
     decays.push_back( Algo::Decay::TopLep );
@@ -186,6 +197,36 @@ int main(int argc, char *argv[]){
     decays.push_back( Algo::Decay::Radiation_g );
     decays.push_back( Algo::Decay::Radiation_g );
     decays.push_back( Algo::Decay::Radiation_g );
+    break;
+  case GEN_lm_ggggbb:
+    decays.push_back( Algo::Decay::Lepton );
+    decays.push_back( Algo::Decay::MET );
+    decays.push_back( Algo::Decay::Radiation_b );
+    decays.push_back( Algo::Decay::Radiation_b );
+    decays.push_back( Algo::Decay::Radiation_g );
+    decays.push_back( Algo::Decay::Radiation_g );
+    decays.push_back( Algo::Decay::Radiation_g );
+    decays.push_back( Algo::Decay::Radiation_g );
+    break;
+  case GEN_tHLost_tL_Hh_d:
+    decays.push_back( Algo::Decay::TopHadLost );
+    decays.push_back( Algo::Decay::TopLep );
+    decays.push_back( Algo::Decay::Higgs );
+    decays.push_back( Algo::Decay::Radiation_d );
+    break;
+  case GEN_tHLost_tL_ddd:
+    decays.push_back( Algo::Decay::TopHadLost );
+    decays.push_back( Algo::Decay::TopLep );
+    decays.push_back( Algo::Decay::Radiation_d );
+    decays.push_back( Algo::Decay::Radiation_d );
+    decays.push_back( Algo::Decay::Radiation_d );
+    break;
+  case GEN_tHLost_tL_bbd:
+    decays.push_back( Algo::Decay::TopHadLost );
+    decays.push_back( Algo::Decay::TopLep );
+    decays.push_back( Algo::Decay::Radiation_b );
+    decays.push_back( Algo::Decay::Radiation_b );
+    decays.push_back( Algo::Decay::Radiation_d );
     break;
   default:
     break;
@@ -444,13 +485,79 @@ int main(int argc, char *argv[]){
 
       map<string, vector<Algo::Decay> > hypotheses;
       // lepton + jets
-      hypotheses["Ha"]  = { Algo::Decay::Radiation_g, Algo::Decay::Radiation_g,Algo::Decay::Radiation_g,
-			    Algo::Decay::Radiation_g, Algo::Decay::Radiation_g,Algo::Decay::Radiation_g};
-      hypotheses["Hb0"] = {Algo::Decay::TopHad, Algo::Decay::TopLep, Algo::Decay::Radiation_g, Algo::Decay::Radiation_g};
-      hypotheses["Hb1"] = {Algo::Decay::TopHad, Algo::Decay::TopLep, Algo::Decay::Radiation_d, Algo::Decay::Radiation_d};
-      //hypotheses["Hb2"] = {Algo::Decay::TopHad, Algo::Decay::TopLep, Algo::Decay::Radiation_c, Algo::Decay::Radiation_c};
-      hypotheses["Hb2"] = {Algo::Decay::TopHad, Algo::Decay::TopLep, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b};
-      hypotheses["Hs"]  = {Algo::Decay::TopHad, Algo::Decay::TopLep, Algo::Decay::Higgs};
+      hypotheses["Ha1"]  = { Algo::Decay::Radiation_d, Algo::Decay::Radiation_d,Algo::Decay::Radiation_d,
+			     Algo::Decay::Radiation_d, Algo::Decay::Radiation_d,Algo::Decay::Radiation_d}; // 0
+      hypotheses["Ha2"]  = { Algo::Decay::Radiation_b, Algo::Decay::Radiation_b,Algo::Decay::Radiation_d,
+                             Algo::Decay::Radiation_d, Algo::Decay::Radiation_d,Algo::Decay::Radiation_d}; // 1
+      hypotheses["Hb0"] = {Algo::Decay::TopHad, Algo::Decay::TopLep, Algo::Decay::Radiation_g, Algo::Decay::Radiation_g}; // 2
+      hypotheses["Hb1"] = {Algo::Decay::TopHad, Algo::Decay::TopLep, Algo::Decay::Radiation_d, Algo::Decay::Radiation_d}; // 3
+      hypotheses["Hb2"] = {Algo::Decay::TopHad, Algo::Decay::TopLep, Algo::Decay::Radiation_c, Algo::Decay::Radiation_c}; // 4
+      hypotheses["Hb3"] = {Algo::Decay::TopHad, Algo::Decay::TopLep, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b}; // 5
+      hypotheses["Hs"]  = {Algo::Decay::TopHad, Algo::Decay::TopLep, Algo::Decay::Higgs}; // 6
+      if(verbose>0) tester->print(cout);
+      tester->test( hypotheses );
+      if(tester->get_status()>0) cerr << "ERROR STATUS for tester" << endl;
+    }
+
+    // TopHadLost + TopLep + Higgs (6jets)
+    if( test_hypo==TEST_HYPO::TEST_tHLost_tL_hH_d && count_j==6 && count_l==1 && count_m==1 && overlap==0) {
+
+      if(pass){
+	++itoy;
+	cout << "Generate event " << itoy << "/" << ntoys << endl;
+      }
+      
+      if( debug>=0 && itoy!=debug ) continue;
+
+      // fill jets                                                                                                             
+      for( auto fs : out ){
+	if( (fs.type=='q' || fs.type=='b') && fs.p4.Pt()>30 && TMath::Abs(fs.p4.Eta())<2.5 ){
+          tester->push_back_object( fs.p4  , 'j');
+          if(btag)   tester->add_object_observables( "BTAG",     fs.obs["BTAG"] ,     'j');
+	  if(btag>1) tester->add_object_observables( "BTAG_RND", fs.obs["BTAG_RND"] , 'j');
+        }
+	if( fs.type=='l' )
+	  tester->push_back_object( fs.p4  , 'l');
+      }
+      tester->push_back_object( invisible  , 'm');
+
+      map<string, vector<Algo::Decay> > hypotheses;
+      hypotheses["H0"] = {Algo::Decay::TopHadLost, Algo::Decay::TopLep, Algo::Decay::Higgs, Algo::Decay::Radiation_d};
+      hypotheses["H1"] = {Algo::Decay::TopHad, Algo::Decay::TopLep, Algo::Decay::Higgs};
+      if(verbose>0) tester->print(cout);
+      tester->test( hypotheses );
+      if(tester->get_status()>0) cerr << "ERROR STATUS for tester" << endl;
+    }
+
+    // TopHadLost + TopLep + All (6jets)
+    if( test_hypo==TEST_HYPO::TEST_tHLost_tL_all && count_j==6 && count_l==1 && count_m==1 && overlap==0) {
+
+      if(pass){
+	++itoy;
+	cout << "Generate event " << itoy << "/" << ntoys << endl;
+      }
+      
+      if( debug>=0 && itoy!=debug ) continue;
+
+      // fill jets                                                                                                             
+      for( auto fs : out ){
+	if( (fs.type=='q' || fs.type=='b') && fs.p4.Pt()>30 && TMath::Abs(fs.p4.Eta())<2.5 ){
+          tester->push_back_object( fs.p4  , 'j');
+          if(btag)   tester->add_object_observables( "BTAG",     fs.obs["BTAG"] ,     'j');
+	  if(btag>1) tester->add_object_observables( "BTAG_RND", fs.obs["BTAG_RND"] , 'j');
+        }
+	if( fs.type=='l' )
+	  tester->push_back_object( fs.p4  , 'l');
+      }
+      tester->push_back_object( invisible  , 'm');
+
+      map<string, vector<Algo::Decay> > hypotheses;
+      hypotheses["Hs0"] = {Algo::Decay::TopHadLost, Algo::Decay::TopLep, Algo::Decay::Higgs,       Algo::Decay::Radiation_d};
+      hypotheses["Hs1"] = {Algo::Decay::TopHad,     Algo::Decay::TopLep, Algo::Decay::Higgs};
+      hypotheses["Hb0"] = {Algo::Decay::TopHadLost, Algo::Decay::TopLep, Algo::Decay::Radiation_d, Algo::Decay::Radiation_d, Algo::Decay::Radiation_d};
+      hypotheses["Hb1"] = {Algo::Decay::TopHad,     Algo::Decay::TopLep, Algo::Decay::Radiation_d, Algo::Decay::Radiation_d};
+      hypotheses["Hb2"] = {Algo::Decay::TopHadLost, Algo::Decay::TopLep, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b, Algo::Decay::Radiation_d};
+      hypotheses["Hb3"] = {Algo::Decay::TopHad,     Algo::Decay::TopLep, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b};
       if(verbose>0) tester->print(cout);
       tester->test( hypotheses );
       if(tester->get_status()>0) cerr << "ERROR STATUS for tester" << endl;

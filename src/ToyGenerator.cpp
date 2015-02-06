@@ -3,17 +3,23 @@
 
 Algo::ToyGenerator::ToyGenerator(const int verb) {
   verbose = verb;
+  seed_strategy = 0;
   ran     = new TRandom3();
 }
 
 Algo::ToyGenerator::ToyGenerator(const int verb, const unsigned int seed) {
   verbose = verb;
   ran     = new TRandom3();
+  seed_strategy = seed==0 ? 1 : 0;
   ran->SetSeed(seed);
+  pdf_btag  = new TF1("pdf_btag", Algo::pdf_btag , 0., 1., 3);
+  f_eta_rad = new TF1("f_eta_rad", "2+TMath::Cos(x)", -3,3);
 }
 
 Algo::ToyGenerator::~ToyGenerator(){
   delete ran;
+  delete pdf_btag;
+  delete f_eta_rad;
 }
 
 vector<Algo::Object> Algo::ToyGenerator::generate( const vector<Decay>& decays, const int& smear, const int& btag){
@@ -30,8 +36,6 @@ vector<Algo::Object> Algo::ToyGenerator::generate( const vector<Decay>& decays, 
 
 
 void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, const int& smear, const int& btag ){
-  
-  TF1 f_eta_rad("f_eta_rad", "2+TMath::Cos(x)", -3,3);
 
   int break_loop = 0;
   double pt_rad  = 20.;
@@ -40,7 +44,8 @@ void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, c
     ++break_loop;
   }
 
-  double eta_rad = f_eta_rad.GetRandom();
+  if(seed_strategy) gRandom->SetSeed(0);
+  double eta_rad = f_eta_rad->GetRandom();
   double phi_rad = ran->Uniform(-TMath::Pi(),TMath::Pi());
   LV p4_rad;
   p4_rad.SetPtEtaPhiM( pt_rad, eta_rad, phi_rad, 0. );
@@ -146,6 +151,20 @@ void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, c
     }
     out.push_back( out1 );
     out.push_back( out2 );
+    out.push_back( out3 );
+    break;
+  case Decay::TopHadLost:
+    if(smear){
+      smear_by_TF(p4_q,   'q');
+      smear_by_TF(p4_b,   'b');
+    }
+    out1.init(p4_q,    'q');
+    out3.init(p4_b,    'b');
+    if(btag){
+      assign_rnd_btag( Algo::QuarkTypeUp,     out1 , btag);
+      assign_rnd_btag( Algo::QuarkTypeBottom, out3 , btag);
+    }
+    out.push_back( out1 );
     out.push_back( out3 );
     break;
   case Decay::TopLep:
@@ -277,12 +296,11 @@ void Algo::ToyGenerator::assign_rnd_btag( const Algo::QuarkType type, Object& ob
     }
   }
   
-  
-  TF1 pdf("pdf_btag", Algo::pdf_btag , 0., 1., 3);
-  pdf.SetParameter(0, static_cast<int>(type) );
-  pdf.SetParameter(1, obj.p4.Pt()  ); 
-  pdf.SetParameter(2, obj.p4.Eta() ); 
-  obj.addObs( "BTAG", pdf.GetRandom() );
+  if(seed_strategy) gRandom->SetSeed(0);
+  pdf_btag->SetParameter(0, static_cast<int>(type) );
+  pdf_btag->SetParameter(1, obj.p4.Pt()  ); 
+  pdf_btag->SetParameter(2, obj.p4.Eta() ); 
+  obj.addObs( "BTAG", pdf_btag->GetRandom() );
 }
 
 
@@ -321,7 +339,9 @@ void Algo::ToyGenerator::smear_by_TF(TLorentzVector& lv, char type){
     while( func_eval.find("y")!=string::npos ){
       func_eval.replace(func_eval.find("y"), 1 , os.str());
     }
+
     TF1 f("f", func_eval.c_str(), lv.E() * SMEAR_EREL_MIN, lv.E() * SMEAR_EREL_MAX );
+    if(seed_strategy) gRandom->SetSeed(0);
     double E_smear = TMath::Max( f.GetRandom(), 0.);
 
     if(verbose>0)
@@ -337,6 +357,7 @@ void Algo::ToyGenerator::smear_by_TF(TLorentzVector& lv, char type){
     TF2 f("f", func_eval.c_str(), SMEAR_MET_PX_MIN, SMEAR_MET_PX_MAX, SMEAR_MET_PY_MIN, SMEAR_MET_PY_MAX);
     double Px{0.};
     double Py{0.};
+    if(seed_strategy) gRandom->SetSeed(0);
     f.GetRandom2(Px,Py);
     if(verbose>0)   
       cout << func_eval << ": (Px,Py) := (" << lv.Px() << "," << lv.Py() ;

@@ -36,10 +36,14 @@ namespace Algo {
 
   private:
     int verbose;
+    int seed_strategy;
     void generate_hypo( vector<Algo::Object>& , Algo::Decay, const int&, const int&);
     void assign_rnd_btag( const Algo::QuarkType, Algo::Object&, const int&);
     void smear_by_TF( TLorentzVector&, const char);
     TRandom3* ran;
+
+    TF1* pdf_btag;
+    TF1* f_eta_rad;
 
   };
 
