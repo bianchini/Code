@@ -79,7 +79,7 @@ $(Packages): % : $(BINDIR)/% | $(BINDIR)
 #$(BINDIR)/$(Packages): $(BINDIR)/% : $(BASEDIR)/test/%.$(SrcSuf) $(StatLib) | $(BINDIR)
 $(addprefix $(BINDIR)/,$(Packages)): $(BINDIR)/% : $(BASEDIR)/test/%.$(SrcSuf) $(StatLib) | $(BINDIR)
 	@echo $(call InfoLine , $@ )
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $< $(StatLib) -I$(INC_DIR) -I$(HDIR)
+	$(CXX) $(CXXFLAGS) -lMathMore $(LDFLAGS) -o $@ $< $(StatLib) -I$(INC_DIR) -I$(HDIR)
 
 #make this function of $(Packages)
 #.PHONY: controller
@@ -105,12 +105,12 @@ clean:
 #.o
 $(BINDIR)/%.$(ObjSuf): $(SRCDIR)/%.$(SrcSuf) $(HDIR)/%.$(HeadSuf)
 	@echo $(call InfoLine , $@ )
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -c -o $@ $(SRCDIR)/$*.$(SrcSuf) -I$(INC_DIR) -I$(HDIR)
+	$(CXX) $(CXXFLAGS) -lMathMore $(LDFLAGS) -c -o $@ $(SRCDIR)/$*.$(SrcSuf) -I$(INC_DIR) -I$(HDIR)
 
 #.d
 $(BINDIR)/%.$(DepSuf): $(SRCDIR)/%.$(SrcSuf) $(HDIR)/%.$(HeadSuf)
 	@echo $(call InfoLine , $@ )
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -M -o $@ $(SRCDIR)/$*.$(SrcSuf) -I$(INC_DIR) -I$(HDIR)
+	$(CXX) $(CXXFLAGS) -lMathMore $(LDFLAGS) -M -o $@ $(SRCDIR)/$*.$(SrcSuf) -I$(INC_DIR) -I$(HDIR)
 	sed -i'' "s|^.*:|& Makefile $(BINDIR)/&|g" $@
 
 #-include $(Deps)
