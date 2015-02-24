@@ -8,6 +8,7 @@
 #include<vector>
 #include<bitset> 
 #include<algorithm>  
+#include<initializer_list>
 
 // ROOT
 #include "TLorentzVector.h"
@@ -79,6 +80,17 @@ namespace MEM {
       E_b=0.;      cos_b=0.;      phi_b=0.;  
       E_bbar=0.;   cos_bbar=0.;   phi_bbar=0.;
     }
+    PS(){ init(); }
+    PS(PS&& a){
+      E_q1=a.E_q1;       cos_q1=a.cos_q1;        phi_q1=a.phi_q1;  
+      E_qbar1=a.E_qbar1; cos_qbar1=a.cos_qbar1;  phi_qbar1=a.phi_qbar1;  
+      E_b1=a.E_b1;       cos_b1=a.cos_b1;        phi_b1=a.phi_b1;
+      E_q2=a.E_q2;       cos_q2=a.cos_q2;        phi_q2=a.phi_q2;  
+      E_qbar2=a.E_qbar2; cos_qbar2=a.cos_qbar2;  phi_qbar2=a.phi_qbar2;  
+      E_b2=a.E_b2;       cos_b2=a.cos_b2;        phi_b2=a.phi_b2;
+      E_b=a.E_b;         cos_b=a.cos_b;          phi_b=a.phi_b;  
+      E_bbar=a.E_bbar;   cos_bbar=a.cos_bbar;    phi_bbar=a.phi_bbar;     
+    }
     void print(ostream& os){
       os << "\tPS[ " << endl;
       os << "\t\t[" << E_q1    << ", " << cos_q1    << ", " << phi_q1     << "]," << endl; 
@@ -96,6 +108,8 @@ namespace MEM {
   enum class Hypothesis { TTH=0, TTBB, Undefined };
 
   enum class FinalState { LH=0, LL, HH, Undefined};
+
+  enum class Assumption { ZeroQuarkLost=0, OneQuarkLost, TwoQuarkLost};
 
   struct CompPerm {
     bool operator()(int a, int b){
@@ -121,10 +135,16 @@ namespace MEM {
     void init();
 
     // create a map between variable names and positions
-    void fill_map();
+    void fill_map( const initializer_list<PSVar>& );
 
     // main method
     void run();
+
+    // make assumption
+    double make_assumption( initializer_list<PSVar>&& );
+
+    // test if given assunption is viable
+    bool test_assumption( const size_t&, size_t& );
 
     // main method. Needed by GSLMCIntegrator
     double Eval(const double*) const;
@@ -142,10 +162,10 @@ namespace MEM {
     double solve_for_H_E_bbar(const PS&, const size_t) const;
 
     // get lower integration edges
-    void get_xL(double*, const size_t);
+    void get_xL(double*, const initializer_list<PSVar>&, const size_t);
 
     // get upper integration edges
-    void get_xU(double*, const size_t);
+    void get_xU(double*, const initializer_list<PSVar>&, const size_t);
 
     // get widths
     double get_width(const double*, const double*, const size_t);
@@ -174,6 +194,7 @@ namespace MEM {
 
     // contain indexes of obs_jets that need permutations
     vector< vector<int> > perm_indexes;
+    vector< vector<int> > perm_indexes_assumption;
 
     // map between parameter names (physical) and positions in
     // VEGAS space
