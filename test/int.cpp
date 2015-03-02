@@ -16,15 +16,15 @@ double PI = TMath::Pi();
 int main(){
 
   MEM::Integrand* integrand = new MEM::Integrand(MEM::Hypothesis::TTH, MEM::DebugVerbosity::init|MEM::DebugVerbosity::input|MEM::DebugVerbosity::integration);
-  integrand->push_back_object( TLorentzVector(50,0, 10,  0),   MEM::ObjectType::Jet );
-  integrand->push_back_object( TLorentzVector(0,50, 20,  0),   MEM::ObjectType::Jet );
-  integrand->push_back_object( TLorentzVector(30,30,40,  0),   MEM::ObjectType::Jet );
-  integrand->push_back_object( TLorentzVector(70,10,20,  0),   MEM::ObjectType::Jet );
-  integrand->push_back_object( TLorentzVector(20,50,10,  0),   MEM::ObjectType::Jet );
-  integrand->push_back_object( TLorentzVector(100,10,20, 0),   MEM::ObjectType::Jet );
-  integrand->push_back_object( TLorentzVector(70,20,10,  0),   MEM::ObjectType::Lepton );
-  integrand->push_back_object( TLorentzVector(30,30,0,20),     MEM::ObjectType::MET );
-  integrand->push_back_object( TLorentzVector(-1,-1,0,2),     MEM::ObjectType::Recoil );
+  integrand->push_back_object( TLorentzVector(50,0, 10,  50),   MEM::ObjectType::Jet );
+  integrand->push_back_object( TLorentzVector(0,50, 20,  50),   MEM::ObjectType::Jet );
+  integrand->push_back_object( TLorentzVector(30,30,40,  40),   MEM::ObjectType::Jet );
+  integrand->push_back_object( TLorentzVector(70,10,20,  70),   MEM::ObjectType::Jet );
+  integrand->push_back_object( TLorentzVector(20,50,10,  50),   MEM::ObjectType::Jet );
+  integrand->push_back_object( TLorentzVector(100,10,20, 100),  MEM::ObjectType::Jet );
+  integrand->push_back_object( TLorentzVector(70,20,10,  70),   MEM::ObjectType::Lepton );
+  integrand->push_back_object( TLorentzVector(30,30,0,30),      MEM::ObjectType::MET );
+  integrand->push_back_object( TLorentzVector(-1,-1,0,2),       MEM::ObjectType::Recoil );
 
   integrand->init();
   integrand->run();

@@ -11,7 +11,7 @@ MEM::Integrand::Integrand(MEM::Hypothesis hyp, int debug){
   ig2                = nullptr;
 
   if( debug_code&DebugVerbosity::init )  
-    cout << "Integrand::Integrand()" << endl;
+    cout << "Integrand::Integrand(): START" << endl;
 }
 
 MEM::Integrand::~Integrand(){
@@ -20,15 +20,22 @@ MEM::Integrand::~Integrand(){
   clear();
 }
 
+
+/* 
+   Initialise parameters (***once per event***)
+   - determine final state 
+   - save jet informations 
+   - create list of permutations
+   - determine number of variables
+*/
 void MEM::Integrand::init(){
 
-  CompPerm comparator;
-
   if( debug_code&DebugVerbosity::init ){
-    cout << "Integrand::init(): Start" << endl;
+    cout << "Integrand::init(): START" << endl;
   }    
 
-  // deal with leptons                  
+  // deal with leptons :
+  // decide the final state based on the lepton multiplicity
   switch( obs_leptons.size() ){
   case 0:
     fs = FinalState::HH;
@@ -44,43 +51,46 @@ void MEM::Integrand::init(){
     break;
   }
 
+  // a class member: used to keep track of how many quarks are expected
   naive_jet_counting = 8*(fs==FinalState::HH) + 6*(fs==FinalState::LH) + 4*(fs==FinalState::LL);
 
-  // deal with jets
-  vector<int> perm_index;
+  // deal with jets:
+  // if less jets are recorded than the naive_jet_counting,
+  // fill in perm_index with -1;  
   size_t n_jets = obs_jets.size();
-  for(size_t id = 0; id < n_jets ; ++id) perm_index.push_back( id );
+  vector<int> perm_index;
+  for(size_t id = 0; id < n_jets ; ++id) 
+    perm_index.push_back( id );
+
   while( perm_index.size() < naive_jet_counting)
-  perm_index.push_back( -1 );
+    perm_index.push_back( -1 );
+
   // calculate upper / lower edges
   for( auto j : obs_jets ){
     double y[2] = { j->p4().E(), j->p4().Eta() };
-    double* x;
-    x = get_support( y, TFType::qReco ) ;
-    j->addObs( Observable::E_LOW_Q,  x[0] );
-    j->addObs( Observable::E_HIGH_Q, x[1] );
-    x = get_support( y, TFType::bReco ) ;
-    j->addObs( Observable::E_LOW_B,  x[0] );
-    j->addObs( Observable::E_HIGH_B, x[1] );    
+    pair<double, double> edges;
+    edges = get_support( y, TFType::qReco, 0.98 ) ;
+    j->addObs( Observable::E_LOW_Q,  edges.first  );
+    j->addObs( Observable::E_HIGH_Q, edges.second );
+    edges = get_support( y, TFType::bReco, 0.98 ) ;
+    j->addObs( Observable::E_LOW_B,  edges.first  );
+    j->addObs( Observable::E_HIGH_B, edges.second );    
   }
-
-
+  
   if( debug_code&DebugVerbosity::init ){
     cout << "\tIndexes to be permuted: [ " ;
-    for( auto ind : perm_index )
-      cout << ind << " ";
+    for( auto ind : perm_index ) cout << ind << " ";
     cout << "]" << endl;
   }
 
+  CompPerm comparator;
   sort( perm_index.begin(), perm_index.end(), comparator);
-
   size_t n_perm{0};
   do{
     perm_indexes.push_back( perm_index );
     if( debug_code&DebugVerbosity::init&0 ) {
       cout << "\tperm. " << n_perm << ": [ ";
-      for( auto ind : perm_index )
-	cout << ind << " ";
+      for( auto ind : perm_index ) cout << ind << " ";
       cout << "]" << endl;
     }
     ++n_perm;
@@ -89,9 +99,10 @@ void MEM::Integrand::init(){
     cout << "\tTotal of " << n_perm << " permutation(s) created" << endl;
   }
   
-  // formula to get the nuber of unknowns
+  // Formula to get the number of unknowns
+  // The number of variables is equal to npar - 2*extra_jets
   num_of_vars = 
-    24                                   // dimension of the phas-space
+    24                                   // dimension of the phase-space
     -3*obs_leptons.size()                // leptons
     -2*( TMath::Min(obs_jets.size(), naive_jet_counting) ) // jet directions
     -4                                   // top/W mass
@@ -101,78 +112,61 @@ void MEM::Integrand::init(){
   }
 
   if( debug_code&DebugVerbosity::init ){
-    cout << "Integrand::init(): End" << endl;
+    cout << "Integrand::init(): END" << endl;
   }
 
   return;
 }
 
-void MEM::Integrand::get_xL(double* xL, const initializer_list<PSVar>& lost, const size_t nvar){
+void MEM::Integrand::get_edges(double* lim, const initializer_list<PSVar>& lost, const size_t& nvar, const size_t& edge){
 
-  for(size_t i = 0 ; i < nvar ; ++i) xL[i]=-99.;
+  // convention is: 
+  //   even <=> cosTheta [-1,   +1]
+  //   odd  <=> phi      [-PI, +PI]
+  size_t count_extra{0};
 
   switch( fs ){
   case FinalState::LH:
-    try{
-      xL[map_to_var[PSVar::E_q1]]      =  0.;
-      xL[map_to_var[PSVar::cos_qbar2]] = -1.;
-      xL[map_to_var[PSVar::phi_qbar2]] = -TMath::Pi();
-      xL[map_to_var[PSVar::E_b]]       =  0.;
-      size_t count_extra{0};
-      for( auto l = lost.begin() ; l !=lost.end(); ++l ){
-	xL[map_to_var[*l]] = count_extra%2==0 ? -1 : -TMath::Pi(); 
-	++count_extra;
-      }      
-    }
-    catch(...){
-      cout << "*** Integrand::get_xL(): Maybe out-of-range...check" << endl; 
-    }
+    lim[map_to_var[PSVar::E_q1]]      =  edge ?  1. :  0.;
+    lim[map_to_var[PSVar::cos_qbar2]] =  edge ? +1  : -1.;
+    lim[map_to_var[PSVar::phi_qbar2]] =  edge ? +TMath::Pi() : -TMath::Pi();
+    lim[map_to_var[PSVar::E_b]]       =  edge ?  1. :  0.;
+    if( hypo==Hypothesis::TTBB ) map_to_var[PSVar::E_bbar] =  edge ?  1. :  0.;
+    for( auto l = lost.begin() ; l !=lost.end(); ++l ){
+      if(edge)
+	lim[map_to_var[*l]] = count_extra%2==0 ? +1 : +TMath::Pi(); 
+      else
+	lim[map_to_var[*l]] = count_extra%2==0 ? -1 : -TMath::Pi(); 
+      ++count_extra;
+    }          
     break;
+  case FinalState::LL:
+    lim[map_to_var[PSVar::cos_qbar1]] =  edge ? +1  : -1.;
+    lim[map_to_var[PSVar::phi_qbar1]] =  edge ? +TMath::Pi() : -TMath::Pi();
+    lim[map_to_var[PSVar::cos_qbar2]] =  edge ? +1  : -1.;
+    lim[map_to_var[PSVar::phi_qbar2]] =  edge ? +TMath::Pi() : -TMath::Pi();
+    lim[map_to_var[PSVar::E_b]]       =  edge ?  1. :  0.;
+    if( hypo==Hypothesis::TTBB ) map_to_var[PSVar::E_bbar] =  edge ?  1. :  0.;
+    for( auto l = lost.begin() ; l !=lost.end(); ++l ){
+      if(edge)
+	lim[map_to_var[*l]] = count_extra%2==0 ? +1 : +TMath::Pi(); 
+      else
+	lim[map_to_var[*l]] = count_extra%2==0 ? -1 : -TMath::Pi(); 
+      ++count_extra;
+    }          
+    break;
+  case FinalState::HH:
   default:
     break;
   }
 
   if( debug_code&DebugVerbosity::init ){
-    cout << "Integrand::get_xL(): Lower edges: [ ";
-    for(size_t i = 0 ; i < nvar ; ++i)
-      cout << xL[i] << " " ;
+    cout << "\tIntegrand::get_edges(): SUMMARY" << endl;
+    cout << (edge ? "\t\tH" : "\t\tL") << " edges: [ ";
+    for(size_t i = 0 ; i < nvar ; ++i) cout << lim[i] << " " ;
     cout << "]" << endl;
   }
  
-}
-
-void MEM::Integrand::get_xU(double* xU, const initializer_list<PSVar>& lost, const size_t nvar){
-
-  for(size_t i = 0 ; i < nvar ; ++i) xU[i]=-99.;
-
-  switch( fs ){
-  case FinalState::LH:
-    try{
-      xU[map_to_var[PSVar::E_q1]]      =  1.;
-      xU[map_to_var[PSVar::cos_qbar2]] = +1.;
-      xU[map_to_var[PSVar::phi_qbar2]] = +TMath::Pi();
-      xU[map_to_var[PSVar::E_b]]       =  1.;
-      size_t count_extra{0};
-      for( auto l = lost.begin() ; l!=lost.end() ; ++l ){
-	xU[map_to_var[*l]] = count_extra%2==0 ? +1 : +TMath::Pi(); 
-	++count_extra;
-      }      
-    }
-    catch(...){
-      cout << "*** Integrand::get_xU(): Maybe out-of-range...check" << endl; 
-    }
-    break;
-  default:
-    break;
-  }
- 
-  if( debug_code&DebugVerbosity::init ){
-    cout << "Integrand::get_xU(): Upper edges: [ ";
-    for(size_t i = 0 ; i < nvar ; ++i)
-      cout << xU[i] << " " ;
-    cout << "]" << endl;
-  }
-  
 }
 
 double MEM::Integrand::get_width(const double* xL, const double* xU, const size_t nvar){
@@ -195,15 +189,24 @@ void MEM::Integrand::fill_map(const initializer_list<PSVar>& lost){
     for( auto l = lost.begin() ; l!=lost.end() ; ++l ) map_to_var[*l] = count_extra++;
     break;
   case FinalState::LL:
+    map_to_var[PSVar::cos_qbar1]    = 0; //cosNu
+    map_to_var[PSVar::phi_qbar1]    = 1; //phiNu
+    map_to_var[PSVar::cos_qbar2]    = 2; //cosNu
+    map_to_var[PSVar::phi_qbar2]    = 3; //phiNu
+    map_to_var[PSVar::E_b]          = 4; //Eb
+    if( hypo==Hypothesis::TTBB ) map_to_var[PSVar::E_bbar] = 5;
+    count_extra = 5+(hypo==Hypothesis::TTBB);
+    for( auto l = lost.begin() ; l!=lost.end() ; ++l ) map_to_var[*l] = count_extra++;
+    break;
   case FinalState::HH:
   default:
     break;
   }
 
   if( debug_code&DebugVerbosity::init ){
-    cout << "Integrand::fill_map()" << endl;
+    cout << "\tIntegrand::fill_map(): SUMMARY" << endl;
     for( auto iter = map_to_var.begin() ; iter!=map_to_var.end() ; ++iter ){
-      cout << "PS[" << static_cast<int>(iter->first) << "] maps to x[" << iter->second << "]" << endl;
+      cout << "\t\tPS[" << static_cast<int>(iter->first) << "] maps to x[" << iter->second << "]" << endl;
     }
   }
 
@@ -213,10 +216,6 @@ void MEM::Integrand::fill_map(const initializer_list<PSVar>& lost){
 void MEM::Integrand::push_back_object(const LV& p4,  const MEM::ObjectType& type){
 
   Object* obj = new Object(p4, type);
-  if( debug_code&DebugVerbosity::input ){
-    cout << "Integrand::fill_map()" << endl;
-    obj->print(cout);
-  }
 
   switch( type ){
   case ObjectType::Jet:
@@ -234,6 +233,11 @@ void MEM::Integrand::push_back_object(const LV& p4,  const MEM::ObjectType& type
     break;
   }
 
+  if( debug_code&DebugVerbosity::input ){
+    cout << "Integrand::fill_map(): SUMMARY" << endl;
+    obj->print(cout);
+  }
+  
   return;
 }
 
@@ -242,8 +246,10 @@ void MEM::Integrand::run(){
   double prob{0.};
 
   if( debug_code&DebugVerbosity::init ){
-    cout << "Integrand::run(): Start" << endl;
+    cout << "Integrand::run(): START" << endl;
   }
+
+  init();
 
   ig2 = new ROOT::Math::GSLMCIntegrator(ROOT::Math::IntegrationMultiDim::kVEGAS, 1.e-12, 1.e-5, 10);
 
@@ -252,11 +258,11 @@ void MEM::Integrand::run(){
   //prob += make_assumption( initializer_list<PSVar>{PSVar::cos_b1, PSVar::phi_b1} );
   //prob += make_assumption( initializer_list<PSVar>{PSVar::cos_qbar1, PSVar::phi_qbar1,PSVar::cos_b1, PSVar::phi_b1} );
   
-  cout << "Probability = " << prob << endl;
+  cout << "\tProbability = " << prob << endl;
 
 
   if( debug_code&DebugVerbosity::init ){
-    cout << "Integrand::run(): End" << endl;
+    cout << "Integrand::run(): END" << endl;
   }
   delete ig2;
 
@@ -266,12 +272,18 @@ void MEM::Integrand::run(){
 }
 
 void MEM::Integrand::clear(){
+  if( debug_code&DebugVerbosity::init ){
+    cout << "Integrand::clear(): START" << endl;
+  }
   for( auto j : obs_jets )     delete j;
   for( auto l : obs_leptons )  delete l;
   for( auto m : obs_mets )     delete m;
   obs_jets.clear();
   obs_leptons.clear();
   obs_mets.clear();
+  if( debug_code&DebugVerbosity::init ){
+    cout << "Integrand::clear(): END" << endl;
+  }
 }
 
 bool MEM::Integrand::test_assumption( const size_t& lost, size_t& extra_jets){
@@ -280,14 +292,14 @@ bool MEM::Integrand::test_assumption( const size_t& lost, size_t& extra_jets){
     if( debug_code&DebugVerbosity::init ) cout << "\t This assumption cannot be made: too few jets" << endl;
     return false;
   }
-    extra_jets = (obs_jets.size()+lost-naive_jet_counting);
+  extra_jets = (obs_jets.size()+lost-naive_jet_counting);
   return true;
 }
 
 double MEM::Integrand::make_assumption( initializer_list<MEM::PSVar>&& lost){
 
   if( debug_code&DebugVerbosity::init ){
-    cout << "Integrand::make_assumption(): Start" << endl;
+    cout << "Integrand::make_assumption(): START" << endl;
   }
 
   double prob{0.};
@@ -327,10 +339,9 @@ double MEM::Integrand::make_assumption( initializer_list<MEM::PSVar>&& lost){
   // create integration ranges
   size_t npar = num_of_vars+2*extra_jets;
 
-  double xL[npar];
-  double xU[npar];
-  get_xL(xL, lost, npar);
-  get_xU(xU, lost, npar);      
+  double xL[npar], xU[npar];
+  get_edges(xL, lost, npar, 0);
+  get_edges(xU, lost, npar, 1);      
   
   // function
   ROOT::Math::Functor toIntegrate(this, &MEM::Integrand::Eval, npar);  
@@ -338,9 +349,12 @@ double MEM::Integrand::make_assumption( initializer_list<MEM::PSVar>&& lost){
   
   // do the integral
   prob = ig2->Integral(xL,xU)/get_width(xL,xU,npar) ;
+
+  if( debug_code&DebugVerbosity::init ){
+    cout << "Integrand::make_assumption(): END" << endl;
+  }
   
   return prob;
-
 }
 
 double MEM::Integrand::Eval(const double* x) const{
@@ -349,190 +363,295 @@ double MEM::Integrand::Eval(const double* x) const{
   size_t n_perm{0};
   for( auto perm : perm_indexes_assumption ){
     if(n_perm>0) break;
-    double p{0.};
-    p += probability(x, perm );
-    prob += p;
+    prob += probability(x, perm );
     ++n_perm;
   }
 
   return prob;
 }
 
-void MEM::Integrand::evaluate_PS(MEM::PS& ps, const double* x, const vector<int>& perm ) const {
+void MEM::Integrand::create_PS(MEM::PS& ps, const double* x, const vector<int>& perm ) const {
+
+  if( debug_code&DebugVerbosity::integration ){
+    cout << "\tIntegrand::create_PS(): START" << endl;
+  }
 
   switch( fs ){
   case FinalState::LH:
-    return evaluate_PS_LH(ps, x, perm);
+    return create_PS_LH(ps, x, perm);
     break;
   case FinalState::LL:
-    return evaluate_PS_LL(ps, x, perm);
+    return create_PS_LL(ps, x, perm);
     break;
   case FinalState::HH:
-    return evaluate_PS_HH(ps, x, perm);
+    return create_PS_HH(ps, x, perm);
     break;
   default:
     break;
   }
+
+  if( debug_code&DebugVerbosity::integration ){
+    cout << "\tIntegrand::create_PS(): END" << endl;
+  }
+  
 }
 
 
-void MEM::Integrand::evaluate_PS_LH(MEM::PS& ps, const double* x, const vector<int>& perm ) const {
+void MEM::Integrand::create_PS_LH(MEM::PS& ps, const double* x, const vector<int>& perm ) const {
+
+  if( debug_code&DebugVerbosity::integration ){
+    cout << "\tIntegrand::create_PS_LH(): START" << endl;
+  }
 
   // jet,lepton counters
   size_t nj{0};
   size_t nl{0};
 
   // store temporary values to build four-vectors
-  double E, cos, phi, sin;
+  double E{0.};
+  double E_LOW{0.};
+  double E_HIGH{0.};
+  double E_REC =  numeric_limits<double>::max();
+  TVector3 dir(1.,0.,0.);
 
-  // t -> udb
-  E       = x[ map_to_var.find(PSVar::E_q1)->second ];
-  cos     = perm[nj]>=0 ? TMath::Cos(obs_jets[ perm[nj] ]->p4().Theta()) : x[ map_to_var.find(PSVar::cos_q1)->second ];
-  phi     = perm[nj]>=0 ? obs_jets[ perm[nj] ]->p4().Phi()               : x[ map_to_var.find(PSVar::phi_q1)->second ];
-  sin     = sqrt(1-cos*cos);
-  ps.set(PSPart::q1,  GenPart(TLorentzVector( TVector3( sin*TMath::Cos(phi),sin*TMath::Sin(phi),cos )*E, E ), 
-			      perm[nj]>=0 ? TFType::qReco : TFType::qLost ) );    
-  if( debug_code&DebugVerbosity::integration ){       
-    cout << "\tFilling q1..." << endl;
-    cout << "\t\tE_q1  =x[" <<  map_to_var.find(PSVar::E_q1)->second << "]" << endl;
-    if( perm[nj]<0 ){
-      cout << "\t\tcos_q1=x[" << map_to_var.find(PSVar::cos_q1)->second << "]" << endl;
-      cout << "\t\tphi_q1=x[" << map_to_var.find(PSVar::phi_q1)->second << "]" << endl;
-    }
-    else{ cout << "\t\tusing obs_jets[" << perm[nj] << "]" << endl;}
-  }  
-  ++nj;
-  
-  cos  = perm[nj]>=0 ? TMath::Cos(obs_jets[ perm[nj] ]->p4().Theta()) : x[ map_to_var.find(PSVar::cos_qbar1)->second ];
-  phi  = perm[nj]>=0 ? obs_jets[ perm[nj] ]->p4().Phi()               : x[ map_to_var.find(PSVar::phi_qbar1)->second ];
-  E    = solve_for_W_E_qbar(ps, 1);
-  sin     = sqrt(1-cos*cos);
-  ps.set(PSPart::qbar1, GenPart(  TLorentzVector( TVector3( sin*TMath::Cos(phi),sin*TMath::Sin(phi),cos )*E, E ),
-				  perm[nj]>=0 ? TFType::qReco : TFType::qLost ));
-  
-  if( debug_code&DebugVerbosity::integration ){       
-    cout << "\tFilling qbar1..." << endl;
-    cout << "\t\tE_q1  = SOLVE" << endl;
-    if( perm[nj]<0 ){
-      cout << "\t\tcos_qbar1=x[" << map_to_var.find(PSVar::cos_qbar1)->second << "]" << endl;
-      cout << "\t\tphi_qbar1=x[" << map_to_var.find(PSVar::phi_qbar1)->second << "]" << endl;
-    }
-    else{ cout << "\t\tusing obs_jets[" << perm[nj] << "]" << endl;}
+  //  PSVar::cos_q1, PSVar::phi_q1, PSVar::E_q1
+  if( perm[nj]>=0 ){
+    dir     = obs_jets[ perm[nj] ]->p4().Vect().Unit();
+    E_LOW   = obs_jets[ perm[nj] ]->getObs(Observable::E_LOW_Q) ;
+    E_HIGH  = obs_jets[ perm[nj] ]->getObs(Observable::E_HIGH_Q);
   }
-  ++nj;
-  
-  cos     = perm[nj]>=0 ? TMath::Cos(obs_jets[ perm[nj] ]->p4().Theta()) : x[ map_to_var.find(PSVar::cos_b1)->second ];
-  phi     = perm[nj]>=0 ? obs_jets[ perm[nj] ]->p4().Phi()               : x[ map_to_var.find(PSVar::phi_b1)->second ];
-  E       = solve_for_T_E_b(ps, 1);
-  sin     = sqrt(1-cos*cos);
-  ps.set(PSPart::b1,  GenPart(  TLorentzVector( TVector3( sin*TMath::Cos(phi),sin*TMath::Sin(phi),cos )*sqrt(E*E - MB*MB), E ),
-				perm[nj]>=0 ? TFType::bReco : TFType::bLost ));
-  
-  if( debug_code&DebugVerbosity::integration ){       
-    cout << "\tFilling b1..." << endl;
-    cout << "\t\tE_b1  = SOLVE" << endl;
-    if( perm[nj]<0 ){
-      cout << "\t\tcos_b1=x[" << map_to_var.find(PSVar::cos_b1)->second << "]" << endl;
-      cout << "\t\tphi_b1=x[" << map_to_var.find(PSVar::phi_b1)->second << "]" << endl;
-    }
-    else{ cout << "\t\tusing obs_jets[" << perm[nj] << "]" << endl;}
+  else{
+    dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_q1)->second ]) );
+    dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_q1)->second ] );
+    E_LOW   = 0.;
+    E_HIGH  = 1000.;
   }
+  E       = E_LOW + (E_HIGH-E_LOW)*(x[ map_to_var.find(PSVar::E_q1)->second ]);
+  extend_PS( ps, PSPart::q1, E, 0., dir, perm[nj], PSVar::cos_q1, PSVar::phi_q1, PSVar::E_q1, (perm[nj]>=0?TFType::qReco:TFType::qLost) ); 
+  ++nj;
+
+  //  PSVar::cos_qbar1, PSVar::phi_qbar1, PSVar::E_qbar1
+  if( perm[nj]>=0 ){
+    dir     = obs_jets[ perm[nj] ]->p4().Vect().Unit();
+  }
+  else{
+    dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_qbar1)->second ]) );
+    dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_qbar1)->second ] );
+  }
+  E    = solve( ps.lv(PSPart::q1), DMW2 , MQ, dir, E_REC );
+  extend_PS( ps, PSPart::qbar1, E, 0., dir, perm[nj], PSVar::cos_qbar1, PSVar::phi_qbar1, PSVar::E_qbar1,  (perm[nj]>=0?TFType::qReco:TFType::qLost) ); 
+  ++nj;
+
+  //  PSVar::cos_b1, PSVar::phi_b1, PSVar::E_b1
+  if( perm[nj]>=0 ){
+    dir     = obs_jets[ perm[nj] ]->p4().Vect().Unit();
+    E_REC   = obs_jets[ perm[nj] ]->p4().E();
+  }
+  else{
+    dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_b1)->second ]) );
+    dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_b1)->second ] );
+  }
+  E       = solve(ps.lv(PSPart::q1) + ps.lv(PSPart::qbar1), DMT2, MB, dir, E_REC);
+  extend_PS( ps, PSPart::b1, E, MB , dir, perm[nj], PSVar::cos_b1, PSVar::phi_b1, PSVar::E_b1,  (perm[nj]>=0?TFType::bReco:TFType::bLost) ); 
   ++nj;
   
-  // t . lnb
-  E       = obs_leptons[ nl]->p4().E();
-  cos     = TMath::Cos(obs_leptons[ nl ]->p4().Theta());
-  phi     = obs_leptons[ nl ]->p4().Phi();
-  sin     = sqrt(1-cos*cos);
-  ps.set(PSPart::q2,  GenPart(  TLorentzVector( TVector3( sin*TMath::Cos(phi),sin*TMath::Sin(phi),cos )*E, E ),
-				TFType::muReco  ));
-  
-  if( debug_code&DebugVerbosity::integration ){       
-    cout << "\tFilling q2..." << endl;
-    cout << "\t\tusing obs_leptons[" << nl << "]" << endl;
-  }    
+  //  PSVar::cos_q2, PSVar::phi_q2, PSVar::E_q2
+  dir     = obs_leptons[ nl ]->p4().Vect().Unit(); 
+  E       = obs_leptons[ nl ]->p4().E();
+  extend_PS( ps, PSPart::q2, E, 0., dir, nl, PSVar::cos_q2, PSVar::phi_q2, PSVar::E_q2, TFType::muReco ); 
   ++nl;
-  
-  cos  = x[ map_to_var.find(PSVar::cos_qbar2)->second ];
-  phi  = x[ map_to_var.find(PSVar::phi_qbar2)->second ];
-  E    = solve_for_W_E_qbar(ps, 2);
-  sin     = sqrt(1-cos*cos);
-  ps.set(PSPart::qbar2, GenPart(  TLorentzVector( TVector3( sin*TMath::Cos(phi),sin*TMath::Sin(phi),cos )*E, E ),
-				  TFType::MET  ));
-  
-  if( debug_code&DebugVerbosity::integration ){ 
-    cout << "\tFilling qbar2..." << endl;
-    cout << "\t\tcos_qbar2=x[" << map_to_var.find(PSVar::cos_qbar2)->second << "]" << endl;
-    cout << "\t\tphi_qbar2=x[" << map_to_var.find(PSVar::phi_qbar2)->second << "]" << endl;
+    
+  //  PSVar::cos_qbar2, PSVar::phi_qbar2, PSVar::E_qbar2
+  dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_qbar2)->second ]) );
+  dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_qbar2)->second ] );
+  E    = solve( ps.lv(PSPart::q2), DMW2, ML, dir, E_REC );
+  extend_PS( ps, PSPart::qbar2, E, 0., dir, -1, PSVar::cos_qbar2, PSVar::phi_qbar2, PSVar::E_qbar2, TFType::MET  ); 
+
+  //  PSVar::cos_b2, PSVar::phi_b2, PSVar::E_b2   
+  if( perm[nj]>=0 ){
+    dir     =  obs_jets[ perm[nj] ]->p4().Vect().Unit();
+    E_REC   = obs_jets[ perm[nj] ]->p4().E();
   }
-  
-  cos     = perm[nj]>=0 ? TMath::Cos(obs_jets[ perm[nj] ]->p4().Theta()) : x[ map_to_var.find(PSVar::cos_b2)->second ];
-  phi     = perm[nj]>=0 ? obs_jets[ perm[nj] ]->p4().Phi()               : x[ map_to_var.find(PSVar::phi_b2)->second ];
-  E       = solve_for_T_E_b(ps, 2);
-  sin     = sqrt(1-cos*cos);
-  ps.set(PSPart::b2,  GenPart(  TLorentzVector( TVector3( sin*TMath::Cos(phi),sin*TMath::Sin(phi),cos )*sqrt(E*E - MB*MB), E ),
-				perm[nj]>=0 ? TFType::bReco : TFType::bLost  ));
-  
-  if( debug_code&DebugVerbosity::integration ){       
-    cout << "\tFilling b2..." << endl;
-    cout << "\t\tE_b2  = SOLVE" << endl;
-    if( perm[nj]<0 ){
-      cout << "\t\tcos_b2=x[" << map_to_var.find(PSVar::cos_b2)->second << "]" << endl;
-      cout << "\t\tphi_b2=x[" << map_to_var.find(PSVar::phi_b2)->second << "]" << endl;
-    }
-    else{ cout << "\t\tusing obs_jets[" << perm[nj] << "]" << endl;}
+  else{
+    dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_b2)->second ]) );
+    dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_b2)->second ] );
   }
+  E       = solve( ps.lv(PSPart::q2) + ps.lv(PSPart::qbar2), DMT2, MB, dir, E_REC );
+  extend_PS( ps, PSPart::b2, E, MB, dir, perm[nj], PSVar::cos_b2, PSVar::phi_b2, PSVar::E_b2,  (perm[nj]>=0?TFType::bReco:TFType::bLost) ); 
   ++nj;
   
-  // H . bb
-  E       = x[ map_to_var.find(PSVar::E_b)->second ];
-  cos     = perm[nj]>=0 ? TMath::Cos(obs_jets[ perm[nj] ]->p4().Theta()) : x[ map_to_var.find(PSVar::cos_b)->second ];
-  phi     = perm[nj]>=0 ? obs_jets[ perm[nj] ]->p4().Phi()               : x[ map_to_var.find(PSVar::phi_b)->second ];
-  ps.set(PSPart::b, GenPart(  TLorentzVector( TVector3( sin*TMath::Cos(phi),sin*TMath::Sin(phi),cos )*sqrt(E*E - MB*MB), E ),
-			      perm[nj]>=0 ? TFType::bReco : TFType::bLost  ));
-  
-  if( debug_code&DebugVerbosity::integration ){       
-    cout << "\tFilling b..." << endl;
-    cout << "\t\tE_b  = x[" << map_to_var.find(PSVar::E_b)->second << "]" << endl;
-    if( perm[nj]<0 ){
-      cout << "\t\tcos_b=x[" << map_to_var.find(PSVar::cos_b)->second << "]" << endl;
-      cout << "\t\tphi_b=x[" << map_to_var.find(PSVar::phi_b)->second << "]" << endl;
-    }
-    else{ cout << "\t\tusing obs_jets[" << perm[nj] << "]" << endl;}
+  //  PSVar::cos_b, PSVar::phi_b, PSVar::E_b
+  if( perm[nj]>=0 ){
+    dir     = obs_jets[ perm[nj] ]->p4().Vect().Unit();
+    E_LOW   = obs_jets[ perm[nj] ]->getObs(Observable::E_LOW_B) ;
+    E_HIGH  = obs_jets[ perm[nj] ]->getObs(Observable::E_HIGH_B);
   }
+  else{
+    dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_b)->second ]) );
+    dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_b)->second ] );
+    E_LOW   = 0.;
+    E_HIGH  = 1000.;
+  }
+  E       = E_LOW + (E_HIGH-E_LOW)*(x[ map_to_var.find(PSVar::E_b)->second ]);
+  extend_PS( ps, PSPart::b, E, MB, dir, perm[nj], PSVar::cos_b, PSVar::phi_b, PSVar::E_b,  (perm[nj]>=0?TFType::bReco:TFType::bLost) ); 
   ++nj;
-  
-  cos  = perm[nj]>=0 ? TMath::Cos(obs_jets[ perm[nj] ]->p4().Theta()) : x[ map_to_var.find(PSVar::cos_bbar)->second ];
-  phi  = perm[nj]>=0 ? obs_jets[ perm[nj] ]->p4().Phi()               : x[ map_to_var.find(PSVar::phi_bbar)->second ];
-  E    = hypo==Hypothesis::TTBB ? x[ map_to_var.find(PSVar::E_bbar)->second ]   : solve_for_H_E_bbar(ps, 1);
-  ps.set(PSPart::bbar, GenPart(  TLorentzVector( TVector3( sin*TMath::Cos(phi),sin*TMath::Sin(phi),cos )*sqrt(E*E - MB*MB), E ),
-				 perm[nj]>=0 ? TFType::bReco : TFType::bLost  ));  
-  
-  if( debug_code&DebugVerbosity::integration ){       
-    cout << "\tFilling bbar..." << endl;
-    if(hypo==Hypothesis::TTBB) cout << "\t\tE_bbar  = x[" <<  map_to_var.find(PSVar::E_bbar)->second << "]" << endl;
-    else cout << "\t\tE_bbar  = SOLVE" << endl;
-    if( perm[nj]<0 ){
-      cout << "\t\tcos_bbar=x[" << map_to_var.find(PSVar::cos_bbar)->second << "]" << endl;
-      cout << "\t\tphi_bbar=x[" << map_to_var.find(PSVar::phi_bbar)->second << "]" << endl;
-    }
-    else{ cout << "\t\tusing obs_jets[" << perm[nj] << "]" << endl;}
+
+  //  PSVar::cos_bbar, PSVar::phi_bbar, PSVar::E_bbar
+  if( perm[nj]>=0 ){
+    dir     = obs_jets[ perm[nj] ]->p4().Vect().Unit();
+    E_REC   = obs_jets[ perm[nj] ]->p4().E();
   }
-  ++nj;  
+  else{
+    dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_bbar)->second ]) );
+    dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_bbar)->second ] );
+  }
+  E    = hypo==Hypothesis::TTBB ? x[ map_to_var.find(PSVar::E_bbar)->second ]   : solve( ps.lv(PSPart::b), DMH2, MB, dir, E_REC);
+  extend_PS( ps, PSPart::bbar, E, MB, dir, perm[nj], PSVar::cos_bbar, PSVar::phi_bbar, PSVar::E_bbar,  (perm[nj]>=0?TFType::bReco:TFType::bLost) ); 
+  ++nj;
+
+  if( debug_code&DebugVerbosity::integration ){
+    cout << "\tIntegrand::create_PS_LH(): END" << endl;
+  }
+
 }
 
-void MEM::Integrand::evaluate_PS_LL(MEM::PS& ps, const double* x, const vector<int>& perm ) const {}
+void MEM::Integrand::extend_PS(MEM::PS& ps, const MEM::PSPart& part, 
+			       const double& E,  const double& M, const TVector3& dir,
+			       const int& pos,  const PSVar& var_cos, const PSVar& var_phi, const PSVar& var_E, 
+			       const TFType& type) const {
 
-void MEM::Integrand::evaluate_PS_HH(MEM::PS& ps, const double* x, const vector<int>& perm ) const {}
+  double P       = TMath::Max( sqrt(E*E - M*M), M);
+  ps.set(part,  MEM::GenPart(TLorentzVector( dir*P, E ), type ) );
+
+  if( debug_code&DebugVerbosity::integration ){
+    cout << "\t\tExtend phase-space point: adding variable " << static_cast<size_t>(part) << endl;
+    if(  map_to_var.find(var_E)!=map_to_var.end() )
+      cout << "\t\tE   = x[" <<  map_to_var.find(var_E)->second << "]" << endl;
+    else
+      cout << "\t\tE   = SOLVE" << endl;
+    if(   map_to_var.find(var_cos)!= map_to_var.end() && map_to_var.find(var_phi)!= map_to_var.end()  ){
+      cout << "\t\tcos = x[" << map_to_var.find(var_cos)->second << "]" << endl;    
+      cout << "\t\tphi = x[" << map_to_var.find(var_phi)->second << "]" << endl;
+    }
+    else{
+      cout << "\t\tUsing obs[" << pos << "]" << endl;
+    }
+  }
+}
+
+
+void MEM::Integrand::create_PS_LL(MEM::PS& ps, const double* x, const vector<int>& perm ) const {
+
+  if( debug_code&DebugVerbosity::integration ){
+    cout << "\tIntegrand::create_PS_LL(): START" << endl;
+  }
+
+  // jet,lepton counters
+  size_t nj{0};
+  size_t nl{0};
+
+  // store temporary values to build four-vectors
+  double E{0.};
+  double E_LOW{0.};
+  double E_HIGH{0.};
+  double E_REC =  numeric_limits<double>::max();
+  TVector3 dir(1.,0.,0.);
+
+  //  PSVar::cos_q1, PSVar::phi_q1, PSVar::E_q1
+  dir     = obs_leptons[ nl ]->p4().Vect().Unit(); 
+  E       = obs_leptons[ nl ]->p4().E();
+  extend_PS( ps, PSPart::q1, E, 0., dir, nl, PSVar::cos_q1, PSVar::phi_q1, PSVar::E_q1, TFType::muReco ); 
+  ++nl;
+
+  //  PSVar::cos_qbar2, PSVar::phi_qbar2, PSVar::E_qbar2
+  dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_qbar1)->second ]) );
+  dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_qbar1)->second ] );
+  E    = solve( ps.lv(PSPart::q1), DMW2, ML, dir, E_REC );
+  extend_PS( ps, PSPart::qbar1, E, 0., dir, -1, PSVar::cos_qbar1, PSVar::phi_qbar1, PSVar::E_qbar1, TFType::MET  ); 
+
+  //  PSVar::cos_b1, PSVar::phi_b1, PSVar::E_b1
+  if( perm[nj]>=0 ){
+    dir     = obs_jets[ perm[nj] ]->p4().Vect().Unit();
+    E_REC   = obs_jets[ perm[nj] ]->p4().E();
+  }
+  else{
+    dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_b1)->second ]) );
+    dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_b1)->second ] );
+  }
+  E       = solve(ps.lv(PSPart::q1) + ps.lv(PSPart::qbar1), DMT2, MB, dir, E_REC);
+  extend_PS( ps, PSPart::b1, E, MB , dir, perm[nj], PSVar::cos_b1, PSVar::phi_b1, PSVar::E_b1,  (perm[nj]>=0?TFType::bReco:TFType::bLost) ); 
+  ++nj;
+  
+  //  PSVar::cos_q2, PSVar::phi_q2, PSVar::E_q2
+  dir     = obs_leptons[ nl ]->p4().Vect().Unit(); 
+  E       = obs_leptons[ nl ]->p4().E();
+  extend_PS( ps, PSPart::q2, E, 0., dir, nl, PSVar::cos_q2, PSVar::phi_q2, PSVar::E_q2, TFType::muReco ); 
+  ++nl;
+    
+  //  PSVar::cos_qbar2, PSVar::phi_qbar2, PSVar::E_qbar2
+  dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_qbar2)->second ]) );
+  dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_qbar2)->second ] );
+  E    = solve( ps.lv(PSPart::q2), DMW2, ML, dir, E_REC );
+  extend_PS( ps, PSPart::qbar2, E, 0., dir, -1, PSVar::cos_qbar2, PSVar::phi_qbar2, PSVar::E_qbar2, TFType::MET  ); 
+
+  //  PSVar::cos_b2, PSVar::phi_b2, PSVar::E_b2   
+  if( perm[nj]>=0 ){
+    dir     =  obs_jets[ perm[nj] ]->p4().Vect().Unit();
+    E_REC   = obs_jets[ perm[nj] ]->p4().E();
+  }
+  else{
+    dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_b2)->second ]) );
+    dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_b2)->second ] );
+  }
+  E       = solve( ps.lv(PSPart::q2) + ps.lv(PSPart::qbar2), DMT2, MB, dir, E_REC );
+  extend_PS( ps, PSPart::b2, E, MB, dir, perm[nj], PSVar::cos_b2, PSVar::phi_b2, PSVar::E_b2,  (perm[nj]>=0?TFType::bReco:TFType::bLost) ); 
+  ++nj;
+  
+  //  PSVar::cos_b, PSVar::phi_b, PSVar::E_b
+  if( perm[nj]>=0 ){
+    dir     = obs_jets[ perm[nj] ]->p4().Vect().Unit();
+    E_LOW   = obs_jets[ perm[nj] ]->getObs(Observable::E_LOW_B) ;
+    E_HIGH  = obs_jets[ perm[nj] ]->getObs(Observable::E_HIGH_B);
+  }
+  else{
+    dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_b)->second ]) );
+    dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_b)->second ] );
+    E_LOW   = 0.;
+    E_HIGH  = 1000.;
+  }
+  E       = E_LOW + (E_HIGH-E_LOW)*(x[ map_to_var.find(PSVar::E_b)->second ]);
+  extend_PS( ps, PSPart::b, E, MB, dir, perm[nj], PSVar::cos_b, PSVar::phi_b, PSVar::E_b,  (perm[nj]>=0?TFType::bReco:TFType::bLost) ); 
+  ++nj;
+
+  //  PSVar::cos_bbar, PSVar::phi_bbar, PSVar::E_bbar
+  if( perm[nj]>=0 ){
+    dir     = obs_jets[ perm[nj] ]->p4().Vect().Unit();
+    E_REC   = obs_jets[ perm[nj] ]->p4().E();
+  }
+  else{
+    dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_bbar)->second ]) );
+    dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_bbar)->second ] );
+  }
+  E    = hypo==Hypothesis::TTBB ? x[ map_to_var.find(PSVar::E_bbar)->second ]   : solve( ps.lv(PSPart::b), DMH2, MB, dir, E_REC);
+  extend_PS( ps, PSPart::bbar, E, MB, dir, perm[nj], PSVar::cos_bbar, PSVar::phi_bbar, PSVar::E_bbar,  (perm[nj]>=0?TFType::bReco:TFType::bLost) ); 
+  ++nj;
+
+  if( debug_code&DebugVerbosity::integration ){
+    cout << "\tIntegrand::create_PS_LH(): END" << endl;
+  }
+
+}
+
+void MEM::Integrand::create_PS_HH(MEM::PS& ps, const double* x, const vector<int>& perm ) const {}
 
 double MEM::Integrand::probability(const double* x, const vector<int>& perm ) const {
 
   if( debug_code&DebugVerbosity::integration ){
-    cout << "\tIntegrand::probability(): Start" << endl;
+    cout << "\tIntegrand::probability(): START" << endl;
   }
 
   PS ps;
-  evaluate_PS(ps, x, perm);
+  create_PS(ps, x, perm);
   if( debug_code&DebugVerbosity::integration ) ps.print(cout);
 
   double m   {1.}; // matrix element
@@ -551,7 +670,10 @@ double MEM::Integrand::probability(const double* x, const vector<int>& perm ) co
   LV lv_bbar  = ps.lv(PSPart::bbar);
 
   if( debug_code&DebugVerbosity::integration ){
-    cout << "\tFilling m..." << endl;
+    cout << "\t\tFilling m..." << endl;
+    cout << "\t\tCheck masses: m(W1)=" << (lv_q1+lv_qbar1).M() << ", m(t1)=" << (lv_q1+lv_qbar1+lv_b1).M()
+	 << ", m(W2)=" << (lv_q2+lv_qbar2).M() << ", m(t2)=" << (lv_q2+lv_qbar2+lv_b2).M() 
+	 << ", m(H)=" << (lv_b+lv_bbar).M() << endl;
   }
 
   m *= t_decay_amplitude(lv_q1, lv_qbar1, lv_b1);
@@ -561,7 +683,7 @@ double MEM::Integrand::probability(const double* x, const vector<int>& perm ) co
   m *= pdf( lv_q1+lv_qbar1+lv_b1+lv_q2+lv_qbar2+lv_b2+lv_b+lv_bbar );
 
   if( debug_code&DebugVerbosity::integration ){
-    cout << "\tFilling p..." << endl;
+    cout << "\t\tFilling p..." << endl;
   }
 
   map<MEM::PSPart, MEM::GenPart>::const_iterator p;
@@ -594,7 +716,7 @@ double MEM::Integrand::probability(const double* x, const vector<int>& perm ) co
   }
 
   if( debug_code&DebugVerbosity::integration ){
-    cout << "\tIntegrand::probability(): End" << endl;
+    cout << "\tIntegrand::probability(): END" << endl;
   }
 
   return m*w;
@@ -621,17 +743,76 @@ double MEM::Integrand::H_decay_amplitude(const TLorentzVector&, const TLorentzVe
   return p;
 }
 
-double MEM::Integrand::solve_for_W_E_qbar(const MEM::PS& ps, const size_t n) const {
-  double out{1.};
-  return out;
-}
+double MEM::Integrand::solve(const LV& p4_w, const double& DM2, const double& M, const TVector3& e_b, const double& target ) const {
 
-double MEM::Integrand::solve_for_T_E_b(const MEM::PS& ps, const size_t n) const {
-  double out{1.};
-  return out;
-}
+  double a     = DM2/p4_w.E();
+  double b     = TMath::Cos(p4_w.Angle(e_b));
+  if( M<1e-03 ){
+    if( debug_code&DebugVerbosity::integration ){
+      cout << "\t\tUse masless formula: " << a << "/(1-" << b << ")=" << a/(1-b) << endl;  
+    }
+    return  (b<1. ? a/(1-b) : numeric_limits<double>::max()); 
+  }
+  
+  // use adimensional 'a', account for velocity<1
+  a /= M;
+  b *= p4_w.Beta();
+  double a2    = a*a;
+  double b2    = b*b;
 
-double MEM::Integrand::solve_for_H_E_bbar(const MEM::PS& ps, const size_t n) const {
-  double out{1.};
-  return out;
+  // this is needed to test the solutions
+  double discr = a2 + b2 - a2*b2 - 1; 
+
+  // make sure there is >0 solutions
+  if( (a2 + b2 - 1)<0. ){
+    if( debug_code&DebugVerbosity::integration ){
+      cout << "\t\t(a2 + b2 - 1)<0. return max()" << endl;
+    }
+    return numeric_limits<double>::max();
+  }
+
+  // the roots
+  double g_p = (a + TMath::Abs(b)*sqrt(a2 + b2 - 1))/(1-b2);
+  double g_m = (a - TMath::Abs(b)*sqrt(a2 + b2 - 1))/(1-b2);
+
+  // make sure this is >1 ( g_m < g_p )
+  if( g_p < 1.0 ){
+    if( debug_code&DebugVerbosity::integration ){
+      cout << "\t\tg_p=" << g_p << ": return max()" << endl;
+    }
+    return numeric_limits<double>::max();
+  }
+
+  // remove unphysical root
+  if( g_m < 1.0) g_m = g_p;
+
+  // test for the roots
+  switch( b>0 ){
+  case true :
+    if( discr<0 ){
+      if( debug_code&DebugVerbosity::integration ){
+	cout << "\t\tb>0 AND discr<0: return root closest to target" << endl;
+      }
+      return ( TMath::Abs(target-g_p)<TMath::Abs(target-g_m) ? g_p*M : g_m*M );
+    }
+    if( debug_code&DebugVerbosity::integration ){
+      cout << "\t\tb>0 AND discr>0: return g_p*M" << endl;
+    }
+    return g_p*M;
+    break;
+  case false:
+    if( discr>0 ){
+      if( debug_code&DebugVerbosity::integration ){
+	cout << "\t\tb<0 AND discr>0: return g_m*M" << endl;
+      }
+      return g_m*M;
+    }
+    break;
+  }
+
+  if( debug_code&DebugVerbosity::integration ){
+    cout << "\tIntegrand::solve(): START" << endl;
+  }
+
+  return numeric_limits<double>::max();
 }

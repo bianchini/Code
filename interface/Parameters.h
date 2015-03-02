@@ -9,6 +9,7 @@
 #include<bitset> 
 #include<algorithm>  
 #include<initializer_list>
+#include<limits> 
 
 // ROOT
 #include "TLorentzVector.h"
@@ -31,10 +32,13 @@ namespace MEM {
 
   constexpr double MTOP = 174.3;
   constexpr double MB   = 4.8;
+  constexpr double MQ   = 0.;
+  constexpr double ML   = 0.;
   constexpr double MW   = 80.19;
-  constexpr double DM2  = (MTOP*MTOP-MB*MB-MW*MW)*0.5;
+  constexpr double DMT2 = (MTOP*MTOP-MB*MB-MW*MW)*0.5;
   constexpr double MH   = 125.;
   constexpr double DMH2 = (MH*MH-2*MB*MB)*0.5;
+  constexpr double DMW2 = (MW*MW)*0.5;
   constexpr double PTTHRESHOLD = 30.;
   
   const double TF_Q_param[2][5] =
@@ -71,7 +75,7 @@ namespace MEM {
   bool isLepton  (const TFType&);
   double transfer_function( double*,  double*, const TFType&);
 
-  double* get_support( double*, const TFType&);
+  pair<double, double> get_support( double*, const TFType&, const double&);
 
   enum class ObjectType { Jet=0, Lepton, MET, Recoil};
 
@@ -83,7 +87,7 @@ namespace MEM {
     Object(const LV&, const ObjectType&); 
     ~Object(); 
     LV p4() const;
-    double getObs(const string&) const; 
+    double getObs(const Observable&) const; 
     void addObs(const Observable&, const double&);
     void print(ostream& os) const;
   private:

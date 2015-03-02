@@ -41,10 +41,12 @@ namespace MEM {
     double Eval(const double*) const;
     
     // create PS point
-    void evaluate_PS   (MEM::PS&, const double*, const vector<int>&) const;
-    void evaluate_PS_LH(MEM::PS&, const double*, const vector<int>&) const;
-    void evaluate_PS_LL(MEM::PS&, const double*, const vector<int>&) const;
-    void evaluate_PS_HH(MEM::PS&, const double*, const vector<int>&) const;
+    void create_PS   (MEM::PS&, const double*, const vector<int>&) const;
+    void create_PS_LH(MEM::PS&, const double*, const vector<int>&) const;
+    void create_PS_LL(MEM::PS&, const double*, const vector<int>&) const;
+    void create_PS_HH(MEM::PS&, const double*, const vector<int>&) const;
+
+    void extend_PS(PS&, const PSPart&, const double& , const double& , const TVector3&, const int&, const PSVar&,const PSVar&,const PSVar&,const TFType&) const;
 
     double probability(const double*, const vector<int>&) const;
 
@@ -56,20 +58,11 @@ namespace MEM {
 
     double scattering(const TLorentzVector&, const TLorentzVector&, const TLorentzVector&, const TLorentzVector&) const;
 
-    // solve for Wqbar energy
-    double solve_for_W_E_qbar(const PS&, const size_t) const;
+    // solve for energy given the masses and angles
+    double solve( const LV&,  const double& ,  const double& , const TVector3&, const double&) const;
 
-    // solve for Tb energy
-    double solve_for_T_E_b(const PS&, const size_t) const;
-
-    // solve for Hbbar energy
-    double solve_for_H_E_bbar(const PS&, const size_t) const;
-
-    // get lower integration edges
-    void get_xL(double*, const initializer_list<PSVar>&, const size_t);
-
-    // get upper integration edges
-    void get_xU(double*, const initializer_list<PSVar>&, const size_t);
+    // get integration edges
+    void get_edges(double*, const initializer_list<PSVar>&, const size_t&, const size_t&);
 
     // get widths
     double get_width(const double*, const double*, const size_t);
