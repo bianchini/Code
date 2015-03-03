@@ -65,7 +65,7 @@ namespace MEM {
        {0.30, 0.70}
      };
 
-  enum DebugVerbosity { silent=0, input=2, init=4, event=8, integration=16};
+  enum DebugVerbosity { silent=0, input=2, init=4, init_more=8, event=16, integration=32};
  
 
   enum class TFType {bReco=0, qReco=1, bLost=2, qLost=3, muReco=4, elReco=5, MET=6, Unknown=7};
@@ -88,6 +88,7 @@ namespace MEM {
     ~Object(); 
     LV p4() const;
     double getObs(const Observable&) const; 
+    bool isSet(const Observable&) const;
     void addObs(const Observable&, const double&);
     void print(ostream& os) const;
   private:

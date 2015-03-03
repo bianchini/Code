@@ -213,6 +213,10 @@ double MEM::Object::getObs(const Observable& name) const {
   return (obs.find(name)!=obs.end() ? obs.find(name)->second : -99.);
 }
 
+bool MEM::Object::isSet(const Observable& name) const { 
+  return obs.find(name)!=obs.end();
+}
+
 void MEM::Object::addObs(const Observable& name, const double& val){ 
   obs.insert( make_pair(name, val) ); 
 }

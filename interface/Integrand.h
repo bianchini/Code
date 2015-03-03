@@ -41,19 +41,22 @@ namespace MEM {
     void push_back_object( const LV& , const ObjectType&);
 
     // initialise (once for event)
-    void init();
+    void init( const Hypothesis=Hypothesis::TTH);
 
     // create a map between variable names and positions
     void fill_map( const initializer_list<PSVar>& );
 
     // main method
-    void run();
+    void run( const Hypothesis =Hypothesis::TTH, const initializer_list<PSVar> ={});
 
     // make assumption
-    double make_assumption( initializer_list<PSVar>&& );
+    double make_assumption( const initializer_list<PSVar>& );
+
+    // clear containers before new hypothesis
+    void next_hypo();
 
     // clear after each event
-    void clear();
+    void next_event();
 
     // test if given assunption is viable
     bool test_assumption( const size_t&, size_t& );
@@ -62,10 +65,10 @@ namespace MEM {
     double Eval(const double*) const;
     
     // create PS point
-    void create_PS   (MEM::PS&, const double*, const vector<int>&) const;
-    void create_PS_LH(MEM::PS&, const double*, const vector<int>&) const;
-    void create_PS_LL(MEM::PS&, const double*, const vector<int>&) const;
-    void create_PS_HH(MEM::PS&, const double*, const vector<int>&) const;
+    int create_PS   (MEM::PS&, const double*, const vector<int>&) const;
+    int create_PS_LH(MEM::PS&, const double*, const vector<int>&) const;
+    int create_PS_LL(MEM::PS&, const double*, const vector<int>&) const;
+    int create_PS_HH(MEM::PS&, const double*, const vector<int>&) const;
 
     void extend_PS(PS&, const PSPart&, const double& , const double& , const TVector3&, const int&, const PSVar&,const PSVar&,const PSVar&,const TFType&) const;
 
@@ -81,7 +84,7 @@ namespace MEM {
 		      double&, double&) const;
 
     // solve for energy given the masses and angles
-    double solve( const LV&,  const double& ,  const double& , const TVector3&, const double&) const;
+    double solve( const LV&,  const double& ,  const double& , const TVector3&, const double&, int&) const;
 
     // get integration edges
     void get_edges(double*, const initializer_list<PSVar>&, const size_t&, const size_t&);
@@ -93,6 +96,10 @@ namespace MEM {
 
     // report an error
     int error_code;
+
+    // count function calls
+    int n_calls;
+    int n_skip;
 
     // debug
     int debug_code;
@@ -106,20 +113,20 @@ namespace MEM {
     size_t naive_jet_counting;
 
     // measured objects
-    vector<MEM::Object*> obs_jets;
-    vector<MEM::Object*> obs_leptons;
-    vector<MEM::Object*> obs_mets;
+    std::vector<MEM::Object*> obs_jets;
+    std::vector<MEM::Object*> obs_leptons;
+    std::vector<MEM::Object*> obs_mets;
 
     // final state
     FinalState fs;
 
     // contain indexes of obs_jets that need permutations
-    vector< vector<int> > perm_indexes;
-    vector< vector<int> > perm_indexes_assumption;
+    std::vector< vector<int> > perm_indexes;
+    std::vector< vector<int> > perm_indexes_assumption;
 
     // map between parameter names (physical) and positions in
     // VEGAS space
-    map< PSVar, size_t > map_to_var;
+    std::map< PSVar, size_t > map_to_var;
 
     // VEGAS integrator
     ROOT::Math::GSLMCIntegrator* ig2;
