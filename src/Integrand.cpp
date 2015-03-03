@@ -10,6 +10,8 @@ MEM::Integrand::Integrand(MEM::Hypothesis hyp, int debug){
   fs                 = FinalState::Undefined;
   ig2                = nullptr;
 
+  LHAPDF::initPDFSet(1, "cteq65.LHgrid");
+
   if( debug_code&DebugVerbosity::init )  
     cout << "Integrand::Integrand(): START" << endl;
 }
@@ -69,10 +71,10 @@ void MEM::Integrand::init(){
   for( auto j : obs_jets ){
     double y[2] = { j->p4().E(), j->p4().Eta() };
     pair<double, double> edges;
-    edges = get_support( y, TFType::qReco, 0.98 ) ;
+    edges = get_support( y, TFType::qReco, 0.98,  debug_code ) ;
     j->addObs( Observable::E_LOW_Q,  edges.first  );
     j->addObs( Observable::E_HIGH_Q, edges.second );
-    edges = get_support( y, TFType::bReco, 0.98 ) ;
+    edges = get_support( y, TFType::bReco, 0.98 , debug_code) ;
     j->addObs( Observable::E_LOW_B,  edges.first  );
     j->addObs( Observable::E_HIGH_B, edges.second );    
   }
@@ -408,10 +410,10 @@ void MEM::Integrand::create_PS_LH(MEM::PS& ps, const double* x, const vector<int
   size_t nl{0};
 
   // store temporary values to build four-vectors
-  double E{0.};
-  double E_LOW{0.};
+  double E     {0.};
+  double E_LOW {0.};
   double E_HIGH{0.};
-  double E_REC =  numeric_limits<double>::max();
+  double E_REC{numeric_limits<double>::max()};
   TVector3 dir(1.,0.,0.);
 
   //  PSVar::cos_q1, PSVar::phi_q1, PSVar::E_q1
@@ -554,7 +556,7 @@ void MEM::Integrand::create_PS_LL(MEM::PS& ps, const double* x, const vector<int
   double E{0.};
   double E_LOW{0.};
   double E_HIGH{0.};
-  double E_REC =  numeric_limits<double>::max();
+  double E_REC{numeric_limits<double>::max()};
   TVector3 dir(1.,0.,0.);
 
   //  PSVar::cos_q1, PSVar::phi_q1, PSVar::E_q1
@@ -658,6 +660,8 @@ double MEM::Integrand::probability(const double* x, const vector<int>& perm ) co
   double w   {1.}; // transfer function
   double nu_x{0.}; // total nu's px
   double nu_y{0.}; // total nu's py
+  double x1  {0.}; // x1 fraction
+  double x2  {0.}; // x2 fraction
   size_t indx{0};  // quark counter 
 
   LV lv_q1    = ps.lv(PSPart::q1);
@@ -679,8 +683,8 @@ double MEM::Integrand::probability(const double* x, const vector<int>& perm ) co
   m *= t_decay_amplitude(lv_q1, lv_qbar1, lv_b1);
   m *= t_decay_amplitude(lv_q2, lv_qbar2, lv_b2);
   m *= (hypo==Hypothesis::TTH ? H_decay_amplitude(lv_b, lv_bbar) : 1.0 );
-  m *= scattering( lv_q1+lv_qbar1+lv_b1, lv_q2+lv_qbar2+lv_b2, lv_b, lv_bbar);
-  m *= pdf( lv_q1+lv_qbar1+lv_b1+lv_q2+lv_qbar2+lv_b2+lv_b+lv_bbar );
+  m *= scattering( lv_q1+lv_qbar1+lv_b1, lv_q2+lv_qbar2+lv_b2, lv_b, lv_bbar, x1, x2);
+  m *= pdf( x1, x2 , hypo==Hypothesis::TTH ? (2*MTOP + MH)/2 : TMath::Sqrt( 4*MTOP*MTOP + TMath::Power(lv_b.Pt() + lv_bbar.Pt(), 2) )  );
 
   if( debug_code&DebugVerbosity::integration ){
     cout << "\t\tFilling p..." << endl;
@@ -703,7 +707,7 @@ double MEM::Integrand::probability(const double* x, const vector<int>& perm ) co
     // build x,y vectors 
     double y[1] = { e_rec };
     double x[2] = { e_gen, eta_gen };
-    w *= transfer_function( y, x, p->second.type ); 
+    w *= transfer_function( y, x, p->second.type, debug_code ); 
 
     // increment quark counter
     ++indx;
@@ -712,7 +716,7 @@ double MEM::Integrand::probability(const double* x, const vector<int>& perm ) co
   if( fs!=FinalState::HH ){
     double y[2] = { obs_mets[0]->p4().Px(), obs_mets[0]->p4().Py() };
     double x[2] = { nu_x, nu_y };
-    w *= transfer_function( y, x, TFType::MET );
+    w *= transfer_function( y, x, TFType::MET, debug_code );
   }
 
   if( debug_code&DebugVerbosity::integration ){
@@ -723,14 +727,104 @@ double MEM::Integrand::probability(const double* x, const vector<int>& perm ) co
 }
 
 
-double MEM::Integrand::scattering(const TLorentzVector&, const TLorentzVector&, const TLorentzVector&, const TLorentzVector&) const{
-  double p{1.};
-  return p;
+double MEM::Integrand::scattering(const TLorentzVector& top, const TLorentzVector& atop, const TLorentzVector& b1, const TLorentzVector& b2,
+				  double& x1, double& x2) const{
+
+  // return value (address passed to OpenLoops)
+  double M2{1.};
+
+  // temporary objects
+  TLorentzVector t, tx, b, bx, h, sum;
+  t.SetPtEtaPhiM ( top.Pt(),     top.Eta(),     top.Phi(),    MTOP);
+  tx.SetPtEtaPhiM( atop.Pt(),    atop.Eta(),    atop.Phi(),   MTOP);
+  b.SetPtEtaPhiM ( b1.Pt(),      b1.Eta(),      b1.Phi(),       0.);
+  bx.SetPtEtaPhiM( b2.Pt(),      b2.Eta(),      b2.Phi(),       0.);
+  h.SetPtEtaPhiM ( (b1+b2).Pt(), (b1+b2).Eta(), (b1+b2).Phi(),  MH);
+
+  // the total sum (needed to get the boost factor);
+  TLorentzVector vSum = hypo==Hypothesis::TTH ? t+tx+h : t+tx+b+bx;
+
+  // boost such that SumPx = SumPy = 0
+  TVector3 boostPt( vSum.Px()/vSum.E(), vSum.Py()/vSum.E(), 0.0 );
+  t.Boost  ( -boostPt );
+  tx.Boost ( -boostPt );
+
+  if(hypo==Hypothesis::TTH){
+    h.Boost  ( -boostPt );
+    // fix for rounding
+    double hPx = -(t.Px() + tx.Px());
+    double hPy = -(t.Py() + tx.Py());
+    double hPz = h.Pz();
+    h.SetPxPyPzE( hPx, hPy, hPz, sqrt(hPx*hPx + hPy*hPy + hPz*hPz + MH*MH) );    
+    sum = t+tx+h;
+  }
+  else{
+    b.Boost  ( -boostPt );
+    bx.Boost ( -boostPt );
+    // fix for rounding
+    double bPx = -(t.Px() + tx.Px() + bx.Px());
+    double bPy = -(t.Py() + tx.Py() + bx.Py());
+    double bPz = b.Pz();
+    b.SetPxPyPzE( bPx, bPy, bPz, sqrt(bPx*bPx + bPy*bPy + bPz*bPz ) );
+    sum =  t+tx+b+bx;
+  }
+  
+  // update x1 and x2
+  double E  = sum.E();
+  double Pz = sum.Pz();
+  x1 = ( Pz + E)/8000.;
+  x2 = (-Pz + E)/8000.;
+
+  // create gluon p4s
+  TLorentzVector g1 = TLorentzVector(0.,0.,  (E+Pz)/2., (E+Pz)/2.);
+  TLorentzVector g2 = TLorentzVector(0.,0., -(E-Pz)/2., (E-Pz)/2.);
+
+  // needed to interface with OpenLoops
+  double ccP_0[20] = {
+    g1.E(), g1.Px(), g1.Py(), g1.Pz(),
+    g2.E(), g2.Px(), g2.Py(), g2.Pz(),
+    h.E(),  h.Px(),  h.Py(),  h.Pz(),
+    t.E(),  t.Px(),  t.Py(),  t.Pz(),
+    tx.E(), tx.Px(), tx.Py(), tx.Pz()
+  };
+
+  double ccP_1[24] = {
+    g1.E(), g1.Px(), g1.Py(), g1.Pz(),
+    g2.E(), g2.Px(), g2.Py(), g2.Pz(),
+    t.E(),  t.Px(),  t.Py(),  t.Pz(),
+    tx.E(), tx.Px(), tx.Py(), tx.Pz(),
+    b.E(),  b.Px(),  b.Py(),  b.Pz(),
+    bx.E(), bx.Px(), bx.Py(), bx.Pz(),
+  };
+
+  // call OpenLoops functions
+  switch(hypo){
+  case Hypothesis::TTH:
+    pphttxcallme2born_  (const_cast<double*>(&M2), ccP_0, const_cast<double*>(&MTOP), const_cast<double*>(&MH));
+    break; 
+  case Hypothesis::TTBB:
+    ppttxbbxcallme2born_(const_cast<double*>(&M2), ccP_1, const_cast<double*>(&MTOP), const_cast<double*>(&MH));
+    break;
+  default:
+    break;
+  }
+
+  if( debug_code&DebugVerbosity::integration ){
+    cout << "\t\tTotal (px,py,pz,E) = (" <<  sum.Px() << "," <<  sum.Py()<< "," <<  sum.Pz()<< "," <<  sum.E() << ")" << endl;
+    cout << "\t\tGluons (x1,x2)     = (" << x1 << "," << x2 << ")" << endl;
+    cout << "\t\tM2 (OpenLoops)     = " << M2 << endl;
+  }
+
+  return M2;
 }
 
-double MEM::Integrand::pdf(const TLorentzVector& lv) const{
-  double p{1.};
-  return p;
+double MEM::Integrand::pdf(const double& x1, const double& x2, const double& Q) const{
+  double f1 =  LHAPDF::xfx(1, x1, Q, 0)/x1;
+  double f2 =  LHAPDF::xfx(1, x2, Q, 0)/x2;
+  if( debug_code&DebugVerbosity::integration ){
+    cout << "\t\tPDF(x1,Q)*PDF(x2,Q) = " << f1 << "*" << f2 << endl;
+  }
+  return (f1*f2)/(x1*x2);
 }
 
 double MEM::Integrand::t_decay_amplitude(const TLorentzVector&, const TLorentzVector&, const TLorentzVector&) const{

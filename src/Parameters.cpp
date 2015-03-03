@@ -21,10 +21,14 @@ bool MEM::isLepton(const MEM::TFType& t)  {
 //   x    := gen level quantities
 //   type := decides the TF
 /////////////////////////////////
-double MEM::transfer_function(double* y, double* x, const TFType& type){
+double MEM::transfer_function(double* y, double* x, const TFType& type, const int& debug){
 
   // return value
   double w{1.};
+
+  // temporary values;
+  double E, H;
+  double m1,s1, m2, s2, f;
 
   // parameters
   const double* par;
@@ -32,48 +36,71 @@ double MEM::transfer_function(double* y, double* x, const TFType& type){
   switch( type ){
     
   case TFType::bReco:
-    // x[0] = parton energy ; x[1] = parton eta
-    // y[0] = jet energy
-    cout << "\t\ttransfer_function: Evaluate W(" << y[0] << " | E=" << x[0] << ", y=" << x[1] << ", TFType::bReco) = ";
-    par = TF_B_param[ eta_to_bin(x[1]) ];    
-    w *=  par[10]*TMath::Gaus(y[0], par[0] + par[1]*x[0], x[0]*TMath::Sqrt(par[2]*par[2]+par[3]*par[3]/x[0]+par[4]*par[4]/x[0]/x[0]), 1) + 
-      (1-par[10])*TMath::Gaus(y[0], par[5] + par[6]*x[0], x[0]*TMath::Sqrt(par[7]*par[7]+par[8]*par[8]/x[0]+par[9]*par[9]/x[0]/x[0]), 1);
-    cout << w << endl;
+    // x[0] = parton energy ; 
+    // x[1] = parton eta;
+    // y[0] = jet energy;
+    E  = x[0];
+    H  = x[1];
+    par = TF_B_param[ eta_to_bin(H) ];    
+
+    f  = par[10];
+    m1 = par[0] + par[1]*E;
+    m2 = par[5] + par[6]*E;
+    s1 = E*TMath::Sqrt(par[2]*par[2] + par[3]*par[3]/E + par[4]*par[4]/E/E);
+    s2 = E*TMath::Sqrt(par[7]*par[7] + par[8]*par[8]/E + par[9]*par[9]/E/E);
+    w *= f*TMath::Gaus(y[0], m1, s1, 1) + (1-f)*TMath::Gaus(y[0], m2, s2, 1);
+    if( debug&DebugVerbosity::integration) 
+      cout << "\t\ttransfer_function: Evaluate W(" << y[0] << " | E=" << E << ", y=" << H << ", TFType::bReco) = " << w << endl;
     break;
+    
   case TFType::qReco:
-    // x[0] = parton energy ; x[1] = parton eta
-    // y[0] = jet energy
-    cout << "\t\ttransfer_function: Evaluate W(" << y[0] << " | E=" << x[0] << ", y=" << x[1] << ", TFType::qReco) = ";
-    par = TF_Q_param[ eta_to_bin(x[1]) ];
-    w *= TMath::Gaus(y[0], par[0] + par[1]*x[0], x[0]*TMath::Sqrt(par[2]*par[2]+par[3]*par[3]/x[0]+par[4]*par[4]/x[0]/x[0]), 1);
-    cout << w << endl;
+    // x[0] = parton energy ; 
+    // x[1] = parton eta;
+    // y[0] = jet energy;
+    E   = x[0];
+    H   = x[1];
+    par = TF_Q_param[ eta_to_bin(H) ];
+    m1  = par[0] + par[1]*E;
+    s1  = E*TMath::Sqrt(par[2]*par[2] + par[3]*par[3]/E + par[4]*par[4]/E/E);
+    w  *= TMath::Gaus(y[0], m1, s1, 1);
+    if( debug&DebugVerbosity::integration) 
+      cout << "\t\ttransfer_function: Evaluate W(" << y[0] << " | E=" << E << ", y=" << H << ", TFType::qReco) = " << w << endl;
     break;
+    
   case TFType::MET:
-    cout << "\t\ttransfer_function: Evaluate W(" << y[0]-x[0] << " , " << y[1]-x[1] << ", TFType::MET) = ";
     // x[0] = sum nu_x ; x[1] = sum nu_y
     // y[0] = MET_x    ; y[1] = MET_y
+
     par = TF_MET_param;
     w *= TMath::Gaus(y[0], x[0], par[0], 1)*TMath::Gaus(y[1], x[1], par[1], 1);
-    cout << w << endl;
+    if( debug&DebugVerbosity::integration) 
+      cout << "\t\ttransfer_function: Evaluate W(" << y[0]-x[0] << " , " << y[1]-x[1] << ", TFType::MET) = " << w << endl;
     break;
+
   case TFType::bLost:
   case TFType::qLost:
-    // x[0]     = parton energy ; x[1] = parton eta
+    // x[0]     = parton energy ;
+    // x[1]     = parton eta;
     // y[0]     = jet energy
     // param[0] = max eta ; param[1] = min pT; param[2] = acceptance    
+
     par = TF_ACC_param;
     if( TMath::Abs(x[1])>par[0] ){
-      cout << "\t\ttransfer_function: Evaluate W(" << x[0] << ", " << x[1] << ", TFType::qLost) = ";
       w = par[2];
-      cout << w << endl;
+      if( debug&DebugVerbosity::integration) 
+	cout << "\t\ttransfer_function: Evaluate W(" << x[0] << ", " << x[1] << ", TFType::qLost) = " << w << endl;
     } 
     else{
-      // x[0]     = parton energy ; x[1] = parton eta
+      // x[0]     = parton energy ; 
+      // x[1]     = parton eta
       // y[0]     = 0.
-      par = TF_Q_param[ eta_to_bin(x[1]) ];
-      cout << "\t\ttransfer_function: Evaluate W(" <<  TF_ACC_param[1] << " | " << x[0] << ", " << x[1] << ", TFType::qLost) = ";
-      w *= (1 - 0.5*(TMath::Erf(  (TF_ACC_param[1]*TMath::CosH(x[1]) /* need sin */  - (par[0] + par[1]*x[0])) / (x[0]*TMath::Sqrt(par[2]*par[2]+par[3]*par[3]/x[0]+par[4]*par[4]/x[0]/x[0])) ) + 1 ));
-      cout << w << endl;
+      E   = x[0];
+      H   = x[1];
+      par = TF_Q_param[ eta_to_bin(H) ];
+      w  *= (1 - 0.5*(TMath::Erf(  (TF_ACC_param[1]*TMath::CosH(H) - (par[0] + par[1]*E) ) /
+				   (E*TMath::Sqrt(par[2]*par[2] + par[3]*par[3]/E + par[4]*par[4]/E/E)) ) + 1 ) );
+      if( debug&DebugVerbosity::integration) 
+	cout << "\t\ttransfer_function: Evaluate W(" <<  TF_ACC_param[1] << " | " << E << ", " << H << ", TFType::qLost) = " << w << endl;
     }
     break;
   default:
@@ -83,48 +110,54 @@ double MEM::transfer_function(double* y, double* x, const TFType& type){
   return w;
 }
 
-/////////////////////////////////                                                                                                                      //   y    := observables                                                                                                                               
-//   type := decides the TF                                                                                                                          
+/////////////////////////////////                                                                                                                      
+//   y     := observables                                                                                                                               
+//   type  := decides the TF  
+//   alpha := CL (e.g. 0.95, 0.98, ...)
 ///////////////////////////////// 
-pair<double, double> MEM::get_support(double* y, const TFType& type, const double& alpha){
+pair<double, double> MEM::get_support(double* y, const TFType& type, const double& alpha, const int& debug){
 
+  // the reconstructed values
   double e_rec   = y[0];
   double eta_rec = y[1];
-  double e_L     = e_rec*0.25;
-  double e_H     = e_rec*4.0;
 
-  size_t steps     = size_t(e_H-e_L)/2; 
-  double step_size = (e_H-e_L)/steps;
+  // start with reconstructed value
+  double e_L{e_rec};
+  double e_H{e_rec};
 
-  /*
-  double tot{0.};
-  for(size_t step = 0; step < steps ; ++step){
-    double gen[2] = {e_rec-step_size*step, eta_rec};    
-    for(size_t i = 0; i < 100 ; ++i){
+  // granularity
+  double step_size{2.5};
+
+  double tot{1.};
+  while( tot>(1-alpha)/2 && e_L>0. ){
+    tot = 0.;
+    for(size_t i = 0; i < 500.; ++i){
+      double gen[2] = {e_L, eta_rec};
       double rec[1] = {e_rec+i*step_size};
-      tot += transfer_function( rec, gen, type)*step_size;
-      if(tot>=(1-alpha)/2){  
-	e_L = gen[0];
-	tot = 0.;
-      break;
-      }
+      tot += transfer_function(rec,gen,type, debug)*step_size;
+      if(  tot>(1-alpha)/2 ) break;
     }
+    e_L -= step_size;
+  }
+  if(e_L<0.) e_L=0.;
+
+  tot = 1.;
+  while( tot>(1-alpha)/2 ){
+    tot = 0.;
+    for(size_t i = 0; i < 500.; ++i){
+      double gen[2] = {e_H, eta_rec};
+      double rec[1] = {e_rec-i*step_size};
+      if(rec[0]<0.) continue;
+      tot += transfer_function(rec,gen,type,debug)*step_size;
+      if(  tot>(1-alpha)/2 ) break;
+    }
+    e_H += step_size;
   }
 
-  for(size_t step = 0; step < steps ; ++step){
-    double gen[2] = {e_H-step_size*step, eta_rec};
-    tot += transfer_function( rec, gen, type)*step_size;
-    if(tot>=(1-alpha)/2){  
-      e_H = gen[0];
-      break;
-    }
-  }
-
-  */
-
-  cout << "MEM::get_support: E(reco) = " << e_rec << " ==> range at " << alpha 
-       << " CL is [" << e_L << ", " << e_H << "] (stepping every " << step_size << " GeV)" << endl;
-
+  if( debug&DebugVerbosity::integration) 
+    cout << "MEM::get_support: E(reco) = " << e_rec << " ==> range at " << alpha 
+	 << " CL is [" << e_L << ", " << e_H << "] (stepping every " << step_size << " GeV)" << endl;
+  
   return make_pair(e_L, e_H);
 }
 

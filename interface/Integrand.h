@@ -4,6 +4,27 @@
 // user headers
 #include "interface/Parameters.h"
 
+
+extern "C" {
+  void pphttxcallme2born_( double*, double[20], double*, double* );
+}
+extern "C" {
+  void ppttxbbxcallme2born_( double*, double[24], double*, double* );
+}
+
+
+namespace LHAPDF {
+  void initPDFSet(int nset, const std::string& filename, int member=0);
+  int numberPDF (int nset);
+  void usePDFMember(int nset, int member);
+  double xfx(int nset, double x, double Q, int fl);
+  double getXmin(int nset, int member);
+  double getXmax(int nset, int member);
+  double getQ2min(int nset, int member);
+  double getQ2max(int nset, int member);
+  void extrapolate(bool extrapolate=true);
+}
+
 namespace MEM {
   
   class Integrand {
@@ -54,9 +75,10 @@ namespace MEM {
 
     double H_decay_amplitude(const TLorentzVector&, const TLorentzVector&) const;
 
-    double pdf(const TLorentzVector&) const;
+    double pdf(const double&, const double&, const double&) const;
 
-    double scattering(const TLorentzVector&, const TLorentzVector&, const TLorentzVector&, const TLorentzVector&) const;
+    double scattering(const TLorentzVector&, const TLorentzVector&, const TLorentzVector&, const TLorentzVector&, 
+		      double&, double&) const;
 
     // solve for energy given the masses and angles
     double solve( const LV&,  const double& ,  const double& , const TVector3&, const double&) const;

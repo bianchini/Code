@@ -31,8 +31,10 @@ InfoLine = compiling $(1)
 
 BASEDIR=$(shell pwd)
 BINDIR=$(BASEDIR)/bin
+LIBDIR=$(BASEDIR)/libs	
 SRCDIR = $(BASEDIR)/src
 HDIR = $(BASEDIR)/interface
+MEM  = -lopenloops -lbar -lcoli -lpphttxcallme2born -lppttxbbxcallme2born -lMathMore -lLHAPDF
 
 ### Main Target, first
 .PHONY: all
@@ -40,6 +42,8 @@ all: info $(Packages) | $(BINDIR)
 
 CXXFLAGS	+=`root-config --cflags`
 LDFLAGS 	+=`root-config --libs`
+
+CXXFLAGS        += $(MEM)
 
 BINOBJ	=$(patsubst %,$(BINDIR)/%.$(ObjSuf),$(Objects) )
 SRCFILES=$(patsubst %,$(SRCDIR)/%.$(SrcSuf),$(Objects) )
@@ -79,7 +83,7 @@ $(Packages): % : $(BINDIR)/% | $(BINDIR)
 #$(BINDIR)/$(Packages): $(BINDIR)/% : $(BASEDIR)/test/%.$(SrcSuf) $(StatLib) | $(BINDIR)
 $(addprefix $(BINDIR)/,$(Packages)): $(BINDIR)/% : $(BASEDIR)/test/%.$(SrcSuf) $(StatLib) | $(BINDIR)
 	@echo $(call InfoLine , $@ )
-	$(CXX) $(CXXFLAGS) -lMathMore $(LDFLAGS) -o $@ $< $(StatLib) -I$(INC_DIR) -I$(HDIR)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $< $(StatLib) -I$(INC_DIR) -I$(HDIR) -L$(LIBDIR)
 
 #make this function of $(Packages)
 #.PHONY: controller
@@ -105,12 +109,12 @@ clean:
 #.o
 $(BINDIR)/%.$(ObjSuf): $(SRCDIR)/%.$(SrcSuf) $(HDIR)/%.$(HeadSuf)
 	@echo $(call InfoLine , $@ )
-	$(CXX) $(CXXFLAGS) -lMathMore $(LDFLAGS) -c -o $@ $(SRCDIR)/$*.$(SrcSuf) -I$(INC_DIR) -I$(HDIR)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -c -o $@ $(SRCDIR)/$*.$(SrcSuf) -I$(INC_DIR) -I$(HDIR) -L$(LIBDIR)
 
 #.d
 $(BINDIR)/%.$(DepSuf): $(SRCDIR)/%.$(SrcSuf) $(HDIR)/%.$(HeadSuf)
 	@echo $(call InfoLine , $@ )
-	$(CXX) $(CXXFLAGS) -lMathMore $(LDFLAGS) -M -o $@ $(SRCDIR)/$*.$(SrcSuf) -I$(INC_DIR) -I$(HDIR)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -M -o $@ $(SRCDIR)/$*.$(SrcSuf) -I$(INC_DIR) -I$(HDIR) -L$(LIBDIR)
 	sed -i'' "s|^.*:|& Makefile $(BINDIR)/&|g" $@
 
 #-include $(Deps)

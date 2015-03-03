@@ -73,9 +73,9 @@ namespace MEM {
   bool isQuark   (const TFType&);
   bool isNeutrino(const TFType&);
   bool isLepton  (const TFType&);
-  double transfer_function( double*,  double*, const TFType&);
+  double transfer_function( double*,  double*, const TFType&, const int&);
 
-  pair<double, double> get_support( double*, const TFType&, const double&);
+  pair<double, double> get_support( double*, const TFType&, const double&, const int&);
 
   enum class ObjectType { Jet=0, Lepton, MET, Recoil};
 
