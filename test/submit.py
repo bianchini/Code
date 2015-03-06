@@ -49,16 +49,45 @@ def processAllBatch( jobName , extra, t, g, b , G, T ):
 #    processAllBatch( 'tL_tL_Hh', '_p'+str(p), 50, 1,1, 13,3 )
 
 # TopHad + TopLep + Higgs: all hypos 
-for p in range(25):
-    # l+gggggg
-    processAllBatch( 'tH_tL_Hh-Ha' , '_p'+str(p), 50, 1,1,  11,6 )
+for p in range(50):
+    # l+dddddd
+    #processAllBatch( 'tH_tL_Hh-Ha1' , '_p'+str(p), 70, 1,1,  11,6 )
+
+    # l+ddddbb
+    #processAllBatch( 'tH_tL_Hh-Ha2' , '_p'+str(p), 70, 1,1,  15,6 )
 
     # tH+tL+dd
-    processAllBatch( 'tH_tL_Hh-Hb1', '_p'+str(p), 50, 1,1,  12,6 )
+    #processAllBatch( 'tH_tL_Hh-Hb1' , '_p'+str(p), 70, 1,1,  12,6 )
+
+    # tH+tL+cc
+    #processAllBatch( 'tH_tL_Hh-Hb2' , '_p'+str(p), 70, 1,1,  16,6 )
 
     # tH+tL+bb
-    processAllBatch( 'tH_tL_Hh-Hb2', '_p'+str(p), 50, 1,1,   7,6 )
+    #processAllBatch( 'tH_tL_Hh-Hb3' , '_p'+str(p), 70, 1,1,   7,6 )
 
     # tH+tL+Hh
-    processAllBatch( 'tH_tL_Hh-Hs',  '_p'+str(p), 50, 1,1,   2,6 )
+    #processAllBatch( 'tH_tL_Hh-Hs'  , '_p'+str(p), 70, 1,1,   2,6 )
 
+    # tH+tL+Hh: FullReco
+    #processAllBatch( 'tH_tL_Hh-FullReco'  , '_p'+str(p), 20, 1,1,   2,  7 )
+    # tH+tL+Hh: Lost
+    #processAllBatch( 'tH_tL_Hh-NotReco'  ,  '_p'+str(p), 20, 1,1,   17, 7 )
+
+
+    # tH+tL+Hh: FullReco                                                                                                               
+    processAllBatch( 'tH_tL_Hh-FullReco-6jets'  , '_p'+str(p), 40, 1,1,   2,  8 )  
+
+    # tH+tL+Hh: NotReco                                                                                                               
+    processAllBatch( 'tH_tL_Hh-NotReco-6jets'   , '_p'+str(p), 40, 1,1,  17,  8 )  
+
+    # tH+tL+dd: FullReco                                                                                                               
+    processAllBatch( 'tH_tL_dd-FullReco-6jets'  , '_p'+str(p), 40, 1,1,  12,  8 )
+
+    # tH+tL+dd: NotReco
+    processAllBatch( 'tH_tL_dd-NotReco-6jets'   , '_p'+str(p), 40, 1,1,  18,  8 )
+
+    # tH+tL+bb: FullReco
+    processAllBatch( 'tH_tL_bb-FullReco-6jets'  , '_p'+str(p), 40, 1,1,   7,  8 )
+
+    # tH+tL+bb: NotReco
+    processAllBatch( 'tH_tL_bb-NotReco-6jets'   , '_p'+str(p), 40, 1,1,  19,  8 )

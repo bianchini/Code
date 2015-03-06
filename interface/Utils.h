@@ -38,10 +38,13 @@ namespace Algo {
   
   const string TF_Q     = "TMath::Gaus(x, [0] + [1]*y, y*TMath::Sqrt([2]*[2]+[3]*[3]/y+[4]*[4]/y/y), 1)";
   const string TF_Q_CUM = "(1 - 0.5*(TMath::Erf(  (x-([0] + [1]*y)) / (y*TMath::Sqrt([2]*[2]+[3]*[3]/y+[4]*[4]/y/y)) ) + 1 ))";
+  const string TF_ACC = "[0]";
 
   const string TF_B = 
     "[10]*TMath::Gaus(x, [0] + [1]*y, y*TMath::Sqrt([2]*[2]+[3]*[3]/y+[4]*[4]/y/y), 1) + "
     "(1-[10])*TMath::Gaus(x, [5] + [6]*y, y*TMath::Sqrt([7]*[7]+[8]*[8]/y+[9]*[9]/y/y), 1)";
+
+  const string TF_MET = "TMath::Gaus(x,0.,20, 1)*TMath::Gaus(y,0.,20, 1)";
   const double TF_Q_param[2][5] =
     { { 0.00e+00, 1.00e+00, 0.00e+00, 1.56e+00, 0.00e+00 },
       { 0.00e+00, 1.00e+00, 1.30e-01, 1.52e+00, 0.00e+00 }
@@ -51,7 +54,8 @@ namespace Algo {
       { -4.30e+00, 0.98e+00, 0.00e+00, 1.90e+00, 6.00e+00, 0.91e+01, 0.87e+00, 0.23e+00, 1.10e+00, 0.00e+00, 0.65e+00 },
     };
 
-  const string TF_MET = "TMath::Gaus(x,0.,20, 1)*TMath::Gaus(y,0.,20, 1)";
+  const double TF_ACC_param[1] = {1.};
+
 
   const double BTAG_Q_param[2][2] = 
     { {0.98, 0.02},

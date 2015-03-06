@@ -29,16 +29,32 @@ namespace MEM {
   
   class Integrand {
 
-  public:
-    
-    // constructor
-    Integrand(Hypothesis =Hypothesis::TTH, int =0);
+    /* Public interface */
+  public:    
+
+    // constructor (initialise with verbosity)
+    Integrand( int =0);
     
     // detstructor
     ~Integrand();
 
     // add objects (jets, leptons, MET)
+    // (ObjectType defined in Parameters.h)
     void push_back_object( const LV& , const ObjectType&);
+    
+    // add object information
+    // WARNING: to be called just after push_back of related object!
+    // (using .back() method of std::vector<>)
+    void add_object_observable(const pair<Observable, double>&, const ObjectType& );
+
+    // main method: call it to have the ME calculated
+    void run( const Hypothesis =Hypothesis::TTH, const initializer_list<PSVar> ={});
+
+    // clear containers and counters after each event
+    void next_event();
+
+    /* Used internally */
+  private:
 
     // initialise (once for event)
     void init( const Hypothesis=Hypothesis::TTH);
@@ -46,17 +62,11 @@ namespace MEM {
     // create a map between variable names and positions
     void fill_map( const initializer_list<PSVar>& );
 
-    // main method
-    void run( const Hypothesis =Hypothesis::TTH, const initializer_list<PSVar> ={});
-
     // make assumption
     double make_assumption( const initializer_list<PSVar>& );
 
     // clear containers before new hypothesis
     void next_hypo();
-
-    // clear after each event
-    void next_event();
 
     // test if given assunption is viable
     bool test_assumption( const size_t&, size_t& );
@@ -92,13 +102,13 @@ namespace MEM {
     // get widths
     double get_width(const double*, const double*, const size_t);
 
-  private:
-
     // report an error
     int error_code;
 
     // count function calls
     int n_calls;
+
+    // count number of invalid phase space points
     int n_skip;
 
     // debug
@@ -110,6 +120,7 @@ namespace MEM {
     // number of unknowns
     size_t num_of_vars;
 
+    // keep track of howm many jets one would expect
     size_t naive_jet_counting;
 
     // measured objects

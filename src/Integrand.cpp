@@ -2,16 +2,20 @@
 
 
 
-MEM::Integrand::Integrand(MEM::Hypothesis hyp, int debug){
-  hypo               = hyp;
+MEM::Integrand::Integrand(int debug){
+
+  // establish invariants
   debug_code         = debug;
-  num_of_vars        = 1;
+  error_code         = 0;
+  num_of_vars        = 0;
   naive_jet_counting = 0;
   fs                 = FinalState::Undefined;
+  hypo               = Hypothesis::Undefined;
   ig2                = nullptr;
-  n_calls = 0;
-  n_skip  = 0;
+  n_calls            = 0;
+  n_skip             = 0;
 
+  // init PDF set
   LHAPDF::initPDFSet(1, "cteq65.LHgrid");
 
   if( debug_code&DebugVerbosity::init )  
@@ -46,7 +50,7 @@ void MEM::Integrand::init( const MEM::Hypothesis h){
     cout << "Integrand::init(): START" << endl;
   }    
 
-  // set hypothesis
+  // set hypothesis to be tested
   hypo = h;
 
   // deal with leptons :
@@ -262,6 +266,31 @@ void MEM::Integrand::push_back_object(const LV& p4,  const MEM::ObjectType& type
   return;
 }
 
+void MEM::Integrand::add_object_observable( const std::pair<MEM::Observable, double>& obs, const ObjectType& type ){
+  
+  switch( type ){
+  case ObjectType::Jet :
+    if(obs_jets.size()>0)    
+      (obs_jets.back())->addObs( obs.first, obs.second );
+    break;
+  case ObjectType::Lepton :
+    if(obs_leptons.size()>0) 
+      (obs_leptons.back())->addObs( obs.first, obs.second );
+    break;
+  case ObjectType::MET:
+  case ObjectType::Recoil:
+    if(obs_mets.size()>0) 
+      (obs_mets.back())->addObs( obs.first, obs.second );
+    break;
+  default:
+    cout << "Integrand::add_object_observables(): Unknown type of object added" << endl;
+    break;
+  }
+
+  return;
+}
+
+
 void MEM::Integrand::run( const MEM::Hypothesis h, const initializer_list<MEM::PSVar> list){
  
   if( debug_code&DebugVerbosity::init ){
@@ -279,9 +308,6 @@ void MEM::Integrand::run( const MEM::Hypothesis h, const initializer_list<MEM::P
 
   // do the calculation
   prob += make_assumption( list );
-  //prob += make_assumption( initializer_list<PSVar>{PSVar::cos_qbar1, PSVar::phi_qbar1} );
-  //prob += make_assumption( initializer_list<PSVar>{PSVar::cos_b1, PSVar::phi_b1} );
-  //prob += make_assumption( initializer_list<PSVar>{PSVar::cos_qbar1, PSVar::phi_qbar1,PSVar::cos_b1, PSVar::phi_b1} );
   
   if( debug_code&DebugVerbosity::init ){
     cout << "\tProbability = " << prob << endl;    
@@ -308,6 +334,8 @@ void MEM::Integrand::next_event(){
   error_code         = 0;
   num_of_vars        = 0;
   naive_jet_counting = 0;
+  n_calls            = 0;
+  n_skip             = 0;
   perm_indexes.clear();
   perm_indexes_assumption.clear();
   map_to_var.clear();
@@ -324,6 +352,8 @@ void MEM::Integrand::next_hypo(){
   perm_indexes.clear();
   perm_indexes_assumption.clear();
   map_to_var.clear();
+  n_calls = 0;
+  n_skip  = 0;
   if( debug_code&DebugVerbosity::init ){
     cout << "Integrand::next_hypo(): END" << endl;
   }
@@ -346,23 +376,42 @@ double MEM::Integrand::make_assumption( const initializer_list<MEM::PSVar>& lost
   }
 
   double prob{0.};
+
+  // an assumption may not be consistent with the number of observed jets
+  // E.g.: assume 1 lost quark but 2 jets missing wrt to expectation
+  // N.B. extra_jets filled here!!!
   size_t extra_jets{0};
-  if(!test_assumption(lost.size()/2, extra_jets)) return prob;
+  if(!test_assumption(lost.size()/2, extra_jets)) // <-- filling extra_jets
+    return prob;
 
   perm_indexes_assumption.clear();
 
   // extra variables to integrate over  
   fill_map( lost );  
 
-  // remove unwanted permutations
+  // Remove unwanted permutations:
+  //    CASE (1) ==> perm contains already -1: then -1 must be aligned with the lost quark
+  //    CASE (2) ==> perm does not contain -1: then set the correct index to -1
   for( auto perm : perm_indexes ){    
+    
     auto good_perm = perm;
+
+    // - *it gives the integ. var. position in PSVar
+    // - provide first cosTheta: then *it-1 gives the position of E
+    // - (*it-1) / 3 gives particle position (0=q1,1=qbar1,2=b1,...)
     size_t count{0};
     for(auto it = lost.begin() ; it!=lost.end() ; ++count, ++it ){
-      if(count%2==0) perm[ (static_cast<size_t>(*it)-1)/3 ] = -1;      
+      size_t lost_particle = (static_cast<size_t>(*it)-1)/3;
+      if(count%2==0) perm[ lost_particle ] = -1;      
     }
+
+    // count the number of lost quarks as assumed in perm
+    // if it turns out to be equal to the assumed (lost.size()/2), 
+    // then push back the permutation
     count = 0;
-    for(auto ind : perm){if(ind<0) ++count;}
+    for(auto ind : perm){
+      if(ind<0) ++count;
+    }
     if(count==(lost.size()/2))
       perm_indexes_assumption.push_back( perm );    
   }  

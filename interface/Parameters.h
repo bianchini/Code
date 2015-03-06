@@ -79,7 +79,7 @@ namespace MEM {
 
   enum class ObjectType { Jet=0, Lepton, MET, Recoil};
 
-  enum class Observable { E_LOW_Q, E_HIGH_Q, E_LOW_B, E_HIGH_B, BTAG};
+  enum class Observable { E_LOW_Q, E_HIGH_Q, E_LOW_B, E_HIGH_B, BTAG, CHARGE};
 
   class Object {   
     

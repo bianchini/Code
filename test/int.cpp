@@ -16,20 +16,36 @@ double PI = TMath::Pi();
 
 int main(){
 
-  Integrand* integrand = new Integrand(Hypothesis::TTH, 
-				       //DebugVerbosity::init|DebugVerbosity::input|DebugVerbosity::integration
+  Integrand* integrand = new Integrand(//DebugVerbosity::init|
+				       //DebugVerbosity::input|
+				       //DebugVerbosity::integration|
 				       DebugVerbosity::init
 				       );
 
-  integrand->push_back_object( TLorentzVector(50,0, 10,  50),   ObjectType::Jet );
-  integrand->push_back_object( TLorentzVector(0,50, 20,  50),   ObjectType::Jet );
-  integrand->push_back_object( TLorentzVector(30,30,40,  40),   ObjectType::Jet );
-  integrand->push_back_object( TLorentzVector(70,10,20,  70),   ObjectType::Jet );
-  integrand->push_back_object( TLorentzVector(20,50,10,  50),   ObjectType::Jet );
-  integrand->push_back_object( TLorentzVector(100,10,20, 100),  ObjectType::Jet );
-  integrand->push_back_object( TLorentzVector(70,20,10,  70),   ObjectType::Lepton );
-  integrand->push_back_object( TLorentzVector(30,30,0,30),      ObjectType::MET );
-  integrand->push_back_object( TLorentzVector(-1,-1,0,2),       ObjectType::Recoil );
+  integrand->push_back_object     ( TLorentzVector(50,0, 10, 50),    ObjectType::Jet );
+  integrand->add_object_observable( make_pair(Observable::BTAG, 0.), ObjectType::Jet);
+
+  integrand->push_back_object     ( TLorentzVector(0,50, 20,  50),   ObjectType::Jet );
+  integrand->add_object_observable( make_pair(Observable::BTAG, 1.), ObjectType::Jet);
+
+  integrand->push_back_object     ( TLorentzVector(30,30,40,  40),   ObjectType::Jet );
+  integrand->add_object_observable( make_pair(Observable::BTAG, 0.), ObjectType::Jet);
+
+  integrand->push_back_object     ( TLorentzVector(70,10,20,  70),   ObjectType::Jet );
+  integrand->add_object_observable( make_pair(Observable::BTAG, 1.), ObjectType::Jet);
+
+  integrand->push_back_object     ( TLorentzVector(20,50,10,  50),   ObjectType::Jet );
+  integrand->add_object_observable( make_pair(Observable::BTAG, 1.), ObjectType::Jet);
+
+  integrand->push_back_object     ( TLorentzVector(100,10,20, 100),  ObjectType::Jet );
+  integrand->add_object_observable( make_pair(Observable::BTAG, 1.), ObjectType::Jet);
+
+  integrand->push_back_object     ( TLorentzVector(70,20,10,  70),      ObjectType::Lepton );
+  integrand->add_object_observable( make_pair(Observable::CHARGE, +1.), ObjectType::Lepton);
+
+  integrand->push_back_object     ( TLorentzVector(30,0,0,30),        ObjectType::MET );
+  integrand->push_back_object     ( TLorentzVector(0,-30,0,30),       ObjectType::Recoil );
+
 
   integrand->run( Hypothesis::TTH,  {} );
   integrand->run( Hypothesis::TTH,  {PSVar::cos_qbar1, PSVar::phi_qbar1} );

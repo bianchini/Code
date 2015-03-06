@@ -38,10 +38,20 @@ declare -a arr=(
     #tH_tL_Hh_smear1_btag1_gen2_test2
     #tH_tL_Hh_smear1_btag1_gen7_test2
     #tH_tL_Hh_smear1_btag1_gen12_test2
-    tH_tL_Hh-Ha_smear1_btag1_gen11_test6
+    tH_tL_Hh-Ha1_smear1_btag1_gen11_test6
+    tH_tL_Hh-Ha2_smear1_btag1_gen15_test6
     tH_tL_Hh-Hb1_smear1_btag1_gen12_test6
-    tH_tL_Hh-Hb2_smear1_btag1_gen7_test6
+    tH_tL_Hh-Hb2_smear1_btag1_gen16_test6
+    tH_tL_Hh-Hb3_smear1_btag1_gen7_test6
     tH_tL_Hh-Hs_smear1_btag1_gen2_test6
+    #tH_tL_Hh-FullReco_smear1_btag1_gen2_test7
+    #tH_tL_Hh-NotReco_smear1_btag1_gen17_test7
+    tH_tL_Hh-NotReco-6jets_smear1_btag1_gen17_test8
+    tH_tL_Hh-FullReco-6jets_smear1_btag1_gen2_test8
+    tH_tL_dd-FullReco-6jets_smear1_btag1_gen12_test8
+    tH_tL_dd-NotReco-6jets_smear1_btag1_gen18_test8
+    tH_tL_bb-FullReco-6jets_smear1_btag1_gen7_test8
+    tH_tL_bb-NotReco-6jets_smear1_btag1_gen19_test8
 )
 
 for i in ${arr[@]}
