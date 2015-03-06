@@ -409,11 +409,12 @@ double MEM::Integrand::make_assumption( const initializer_list<MEM::PSVar>& lost
     // if it turns out to be equal to the assumed (lost.size()/2), 
     // then push back the permutation
     count = 0;
-    for(auto ind : perm){
-      if(ind<0) ++count;
-    }
-    if(count==(lost.size()/2))
-      perm_indexes_assumption.push_back( perm );    
+    for(auto ind : perm){ if(ind<0) ++count; }
+    if(count!=(lost.size()/2))  continue;
+
+    if( !accept_perm( perm )  ) continue;
+
+    perm_indexes_assumption.push_back( perm );    
   }  
 
   if( debug_code&DebugVerbosity::init_more ) {
@@ -447,6 +448,33 @@ double MEM::Integrand::make_assumption( const initializer_list<MEM::PSVar>& lost
   }
   
   return prob;
+}
+
+bool MEM::Integrand::accept_perm( const vector<int>& perm ){
+
+  switch( fs ){
+  case FinalState::LH:
+    if(perm[0]>=0 && obs_jets[perm[0]].getObs(Observable::BTAG)>0.5) return false; // <== W->qq
+    if(perm[1]>=0 && obs_jets[perm[1]].getObs(Observable::BTAG)>0.5) return false; // <== W->qq
+    if(perm[2]>=0 && obs_jets[perm[2]].getObs(Observable::BTAG)<0.5) return false; // <== t->b
+    if(perm[3]>=0 && obs_jets[perm[3]].getObs(Observable::BTAG)<0.5) return false; // <== t->b
+    if(perm[4]>=0 && obs_jets[perm[4]].getObs(Observable::BTAG)<0.5) return false; // <== H->bb
+    if(perm[5]>=0 && obs_jets[perm[5]].getObs(Observable::BTAG)<0.5) return false; // <== H->bb
+
+    //for( auto visited : perm_indexes_assumption ){
+    //bool swap_W = visited[2]==perm[2];
+    //}
+
+    break;
+  case FinalState::LL:
+    break;
+  case FinalState::HH:
+    break;
+  default:
+    break;
+  }
+
+  return true;
 }
 
 double MEM::Integrand::Eval(const double* x) const{

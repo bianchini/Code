@@ -71,6 +71,8 @@ namespace MEM {
     // test if given assunption is viable
     bool test_assumption( const size_t&, size_t& );
 
+    bool accept_perm( const vector<int>& );
+
     // main method. Needed by GSLMCIntegrator
     double Eval(const double*) const;
     
