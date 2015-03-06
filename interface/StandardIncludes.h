@@ -1,7 +1,7 @@
 #ifndef STANDARDINCLUDES_H
 #define STANDARDINCLUDES_H
 
-#include "interface/Utils.h"
+#include "TTH/MEIntegratorStandalone/interface/Utils.h"
 
 using namespace std;
 
@@ -33,20 +33,20 @@ namespace Algo {
     virtual ~DecayBuilder() {};
     virtual double eval( const double* , LV&) = 0; 
     virtual void   print(ostream&) = 0;
-    virtual Decay  get_decay() = 0;
+    virtual Decay::Decay  get_decay() = 0;
   };
      
   class CombBuilder: public DecayBuilder {
   public:
-    CombBuilder(vector<DecayBuilder*>&& = vector<DecayBuilder*>(), int =0);
+    CombBuilder(vector<DecayBuilder*> = vector<DecayBuilder*>(), int =0);
     ~CombBuilder();
     void          add(DecayBuilder*);
     double        eval ( const double* , LV&);
     double        eval ( const double* );
     void          print(ostream&);
-    DecayBuilder* at(const size_t&);
-    size_t        size();
-    Decay         get_decay();
+    DecayBuilder* at(const std::size_t);
+    std::size_t size();
+    Decay::Decay         get_decay();
   private:
     vector<DecayBuilder*> combined;
     int verbose;
@@ -60,11 +60,11 @@ namespace Algo {
     double eval (  const double* , LV& );
     void   fix_vars();
     void   print(ostream&);   
-    Decay  get_decay();
+    Decay::Decay  get_decay();
   private:
     LV p4_invisible;
     TransferFunction* tf_met;
-    Decay  decay;
+    Decay::Decay  decay;
     int    verbose;
     int    saturate;
   };
@@ -75,23 +75,23 @@ namespace Algo {
   public:
     TopHadBuilder(int =0);
     ~TopHadBuilder();
-    void   init(const FinalState& , const Object&, const size_t&);
+    void   init(const FinalState::FinalState& , const Object&, const std::size_t);
     double eval ( const double* , LV&) ;
     void   print(ostream&);     
-    Decay  get_decay();
-    vector<size_t> get_variables();
+    Decay::Decay  get_decay();
+    vector<std::size_t> get_variables();
   private:    
     LV p4_q;
     LV p4_qbar;
     LV p4_b;
-    size_t index_q;
-    size_t index_qbar;
-    size_t index_b;
+    std::size_t index_q;
+    std::size_t index_qbar;
+    std::size_t index_b;
     TransferFunction* tf_q;
     TransferFunction* tf_qbar;
     TransferFunction* tf_b;
-    Decay  decay;
-    size_t errFlag;
+    Decay::Decay  decay;
+    std::size_t errFlag;
     int    verbose;
     int    qbar_lost;
   };
@@ -100,20 +100,20 @@ namespace Algo {
   public:
     WHadBuilder(int =0);
     ~WHadBuilder();
-    void   init(const FinalState& , const Object&, const size_t&);
+    void   init(const FinalState::FinalState& , const Object&, const std::size_t);
     double eval ( const double* , LV&) ;
     void   print(ostream&);     
-    Decay  get_decay();
-    vector<size_t> get_variables();
+    Decay::Decay  get_decay();
+    vector<std::size_t> get_variables();
   private:
     LV p4_q;
     LV p4_qbar;
-    size_t index_q;
-    size_t index_qbar;
+    std::size_t index_q;
+    std::size_t index_qbar;
     TransferFunction* tf_q;
     TransferFunction* tf_qbar;
-    Decay  decay;
-    size_t errFlag;
+    Decay::Decay  decay;
+    std::size_t errFlag;
     int    verbose;
   };
 
@@ -121,36 +121,36 @@ namespace Algo {
   public:
     TopLepBuilder(int =0);
     ~TopLepBuilder();
-    void   init(const FinalState& , const Object&, const size_t&);
+    void   init(const FinalState::FinalState& , const Object&, const std::size_t);
     double eval ( const double* , LV&) ;
     void   print(ostream&);     
-    Decay  get_decay();
-    vector<size_t> get_variables();
+    Decay::Decay  get_decay();
+    vector<std::size_t> get_variables();
   private:    
     LV p4_l;
     LV p4_b;
-    size_t index_l;
-    size_t index_b;
+    std::size_t index_l;
+    std::size_t index_b;
     TransferFunction* tf_b;
-    Decay  decay;
-    size_t errFlag;
+    Decay::Decay  decay;
+    std::size_t errFlag;
     int    verbose;
   };
   
   class RadiationBuilder : public DecayBuilder {    
   public:
-    RadiationBuilder(int =0, Algo::Decay =Decay::Radiation_g);
+    RadiationBuilder(int =0, Decay::Decay = Decay::Radiation_g);
     ~RadiationBuilder();
-    void   init(const FinalState& , const Object&, const size_t&);
+    void   init(const FinalState::FinalState& , const Object&, const std::size_t);
     double eval ( const double* , LV&) ;    
     void   print(ostream&);     
-    Decay  get_decay();
-    vector<size_t> get_variables();
+    Decay::Decay  get_decay();
+    vector<std::size_t> get_variables();
   private:
     LV p4_g;
-    size_t index_g;
+    std::size_t index_g;
     TransferFunction* tf_g;
-    Decay decay;
+    Decay::Decay decay;
     int   verbose;
   };
  
@@ -158,20 +158,20 @@ namespace Algo {
   public:
     HiggsBuilder(int =0);
     ~HiggsBuilder();
-    void   init(const FinalState& , const Object&, const size_t&);
+    void   init(const FinalState::FinalState& , const Object&, const std::size_t);
     double eval ( const double* , LV&) ;
     void   print(ostream&);     
-    Decay  get_decay();
-    vector<size_t> get_variables();
+    Decay::Decay  get_decay();
+    vector<std::size_t> get_variables();
   private:
     LV p4_b;
     LV p4_bbar;
-    size_t index_b;
-    size_t index_bbar;
+    std::size_t index_b;
+    std::size_t index_bbar;
     TransferFunction* tf_b;
     TransferFunction* tf_bbar;
-    Decay  decay;
-    size_t errFlag;
+    Decay::Decay  decay;
+    std::size_t errFlag;
     int    verbose;
   };
 

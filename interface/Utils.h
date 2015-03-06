@@ -18,23 +18,29 @@
 #include<algorithm>
 #include<assert.h>
 #include<memory> 
-#include<limits> 
+#include<limits>
+
+#ifndef __GCCXML__
 #include<chrono>
+#endif
 
 typedef TLorentzVector LV;
 
 using namespace std;
+
+#ifndef __GCCXML__
 using namespace std::chrono;
+#endif
 
 namespace Algo {
 
-  constexpr double MTOP = 174.3;
-  constexpr double MB   = 4.8;
-  constexpr double MW   = 80.19;
-  constexpr double DM2  = (MTOP*MTOP-MB*MB-MW*MW)*0.5;
-  constexpr double MH   = 125.;
-  constexpr double DMH2 = (MH*MH-2*MB*MB)*0.5;
-  constexpr double PTTHRESHOLD = 30.;
+  const double MTOP = 174.3;
+  const double MB   = 4.8;
+  const double MW   = 80.19;
+  const double DM2  = (MTOP*MTOP-MB*MB-MW*MW)*0.5;
+  const double MH   = 125.;
+  const double DMH2 = (MH*MH-2*MB*MB)*0.5;
+  const double PTTHRESHOLD = 30.;
   
   const string TF_Q     = "TMath::Gaus(x, [0] + [1]*y, y*TMath::Sqrt([2]*[2]+[3]*[3]/y+[4]*[4]/y/y), 1)";
   const string TF_Q_CUM = "(1 - 0.5*(TMath::Erf(  (x-([0] + [1]*y)) / (y*TMath::Sqrt([2]*[2]+[3]*[3]/y+[4]*[4]/y/y)) ) + 1 ))";
@@ -70,16 +76,19 @@ namespace Algo {
        {0.30, 0.70}
      };
 
-  enum QuarkType : int { QuarkTypeUp=0, QuarkTypeDown=1, QuarkTypeCharm=2, QuarkTypeBottom=3};
+  enum QuarkType { QuarkTypeUp=0, QuarkTypeDown=1, QuarkTypeCharm=2, QuarkTypeBottom=3};
 
   double pdf_btag(double*, double*);
-  size_t eta_to_bin( const double& );
-  size_t eta_to_bin( const LV& );
+  std::size_t eta_to_bin( const double& );
+  std::size_t eta_to_bin( const LV& );
  
-  enum class Decay { TopLep=0, TopHad, TopHadLost, WHad, Higgs, Radiation_u, Radiation_d, Radiation_c, Radiation_b, Radiation_g, Lepton, MET, UNKNOWN };
+  namespace Decay {
+  enum Decay { TopLep=0, TopHad, TopHadLost, WHad, Higgs, Radiation_u, Radiation_d, Radiation_c, Radiation_b, Radiation_g, Lepton, MET, UNKNOWN };
   string translateDecay(Decay&);
-
-  enum class FinalState { 
+  }
+  
+  namespace FinalState {
+  enum FinalState { 
       TopLep_l=0,        // lep   from top decay   () 
       TopLep_b=1,        // b     from top decay   (TF and btag[B])
       TopHad_q=2,        // q     from top decay   (TF and btag[0.5*LF+0.5*C])
@@ -96,14 +105,16 @@ namespace Algo {
       Radiation_b=13,    // extra quark            (TF and btag[B])  
       Radiation_g=14     // extra quark            (TF, no flavour assignment)  
       };
-
+  }
+  
+  
   struct CompFinalState {
-    bool operator()(pair<FinalState,size_t> a, pair<FinalState,size_t> b){
+    bool operator()(pair<FinalState::FinalState,std::size_t> a, pair<FinalState::FinalState,std::size_t> b){
       return (a.first>b.first) || (a.first==b.first && a.second>b.second);
     }
   };
   
-  FinalState partner(const FinalState fs);
+  FinalState::FinalState partner(const FinalState::FinalState fs);
 
   struct Object {   
     LV p4;
@@ -119,16 +130,16 @@ namespace Algo {
     }
   };
 
-  int diff( const vector<std::pair<FinalState,size_t>>&, 
-	    const vector<std::pair<FinalState,size_t>>&,
+  int diff( const vector<std::pair<FinalState::FinalState,std::size_t> >&, 
+	    const vector<std::pair<FinalState::FinalState,std::size_t> >&,
 	    const vector<Algo::Object>&);
 
-  bool filter_by_btag( const vector<std::pair<FinalState,size_t>>&,
+  bool filter_by_btag( const vector<std::pair<FinalState::FinalState,std::size_t> >&,
 		       const vector<Algo::Object>&  );
 
-  bool isRadiation(const FinalState);
+  bool isRadiation(const FinalState::FinalState);
 
-  enum Strategy : int { FirstTrial=0, StartFromLastMinimum=1 };
+  enum Strategy { FirstTrial=0, StartFromLastMinimum=1 };
 
 }
 

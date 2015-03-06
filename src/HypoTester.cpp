@@ -94,7 +94,7 @@ void Algo::HypoTester::add_object_observables( const string& name, const double&
 }
 
 
-void Algo::HypoTester::test( const map<string, vector<Decay>>& all ){
+void Algo::HypoTester::test( const map<string, vector<Decay::Decay>>& all ){
 
   // benchmark time: start clock for global timing
   auto t0 = high_resolution_clock::now();
@@ -184,7 +184,7 @@ void Algo::HypoTester::next_event(){
   delete minimizer;
 }
 
-void Algo::HypoTester::assume( Decay decay ){
+void Algo::HypoTester::assume( Decay::Decay decay ){
   decays.push_back( decay );
 }
 
@@ -212,34 +212,34 @@ void Algo::HypoTester::unpack_assumptions(){
 
    switch( decay ){
 
-   case Algo::Decay::TopHad:
-     particles.push_back( make_pair( FinalState::TopHad_q,    count_TopHad) );
-     particles.push_back( make_pair( FinalState::TopHad_qbar, count_TopHad) );
-     particles.push_back( make_pair( FinalState::TopHad_b,    count_TopHad) );
+   case Algo::Decay::Decay::TopHad:
+     particles.push_back( make_pair( FinalState::FinalState::TopHad_q,    count_TopHad) );
+     particles.push_back( make_pair( FinalState::FinalState::TopHad_qbar, count_TopHad) );
+     particles.push_back( make_pair( FinalState::FinalState::TopHad_b,    count_TopHad) );
      ++count_TopHad;
      nParam_j += 3;
      if(verbose>0){ cout << "\tAdded TopHad" << endl; }
      break;
 
-   case Algo::Decay::TopHadLost:
-     particles.push_back( make_pair( FinalState::TopHad_q,        count_TopHadLost) );
-     particles.push_back( make_pair( FinalState::TopHad_b,        count_TopHadLost) );
+   case Algo::Decay::Decay::TopHadLost:
+     particles.push_back( make_pair( FinalState::FinalState::TopHad_q,        count_TopHadLost) );
+     particles.push_back( make_pair( FinalState::FinalState::TopHad_b,        count_TopHadLost) );
      ++count_TopHadLost;
      nParam_j += 2;
      nParam_m += 2;
      if(verbose>0){ cout << "\tAdded TopHadLost" << endl; }
      break;
 
-   case Algo::Decay::WHad:
-     particles.push_back( make_pair( FinalState::WHad_q,    count_WHad) );
-     particles.push_back( make_pair( FinalState::WHad_qbar, count_WHad) );
+   case Algo::Decay::Decay::WHad:
+     particles.push_back( make_pair( FinalState::FinalState::WHad_q,    count_WHad) );
+     particles.push_back( make_pair( FinalState::FinalState::WHad_qbar, count_WHad) );
      ++count_WHad;
      nParam_j += 2;
      if(verbose>0){ cout << "\tAdded WHad" << endl; }
      break;
 
-   case Algo::Decay::TopLep:
-     particles.push_back( make_pair( FinalState::TopLep_b,    count_TopLep) );
+   case Algo::Decay::Decay::TopLep:
+     particles.push_back( make_pair( FinalState::FinalState::TopLep_b,    count_TopLep) );
      ++count_TopLep;
      ++invisible;
      nParam_j += 1;
@@ -247,44 +247,44 @@ void Algo::HypoTester::unpack_assumptions(){
      if(verbose>0){ cout << "\tAdded TopLep" << endl; }
      break;
 
-   case Algo::Decay::Higgs:
-     particles.push_back( make_pair( FinalState::Higgs_b,    count_Higgs) );
-     particles.push_back( make_pair( FinalState::Higgs_bbar, count_Higgs) );
+   case Algo::Decay::Decay::Higgs:
+     particles.push_back( make_pair( FinalState::FinalState::Higgs_b,    count_Higgs) );
+     particles.push_back( make_pair( FinalState::FinalState::Higgs_bbar, count_Higgs) );
      ++count_Higgs;
      nParam_j += 2;
      if(verbose>0){ cout << "\tAdded Higgs" << endl; }
      break;
 
-   case Algo::Decay::Radiation_u:
-     particles.push_back( make_pair( FinalState::Radiation_u,   count_Radiation_u) );
+   case Algo::Decay::Decay::Radiation_u:
+     particles.push_back( make_pair( FinalState::FinalState::Radiation_u,   count_Radiation_u) );
      if(verbose>0){ cout << "\tAdded Radiation (u)" << endl; }
      ++count_Radiation_u;
      nParam_j += 1;
      break;
 
-   case Algo::Decay::Radiation_d:
-     particles.push_back( make_pair( FinalState::Radiation_d,   count_Radiation_d) );
+   case Algo::Decay::Decay::Radiation_d:
+     particles.push_back( make_pair( FinalState::FinalState::Radiation_d,   count_Radiation_d) );
      if(verbose>0){ cout << "\tAdded Radiation (d)" << endl; }
      ++count_Radiation_d;
      nParam_j += 1;
      break;
 
-   case Algo::Decay::Radiation_c:
-     particles.push_back( make_pair( FinalState::Radiation_c,   count_Radiation_c) );
+   case Algo::Decay::Decay::Radiation_c:
+     particles.push_back( make_pair( FinalState::FinalState::Radiation_c,   count_Radiation_c) );
      if(verbose>0){ cout << "\tAdded Radiation (c)" << endl; }
      ++count_Radiation_c;
      nParam_j += 1;
      break;
 
-   case Algo::Decay::Radiation_b:
-     particles.push_back( make_pair( FinalState::Radiation_b,   count_Radiation_b) );
+   case Algo::Decay::Decay::Radiation_b:
+     particles.push_back( make_pair( FinalState::FinalState::Radiation_b,   count_Radiation_b) );
      if(verbose>0){ cout << "\tAdded Radiation (b)" << endl; }
      ++count_Radiation_b;
      nParam_j += 1;
      break;
 
-   case Algo::Decay::Radiation_g:
-     particles.push_back( make_pair( FinalState::Radiation_g,   count_Radiation_g) );
+   case Algo::Decay::Decay::Radiation_g:
+     particles.push_back( make_pair( FinalState::FinalState::Radiation_g,   count_Radiation_g) );
      if(verbose>0){ cout << "\tAdded Radiation (g)" << endl; }
      ++count_Radiation_g;
      nParam_j += 1;
@@ -302,7 +302,7 @@ void Algo::HypoTester::unpack_assumptions(){
 
     size_t addradiation = p4_Jet.size()-particles.size();
     while( addradiation > 0){
-      particles.push_back( make_pair( FinalState::Radiation_g,   count_Radiation_g) );
+      particles.push_back( make_pair( FinalState::FinalState::Radiation_g,   count_Radiation_g) );
       if(verbose>0){ cout << "\tAdded Radiation (g)" << endl; }
       ++count_Radiation_g;
       nParam_j += 1;
@@ -342,7 +342,7 @@ void Algo::HypoTester::init(){
   count_perm = 0;
 
   // bookkeep to remove unnecessary permutations
-  vector<vector<std::pair<FinalState,size_t>>> logbook;
+  vector<vector<std::pair<FinalState::FinalState,size_t>>> logbook;
 
   // permutations using std library
   do {            
@@ -368,7 +368,7 @@ vector<Algo::DecayBuilder*> Algo::HypoTester::group_particles(){
   
   if(verbose>2){ cout << "Algo::HypoTester::group_particles()" << endl; }
   
-  vector<DecayBuilder*> decayed;
+  vector<Algo::DecayBuilder*> decayed;
   
   //  get all hadronically decaying tops
   for( size_t t_had = 0; t_had < count_TopHad; ++t_had ){
@@ -389,7 +389,7 @@ vector<Algo::DecayBuilder*> Algo::HypoTester::group_particles(){
     Algo::TopHadBuilder* topHadLost = new Algo::TopHadBuilder(verbose);
     Object dummy;
     dummy.init( LV(0.,0.,0.,0.), 'j');
-    topHadLost->init( FinalState::TopHadLost_qbar , dummy , 2*t_had_lost + nParam_j + nParam_n ); // offset
+    topHadLost->init( FinalState::FinalState::TopHadLost_qbar , dummy , 2*t_had_lost + nParam_j + nParam_n ); // offset
     size_t pos = 0;
     for( auto part : particles ){
       if( part.second == t_had_lost ){
@@ -417,7 +417,7 @@ vector<Algo::DecayBuilder*> Algo::HypoTester::group_particles(){
   for( size_t t_lep = 0; t_lep < count_TopLep; ++t_lep ){
     if(verbose>1) cout << "\tProcessing " << t_lep << "th TopLep" << endl;
     Algo::TopLepBuilder* topLep = new Algo::TopLepBuilder(verbose);   
-    topLep->init( FinalState::TopLep_l , p4_Lepton[t_lep] , 2*t_lep + nParam_j ); // offset
+    topLep->init( FinalState::FinalState::TopLep_l , p4_Lepton[t_lep] , 2*t_lep + nParam_j ); // offset
     size_t pos = 0;
     for( auto part : particles ){
       if( part.second == t_lep ) 
@@ -430,10 +430,10 @@ vector<Algo::DecayBuilder*> Algo::HypoTester::group_particles(){
   //  get all radiation
   for( size_t r_had_u = 0; r_had_u < count_Radiation_u; ++r_had_u ){
     if(verbose>1) cout << "\tProcessing " << r_had_u << "th Radiaton (u)" << endl;
-    Algo::RadiationBuilder* rad = new Algo::RadiationBuilder(verbose, Decay::Radiation_u);    
+    Algo::RadiationBuilder* rad = new Algo::RadiationBuilder(verbose, Decay::Decay::Radiation_u);    
     size_t pos = 0;
     for( auto part : particles ){
-      if( part.second == r_had_u && part.first==FinalState::Radiation_u )  
+      if( part.second == r_had_u && part.first==FinalState::FinalState::Radiation_u )  
 	rad->init( part.first, p4_Jet[pos] , pos );
       ++pos;
     }
@@ -442,10 +442,10 @@ vector<Algo::DecayBuilder*> Algo::HypoTester::group_particles(){
 
   for( size_t r_had_d = 0; r_had_d < count_Radiation_d; ++r_had_d ){
     if(verbose>1) cout << "\tProcessing " << r_had_d << "th Radiaton (d)" << endl;
-    Algo::RadiationBuilder* rad = new Algo::RadiationBuilder(verbose, Decay::Radiation_d);
+    Algo::RadiationBuilder* rad = new Algo::RadiationBuilder(verbose, Decay::Decay::Radiation_d);
     size_t pos = 0;
     for( auto part : particles ){
-      if( part.second == r_had_d && part.first==FinalState::Radiation_d )
+      if( part.second == r_had_d && part.first==FinalState::FinalState::Radiation_d )
         rad->init( part.first, p4_Jet[pos] , pos );
       ++pos;
     }
@@ -454,10 +454,10 @@ vector<Algo::DecayBuilder*> Algo::HypoTester::group_particles(){
 
   for( size_t r_had_c = 0; r_had_c < count_Radiation_c; ++r_had_c ){
     if(verbose>1) cout << "\tProcessing " << r_had_c << "th Radiaton (c)" << endl;
-    Algo::RadiationBuilder* rad = new Algo::RadiationBuilder(verbose, Decay::Radiation_c);
+    Algo::RadiationBuilder* rad = new Algo::RadiationBuilder(verbose, Decay::Decay::Radiation_c);
     size_t pos = 0;
     for( auto part : particles ){
-      if( part.second == r_had_c && part.first==FinalState::Radiation_c )
+      if( part.second == r_had_c && part.first==FinalState::FinalState::Radiation_c )
         rad->init( part.first, p4_Jet[pos] , pos );
       ++pos;
     }
@@ -467,10 +467,10 @@ vector<Algo::DecayBuilder*> Algo::HypoTester::group_particles(){
   //  get all radiation                                                                                                                  
   for( size_t r_had_b = 0; r_had_b < count_Radiation_b; ++r_had_b ){
     if(verbose>1) cout << "\tProcessing " << r_had_b << "th Radiaton (b)" << endl;
-    Algo::RadiationBuilder* rad = new Algo::RadiationBuilder(verbose, Decay::Radiation_b);
+    Algo::RadiationBuilder* rad = new Algo::RadiationBuilder(verbose, Decay::Decay::Radiation_b);
     size_t pos = 0;
     for( auto part : particles ){
-      if( part.second == r_had_b && part.first==FinalState::Radiation_b )
+      if( part.second == r_had_b && part.first==FinalState::FinalState::Radiation_b )
         rad->init( part.first, p4_Jet[pos] , pos );
       ++pos;
     }
@@ -479,10 +479,10 @@ vector<Algo::DecayBuilder*> Algo::HypoTester::group_particles(){
 
   for( size_t r_had_g = 0; r_had_g < count_Radiation_g; ++r_had_g ){
     if(verbose>1) cout << "\tProcessing " << r_had_g << "th Radiaton (g)" << endl;
-    Algo::RadiationBuilder* rad = new Algo::RadiationBuilder(verbose, Decay::Radiation_g);
+    Algo::RadiationBuilder* rad = new Algo::RadiationBuilder(verbose, Decay::Decay::Radiation_g);
     size_t pos = 0;
     for( auto part : particles ){
-      if( part.second == r_had_g && part.first==FinalState::Radiation_g )
+      if( part.second == r_had_g && part.first==FinalState::FinalState::Radiation_g )
         rad->init( part.first, p4_Jet[pos] , pos );
       ++pos;
     }
@@ -783,35 +783,35 @@ bool Algo::HypoTester::is_variable_used( const size_t pos ){
   for( auto perm : permutations ){
     for(size_t i = 0 ; i < perm->size() ; ++i){
 
-      DecayBuilder* decay = perm->at(i);
+      Algo::DecayBuilder* decay = perm->at(i);
       vector<size_t> vars ;
 
       switch( decay->get_decay() ){
-      case Decay::TopHad:
+      case Decay::Decay::TopHad:
 	vars = (static_cast<TopHadBuilder*>(decay))->get_variables();
 	if( pos==vars[0] ||  pos==vars[1] ||  pos==vars[2] ) return true;
 	break;
-      case Decay::TopHadLost:
+      case Decay::Decay::TopHadLost:
 	vars = (static_cast<TopHadBuilder*>(decay))->get_variables();
 	if( pos==vars[0] ) return true;
 	break;
-      case Decay::WHad:
+      case Decay::Decay::WHad:
 	vars = (static_cast<WHadBuilder*>(decay))->get_variables();
 	if( pos==vars[0] ) return true; 
 	break;
-      case Decay::Higgs:
+      case Decay::Decay::Higgs:
 	vars = (static_cast<HiggsBuilder*>(decay))->get_variables();  
 	if( pos==vars[0] ) return true; 
 	break;
-      case Decay::TopLep:
+      case Decay::Decay::TopLep:
 	vars = (static_cast<TopLepBuilder*>(decay))->get_variables(); 
 	if( pos==vars[0] || pos==vars[1] ) return true;
 	break;
-      case Decay::Radiation_u:
-      case Decay::Radiation_d:
-      case Decay::Radiation_c:
-      case Decay::Radiation_g:
-      case Decay::Radiation_b:
+      case Decay::Decay::Radiation_u:
+      case Decay::Decay::Radiation_d:
+      case Decay::Decay::Radiation_c:
+      case Decay::Decay::Radiation_g:
+      case Decay::Decay::Radiation_b:
 	vars = (static_cast<RadiationBuilder*>(decay))->get_variables();
         if( pos==vars[0] ) return true;
         break;
@@ -858,9 +858,9 @@ void Algo::HypoTester::print(ostream& os){
     ++count_m;
   }
 
-  os << " -Decays:" << endl;
+  os << " -Decay::Decays:" << endl;
   for( auto decay : decays )
-    os << "\t" << int(decay) << " (=" << Algo::translateDecay(decay)  << ")" << endl;
+    os << "\t" << int(decay) << " (=" << Algo::Decay::translateDecay(decay)  << ")" << endl;
 
   os << " -Partons:" << endl;
   int count_all = 0;  
@@ -895,7 +895,7 @@ void Algo::HypoTester::save_global_variables() {
   } 
 }
 
-void Algo::HypoTester::print_permutation(const vector<std::pair<Algo::FinalState,size_t>>& perm) const {
+void Algo::HypoTester::print_permutation(const vector<std::pair<Algo::FinalState::FinalState,size_t>>& perm) const {
   size_t count{0};
   cout << "\t[";
   for(auto p : perm){
@@ -905,7 +905,7 @@ void Algo::HypoTester::print_permutation(const vector<std::pair<Algo::FinalState
   cout << "]" << endl;
 }
 
-bool Algo::HypoTester::go_to_next(vector<vector<std::pair<Algo::FinalState,size_t>>> & logbook){
+bool Algo::HypoTester::go_to_next(vector<vector<std::pair<Algo::FinalState::FinalState,size_t>>> & logbook){
 
   // filter out permutations with invalid quark <-> jet assignment                                                                                     
   // (only if BTAG_RND is filled and its value less than 0.5)                                                                                          

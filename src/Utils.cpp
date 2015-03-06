@@ -11,7 +11,6 @@ double Algo::pdf_btag(double* x, double* par){
   if(x==nullptr || par==nullptr) return val;
 
   size_t bin = Algo::eta_to_bin(par[2]);
-  if(bin<0) return val;
 
   Algo::QuarkType type = static_cast<Algo::QuarkType>(static_cast<int>(par[0])); 
   double btag = x[0];
@@ -58,7 +57,7 @@ size_t Algo::eta_to_bin( const LV& lv ){
   return -99;
 }
 
-string Algo::translateDecay(Algo::Decay& decay){
+string Algo::Decay::translateDecay(Algo::Decay::Decay& decay){
   
   string name = "";
   switch( decay ){
@@ -105,8 +104,8 @@ string Algo::translateDecay(Algo::Decay& decay){
 }
 
 
-int Algo::diff( const std::vector<std::pair<FinalState,size_t>>& a, 
-		const std::vector<std::pair<FinalState,size_t>>& b, 
+int Algo::diff( const std::vector<std::pair<FinalState::FinalState,size_t>>& a, 
+		const std::vector<std::pair<FinalState::FinalState,size_t>>& b, 
 		const vector<Algo::Object>& jets){
   
   if(a.size()!=b.size())    return -1;
@@ -119,7 +118,7 @@ int Algo::diff( const std::vector<std::pair<FinalState,size_t>>& a,
     auto id_a = a[i].second;
     auto id_b = b[i].second;
 
-    FinalState fs_abar = Algo::partner(fs_a);
+    FinalState::FinalState fs_abar = Algo::partner(fs_a);
     bool btagd  = (jets[i]).isDiscriminating("BTAG");
     bool same   = (id_a==id_b);
     bool matchL = (fs_abar==fs_b);
@@ -129,26 +128,26 @@ int Algo::diff( const std::vector<std::pair<FinalState,size_t>>& a,
     //matchL = matchT;
 
     switch(fs_a){
-    case FinalState::Radiation_g:
-    case FinalState::Radiation_u:
-    case FinalState::Radiation_d:
-    case FinalState::Radiation_c:
-    case FinalState::Radiation_b:      
+    case FinalState::FinalState::Radiation_g:
+    case FinalState::FinalState::Radiation_u:
+    case FinalState::FinalState::Radiation_d:
+    case FinalState::FinalState::Radiation_c:
+    case FinalState::FinalState::Radiation_b:      
       if( btagd && !(matchT || matchL)) return 1;
       if(!btagd && !israd)  return 2;
       continue;
       break;
-    case FinalState::TopHad_q: 
-    case FinalState::TopHad_qbar:  
-    case FinalState::WHad_q:   
-    case FinalState::WHad_qbar:   
+    case FinalState::FinalState::TopHad_q: 
+    case FinalState::FinalState::TopHad_qbar:  
+    case FinalState::FinalState::WHad_q:   
+    case FinalState::FinalState::WHad_qbar:   
       if(!same)             return 3;
       if( btagd && !matchT) return 4;
       if(!btagd && !(matchL || matchT)) return 5;
       continue;
       break;       
-    case FinalState::Higgs_b: 
-    case FinalState::Higgs_bbar: 
+    case FinalState::FinalState::Higgs_b: 
+    case FinalState::FinalState::Higgs_bbar: 
       if(!same)                return 6;
       if(!(matchL || matchT) ) return 7;        
       continue;
@@ -160,8 +159,8 @@ int Algo::diff( const std::vector<std::pair<FinalState,size_t>>& a,
     }
 
     /*
-    if( !( a[i].first == FinalState::Radiation_u || a[i].first == FinalState::Radiation_d || 
-	   a[i].first == FinalState::Radiation_b || a[i].first == FinalState::Radiation_g )){
+    if( !( a[i].first == FinalState::FinalState::Radiation_u || a[i].first == FinalState::FinalState::Radiation_d || 
+	   a[i].first == FinalState::FinalState::Radiation_b || a[i].first == FinalState::FinalState::Radiation_g )){
       if( a[i].first != b[i].first || a[i].second != b[i].second ) return false;
     }
     else{
@@ -182,7 +181,7 @@ int Algo::diff( const std::vector<std::pair<FinalState,size_t>>& a,
    Input:  a = test, b = target                                                                                                                        
    Output: true if it is a good permutation, false otherwise 
 */
-bool Algo::filter_by_btag( const std::vector<std::pair<FinalState,size_t>>& particles, const vector<Algo::Object>& jets ){
+bool Algo::filter_by_btag( const std::vector<std::pair<FinalState::FinalState,size_t>>& particles, const vector<Algo::Object>& jets ){
   
   bool passes {true};
 
@@ -197,24 +196,24 @@ bool Algo::filter_by_btag( const std::vector<std::pair<FinalState,size_t>>& part
 
     double btag = (jets[count].obs).find("BTAG")->second;
     switch( p.first ){
-    case FinalState::TopHad_q:
-    case FinalState::TopHad_qbar:
-    case FinalState::WHad_q:
-    case FinalState::WHad_qbar:
-    case FinalState::Radiation_u:
-    case FinalState::Radiation_d:
-    case FinalState::Radiation_c:
-    case FinalState::Radiation_g:
+    case FinalState::FinalState::TopHad_q:
+    case FinalState::FinalState::TopHad_qbar:
+    case FinalState::FinalState::WHad_q:
+    case FinalState::FinalState::WHad_qbar:
+    case FinalState::FinalState::Radiation_u:
+    case FinalState::FinalState::Radiation_d:
+    case FinalState::FinalState::Radiation_c:
+    case FinalState::FinalState::Radiation_g:
       if( btag>0.5 ){
 	passes = false;
 	return passes;
       }
       break;
-    case FinalState::TopLep_b:
-    case FinalState::TopHad_b:
-    case FinalState::Higgs_b:
-    case FinalState::Higgs_bbar:
-    case FinalState::Radiation_b:
+    case FinalState::FinalState::TopLep_b:
+    case FinalState::FinalState::TopHad_b:
+    case FinalState::FinalState::Higgs_b:
+    case FinalState::FinalState::Higgs_bbar:
+    case FinalState::FinalState::Radiation_b:
       if( btag<0.5 ){
 	passes = false;
 	return passes;
@@ -229,25 +228,25 @@ bool Algo::filter_by_btag( const std::vector<std::pair<FinalState,size_t>>& part
   return passes;
 }
 
-Algo::FinalState Algo::partner( const Algo::FinalState fs){
+Algo::FinalState::FinalState Algo::partner( const Algo::FinalState::FinalState fs){
   switch( fs ){
-  case FinalState::TopHad_q:
-    return FinalState::TopHad_qbar;
+  case FinalState::FinalState::TopHad_q:
+    return FinalState::FinalState::TopHad_qbar;
     break;
-  case FinalState::TopHad_qbar:
-    return FinalState::TopHad_q;
+  case FinalState::FinalState::TopHad_qbar:
+    return FinalState::FinalState::TopHad_q;
     break;
-  case FinalState::WHad_q:
-    return FinalState::WHad_qbar;
+  case FinalState::FinalState::WHad_q:
+    return FinalState::FinalState::WHad_qbar;
     break;
-  case FinalState::WHad_qbar:
-    return FinalState::WHad_q;
+  case FinalState::FinalState::WHad_qbar:
+    return FinalState::FinalState::WHad_q;
     break;
-  case FinalState::Higgs_b:
-    return FinalState::Higgs_bbar;
+  case FinalState::FinalState::Higgs_b:
+    return FinalState::FinalState::Higgs_bbar;
     break;
-  case FinalState::Higgs_bbar:
-    return FinalState::Higgs_b;
+  case FinalState::FinalState::Higgs_bbar:
+    return FinalState::FinalState::Higgs_b;
     break;
   default:
     return fs;
@@ -256,8 +255,8 @@ Algo::FinalState Algo::partner( const Algo::FinalState fs){
   return fs;
 }
 
-bool Algo::isRadiation( const Algo::FinalState fs ){
-  return (fs==FinalState::Radiation_u || fs==FinalState::Radiation_d || fs==FinalState::Radiation_c || fs==FinalState::Radiation_b || fs==FinalState::Radiation_g);
+bool Algo::isRadiation( const Algo::FinalState::FinalState fs ){
+  return (fs==FinalState::FinalState::Radiation_u || fs==FinalState::FinalState::Radiation_d || fs==FinalState::FinalState::Radiation_c || fs==FinalState::FinalState::Radiation_b || fs==FinalState::FinalState::Radiation_g);
 }
 
 

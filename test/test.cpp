@@ -51,13 +51,13 @@ int main(){
   met.SetPtEtaPhiM( 0., 0., 0., 0.);
   //tester->push_back_object( met  , 'm');
 
-  map<string, vector<Algo::Decay> > hypotheses;
-  hypotheses["H0"] = {Algo::Decay::TopHad};
-  //hypotheses["H1"] = {Algo::Decay::Radiation_b, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b};
-  //hypotheses["H2"] = {Algo::Decay::Radiation_b, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b};
-  //hypotheses["H3"] = {Algo::Decay::Radiation_b, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b};
-  //hypotheses["H4"] = {Algo::Decay::Radiation_b, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b};
-  //hypotheses["H2"] = {Algo::Decay::WHad, Algo::Decay::Radiation_b};
+  map<string, vector<Algo::Decay::Decay> > hypotheses;
+  hypotheses["H0"] = {Algo::Decay::Decay::TopHad};
+  //hypotheses["H1"] = {Algo::Decay::Decay::Radiation_b, Algo::Decay::Decay::Radiation_b, Algo::Decay::Decay::Radiation_b};
+  //hypotheses["H2"] = {Algo::Decay::Decay::Radiation_b, Algo::Decay::Decay::Radiation_b, Algo::Decay::Decay::Radiation_b};
+  //hypotheses["H3"] = {Algo::Decay::Decay::Radiation_b, Algo::Decay::Decay::Radiation_b, Algo::Decay::Decay::Radiation_b};
+  //hypotheses["H4"] = {Algo::Decay::Decay::Radiation_b, Algo::Decay::Decay::Radiation_b, Algo::Decay::Decay::Radiation_b};
+  //hypotheses["H2"] = {Algo::Decay::Decay::WHad, Algo::Decay::Decay::Radiation_b};
   tester->test( hypotheses );
 
   TFile* fout = new TFile("test/Test.root", "RECREATE");
@@ -70,10 +70,10 @@ int main(){
 
   /*
   // assumptions
-  //tester->assume( Algo::Decay::TopHad  );
-  //tester->assume( Algo::Decay::WHad  );
-  tester->assume( Algo::Decay::TopLep   );
-  //tester->assume( Algo::Decay::Higgs );
+  //tester->assume( Algo::Decay::Decay::TopHad  );
+  //tester->assume( Algo::Decay::Decay::WHad  );
+  tester->assume( Algo::Decay::Decay::TopLep   );
+  //tester->assume( Algo::Decay::Decay::Higgs );
 
   // printout
   tester->print(cout);

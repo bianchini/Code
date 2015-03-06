@@ -1,0 +1,7 @@
+<lcgdict>
+        <class name="Algo::HypoTester"/>
+        <class name="Algo::Event"/>
+        <class name="std::vector<Algo::Decay::Decay>"/>
+        <class name="std::map<std::string,std::vector<Algo::Decay::Decay> >"/>
+        <enum name="Algo::Decay::Decay"/>
+</lcgdict>

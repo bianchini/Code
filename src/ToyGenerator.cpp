@@ -22,7 +22,7 @@ Algo::ToyGenerator::~ToyGenerator(){
   delete f_eta_rad;
 }
 
-vector<Algo::Object> Algo::ToyGenerator::generate( const vector<Decay>& decays, const int& smear, const int& btag){
+vector<Algo::Object> Algo::ToyGenerator::generate( const vector<Decay::Decay>& decays, const int& smear, const int& btag){
   
   vector<Algo::Object> output;
 
@@ -35,7 +35,7 @@ vector<Algo::Object> Algo::ToyGenerator::generate( const vector<Decay>& decays, 
 }
 
 
-void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, const int& smear, const int& btag ){
+void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay::Decay type, const int& smear, const int& btag ){
 
   int break_loop = 0;
   double pt_rad  = 20.;
@@ -135,7 +135,7 @@ void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, c
 
   switch(type){
 
-  case Decay::TopHad:
+  case Decay::Decay::TopHad:
     if(smear){
       smear_by_TF(p4_q,   'q');
       smear_by_TF(p4_qbar,'q');
@@ -153,7 +153,7 @@ void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, c
     out.push_back( out2 );
     out.push_back( out3 );
     break;
-  case Decay::TopHadLost:
+  case Decay::Decay::TopHadLost:
     if(smear){
       smear_by_TF(p4_q,   'q');
       smear_by_TF(p4_b,   'b');
@@ -167,7 +167,7 @@ void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, c
     out.push_back( out1 );
     out.push_back( out3 );
     break;
-  case Decay::TopLep:
+  case Decay::Decay::TopLep:
     if(smear){
       smear_by_TF(p4_b,   'b');
       smear_by_TF(p4_qbar,'m');
@@ -182,7 +182,7 @@ void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, c
     out.push_back( out2 );
     out.push_back( out3 );
     break;
-  case Decay::WHad:
+  case Decay::Decay::WHad:
     if(smear){
       smear_by_TF(p4_q,   'q');
       smear_by_TF(p4_qbar,'q');
@@ -196,7 +196,7 @@ void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, c
     out.push_back( out1 );
     out.push_back( out2 );
     break;
-  case Decay::Higgs:
+  case Decay::Decay::Higgs:
     if(smear){
       smear_by_TF(p4_bh,   'b');
       smear_by_TF(p4_bbarh,'b');
@@ -210,7 +210,7 @@ void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, c
     out.push_back( out1 );
     out.push_back( out2 );
     break;
-  case Decay::Radiation_u:
+  case Decay::Decay::Radiation_u:
     if(smear) 
       smear_by_TF(p4_q, 'q');
     out1.init( p4_q,    'q');
@@ -219,7 +219,7 @@ void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, c
     }
     out.push_back( out1 );
     break;
-  case Decay::Radiation_d:
+  case Decay::Decay::Radiation_d:
     if(smear)
       smear_by_TF(p4_qbar, 'q');
     out1.init( p4_qbar,    'q');
@@ -228,7 +228,7 @@ void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, c
     }
     out.push_back( out1 );
     break;
-  case Decay::Radiation_g:
+  case Decay::Decay::Radiation_g:
     if(smear)
       smear_by_TF(p4_rad, 'q');
     out1.init( p4_rad,    'q');
@@ -237,7 +237,7 @@ void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, c
     }
     out.push_back( out1 );
     break;
-  case Decay::Radiation_c:
+  case Decay::Decay::Radiation_c:
     if(smear)
       smear_by_TF(p4_rad, 'q');
     out1.init( p4_rad,    'q');
@@ -246,7 +246,7 @@ void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, c
     }
     out.push_back( out1 );
     break;
-  case Decay::Radiation_b:
+  case Decay::Decay::Radiation_b:
     if(smear)
       smear_by_TF(p4_rad, 'b');
     out1.init( p4_rad,    'b');
@@ -255,11 +255,11 @@ void Algo::ToyGenerator::generate_hypo( vector<Algo::Object>& out, Decay type, c
     }
     out.push_back( out1 );
     break;
-  case Decay::Lepton:
+  case Decay::Decay::Lepton:
     out1.init( p4_q,    'l');
     out.push_back( out1 );
     break;
-  case Decay::MET:
+  case Decay::Decay::MET:
     if(smear)
       smear_by_TF(p4_noise, 'm');
     out1.init( p4_noise,    'm');
@@ -368,7 +368,3 @@ void Algo::ToyGenerator::smear_by_TF(TLorentzVector& lv, char type){
 
   return;
 }
-
-
-
-

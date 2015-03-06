@@ -74,8 +74,8 @@ void Algo::TransferFunction::init(const double* param){
 
 //////////////////////////////////////////////////////
 
-Algo::CombBuilder::CombBuilder(vector<DecayBuilder*>&& comb, int verb) {
-  combined = move(comb);
+Algo::CombBuilder::CombBuilder(vector<DecayBuilder*> comb, int verb) {
+  combined = comb;
   verbose  = verb;
 }
 
@@ -126,23 +126,23 @@ void Algo::CombBuilder::print(ostream& os){
     comb->print(os);
 }
 
-Algo::DecayBuilder* Algo::CombBuilder::at( const size_t& pos ){
-  return ( (pos>=0 && pos<combined.size()) ? combined[pos] : nullptr);
+Algo::DecayBuilder* Algo::CombBuilder::at( const std::size_t pos ){
+  return ( (pos<combined.size()) ? combined[pos] : nullptr);
 }
 
-size_t Algo::CombBuilder::size(){
+std::size_t Algo::CombBuilder::size(){
   return combined.size();
 }
 
-Algo::Decay Algo::CombBuilder::get_decay(){
-  return Decay::UNKNOWN;
+Algo::Decay::Decay Algo::CombBuilder::get_decay(){
+  return Decay::Decay::UNKNOWN;
 }
 
 //////////////////////////////////////////////////////
 
 
 Algo::METBuilder::METBuilder(int verb) {
-  decay    = Decay::MET;
+  decay    = Decay::Decay::MET;
   tf_met   = nullptr;
   verbose  = verb;
   saturate = 0;
@@ -180,19 +180,19 @@ double Algo::METBuilder::eval(const double* xx,  LV& lv) {
 
 
 void Algo::METBuilder::print(ostream& os){
-  os << "\t\t\tDecay: " <<  Algo::translateDecay(decay) <<  endl; 
+  os << "\t\t\tDecay: " <<  Algo::Decay::translateDecay(decay) <<  endl; 
   os << "\t\t\tMET:   p4 = (" << p4_invisible.Pt() << ", " << p4_invisible.Phi() << ")" << endl;
   if(tf_met!=nullptr)  os << "\t\t\tTF MET   : " << tf_met->getFormula() << endl;
 }
 
-Algo::Decay Algo::METBuilder::get_decay(){
+Algo::Decay::Decay Algo::METBuilder::get_decay(){
   return decay;
 }
 
 //////////////////////////////////////////////////////
 
 Algo::TopHadBuilder::TopHadBuilder (int verb) {
-  decay     = Decay::TopHad;
+  decay     = Decay::Decay::TopHad;
   errFlag   = 0;
   tf_q      = nullptr;
   tf_qbar   = nullptr;
@@ -209,7 +209,7 @@ Algo::TopHadBuilder::~TopHadBuilder() {
 }
 
 void Algo::TopHadBuilder::print(ostream& os){
-  os << "\t\t\tDecay: " <<  Algo::translateDecay(decay) << endl; 
+  os << "\t\t\tDecay: " <<  Algo::Decay::translateDecay(decay) << endl; 
   os << "\t\t\tq    [" << index_q    << "]: p4 = (" << p4_q.Pt() << ", " << p4_q.Eta()  << ", " << p4_q.Phi() << ", " << p4_q.M() << ")" << endl; 
   if(qbar_lost==0)
     os << "\t\t\tqbar [" << index_qbar << "]: p4 = (" << p4_qbar.Pt() << ", " << p4_qbar.Eta()  << ", " << p4_qbar.Phi() << ", " << p4_qbar.M() << ")" <<endl; 
@@ -221,12 +221,12 @@ void Algo::TopHadBuilder::print(ostream& os){
 
 
 
-void Algo::TopHadBuilder::init( const FinalState& fs, const Object& obj, const size_t& sz ){
+void Algo::TopHadBuilder::init( const FinalState::FinalState& fs, const Object& obj, const std::size_t sz ){
 
   TransferFunction* tf = nullptr;
 
   switch( fs ){
-  case FinalState::TopHad_q:
+  case FinalState::FinalState::TopHad_q:
     p4_q    = obj.p4;
     index_q = sz;
     tf = new TransferFunction("tf_q", TF_Q, verbose);    
@@ -234,7 +234,7 @@ void Algo::TopHadBuilder::init( const FinalState& fs, const Object& obj, const s
     for(auto iobs : obj.obs ) tf->add_pdf_obs( iobs.first, obj, Algo::QuarkTypeUp );      
     tf_q    = tf;
     break;
-  case FinalState::TopHad_qbar:
+  case FinalState::FinalState::TopHad_qbar:
     p4_qbar    = obj.p4;
     index_qbar = sz;
     tf = new TransferFunction("tf_qbar", TF_Q , verbose);
@@ -242,14 +242,14 @@ void Algo::TopHadBuilder::init( const FinalState& fs, const Object& obj, const s
     for(auto iobs : obj.obs ) tf->add_pdf_obs( iobs.first, obj, Algo::QuarkTypeDown );      
     tf_qbar    = tf;
     break;
-  case FinalState::TopHadLost_qbar:
+  case FinalState::FinalState::TopHadLost_qbar:
     index_qbar = sz;
     tf = new TransferFunction("tfLost_qbar", TF_Q_CUM , verbose);
     tf->set_threshold(PTTHRESHOLD);
     tf_qbar    = tf;
     ++qbar_lost;
     break;
-  case FinalState::TopHad_b:
+  case FinalState::FinalState::TopHad_b:
     p4_b    = obj.p4;
     index_b = sz;
     tf = new TransferFunction("tf_b", TF_B , verbose);
@@ -371,12 +371,12 @@ double Algo::TopHadBuilder::eval( const double *xx, LV& invisible ) {
   return val;
 }
 
-Algo::Decay Algo::TopHadBuilder::get_decay(){
+Algo::Decay::Decay Algo::TopHadBuilder::get_decay(){
   return decay;
 }
 
-vector<size_t> Algo::TopHadBuilder::get_variables(){
-  vector<size_t> out;
+vector<std::size_t> Algo::TopHadBuilder::get_variables(){
+  vector<std::size_t> out;
   out.push_back( index_q );
   if(qbar_lost){
     out.push_back( index_qbar );
@@ -387,7 +387,7 @@ vector<size_t> Algo::TopHadBuilder::get_variables(){
 //////////////////////////////////////////////////////
 
 Algo::WHadBuilder::WHadBuilder (int verb) {
-  decay   = Decay::WHad;
+  decay   = Decay::Decay::WHad;
   errFlag = 0;
   tf_q    = nullptr;
   tf_qbar = nullptr;
@@ -401,7 +401,7 @@ Algo::WHadBuilder::~WHadBuilder() {
 };
 
 void Algo::WHadBuilder::print(ostream& os){
-  os << "\t\t\tDecay: " << Algo::translateDecay(decay) << endl; 
+  os << "\t\t\tDecay: " << Algo::Decay::translateDecay(decay) << endl; 
   os << "\t\t\tq    [" << index_q    << "]: p4 = (" << p4_q.Pt() << ", " << p4_q.Eta()  << ", " << p4_q.Phi() << ", " << p4_q.M() << ")" << endl; 
   os << "\t\t\tqbar [" << index_qbar << "]: p4 = (" << p4_qbar.Pt() << ", " << p4_qbar.Eta()  << ", " << p4_qbar.Phi() << ", " << p4_qbar.M() << ")" <<endl; 
   if(tf_q!=nullptr)    os << "\t\t\tTF q   : " << tf_q->getFormula() << endl;
@@ -409,12 +409,12 @@ void Algo::WHadBuilder::print(ostream& os){
 }
 
 
-void Algo::WHadBuilder::init( const FinalState& fs, const Object& obj, const size_t& sz ){
+void Algo::WHadBuilder::init( const FinalState::FinalState& fs, const Object& obj, const std::size_t sz ){
 
   TransferFunction* tf = nullptr;
 
   switch( fs ){
-  case FinalState::WHad_q:
+  case FinalState::FinalState::WHad_q:
     p4_q    = obj.p4;
     index_q = sz;
     tf = new TransferFunction("tf_q", TF_Q , verbose);
@@ -422,7 +422,7 @@ void Algo::WHadBuilder::init( const FinalState& fs, const Object& obj, const siz
     for(auto iobs : obj.obs ) tf->add_pdf_obs( iobs.first, obj, Algo::QuarkTypeUp );      
     tf_q    = tf;
     break;
-  case FinalState::WHad_qbar:
+  case FinalState::FinalState::WHad_qbar:
     p4_qbar    = obj.p4;
     index_qbar = sz;
     tf = new TransferFunction("tf_qbar", TF_Q , verbose);
@@ -468,12 +468,12 @@ double Algo::WHadBuilder::eval( const double *xx, LV& invisible ) {
 
 }
 
-Algo::Decay Algo::WHadBuilder::get_decay(){
+Algo::Decay::Decay Algo::WHadBuilder::get_decay(){
   return decay;
 }
 
-vector<size_t> Algo::WHadBuilder::get_variables(){
-  vector<size_t> out;
+vector<std::size_t> Algo::WHadBuilder::get_variables(){
+  vector<std::size_t> out;
   out.push_back( index_q );
   return out;
 }
@@ -481,7 +481,7 @@ vector<size_t> Algo::WHadBuilder::get_variables(){
 //////////////////////////////////////////////////////
 
 Algo::HiggsBuilder::HiggsBuilder (int verb) {
-  decay   = Decay::Higgs;
+  decay   = Decay::Decay::Higgs;
   errFlag = 0;
   tf_b    = nullptr;
   tf_bbar = nullptr;
@@ -495,7 +495,7 @@ Algo::HiggsBuilder::~HiggsBuilder() {
 };
 
 void Algo::HiggsBuilder::print(ostream& os){
-  os << "\t\t\tDecay: " << Algo::translateDecay(decay) << endl; 
+  os << "\t\t\tDecay: " << Algo::Decay::translateDecay(decay) << endl; 
   os << "\t\t\tb    [" << index_b    << "]: p4 = (" << p4_b.Pt() << ", " << p4_b.Eta()  << ", " << p4_b.Phi() << ", " << p4_b.M() << ")" << endl; 
   os << "\t\t\tbbar [" << index_bbar << "]: p4 = (" << p4_bbar.Pt() << ", " << p4_bbar.Eta()  << ", " << p4_bbar.Phi() << ", " << p4_bbar.M() << ")" <<endl; 
   if(tf_b!=nullptr)    os << "\t\t\tTF b   : " << tf_b->getFormula() << endl;
@@ -504,12 +504,12 @@ void Algo::HiggsBuilder::print(ostream& os){
 
 
 
-void Algo::HiggsBuilder::init( const FinalState& fs, const Object& obj, const size_t& sz ){
+void Algo::HiggsBuilder::init( const FinalState::FinalState& fs, const Object& obj, const std::size_t sz ){
 
   TransferFunction* tf = nullptr;
 
   switch( fs ){
-  case FinalState::Higgs_b:
+  case FinalState::FinalState::Higgs_b:
     p4_b    = obj.p4;
     index_b = sz;
     tf = new TransferFunction("tf_b", TF_B , verbose);
@@ -517,7 +517,7 @@ void Algo::HiggsBuilder::init( const FinalState& fs, const Object& obj, const si
     for(auto iobs : obj.obs ) tf->add_pdf_obs( iobs.first, obj, Algo::QuarkTypeBottom );      
     tf_b    = tf;
     break;
-  case FinalState::Higgs_bbar:
+  case FinalState::FinalState::Higgs_bbar:
     p4_bbar    = obj.p4;
     index_bbar = sz;
     tf = new TransferFunction("tf_bbar", TF_B , verbose);
@@ -615,12 +615,12 @@ double Algo::HiggsBuilder::eval( const double *xx, LV& invisible ) {
 
 }
 
-Algo::Decay Algo::HiggsBuilder::get_decay(){
+Algo::Decay::Decay Algo::HiggsBuilder::get_decay(){
   return decay;
 }
 
-vector<size_t> Algo::HiggsBuilder::get_variables(){
-  vector<size_t> out;
+vector<std::size_t> Algo::HiggsBuilder::get_variables(){
+  vector<std::size_t> out;
   out.push_back( index_b );
   return out;
 }
@@ -628,7 +628,7 @@ vector<size_t> Algo::HiggsBuilder::get_variables(){
 //////////////////////////////////////////////////////
 
 Algo::TopLepBuilder::TopLepBuilder (int verb) {
-  decay   = Decay::TopLep;
+  decay   = Decay::Decay::TopLep;
   errFlag = 0;
   tf_b    = nullptr;
   verbose = verb;
@@ -640,7 +640,7 @@ Algo::TopLepBuilder::~TopLepBuilder() {
 }
 
 void Algo::TopLepBuilder::print(ostream& os){
-  os << "\t\t\tDecay: " <<  Algo::translateDecay(decay) << endl; 
+  os << "\t\t\tDecay: " <<  Algo::Decay::translateDecay(decay) << endl; 
   os << "\t\t\tlep  [" << index_l    << "]: p4 = (" << p4_l.Pt() << ", " << p4_l.Eta()  << ", " << p4_l.Phi() << ", " << p4_l.M() << ")" <<endl; 
   os << "\t\t\tb    [" << index_b    << "]: p4 = (" << p4_b.Pt() << ", " << p4_b.Eta()  << ", " << p4_b.Phi() << ", " << p4_b.M() << ")" <<endl; 
   if(tf_b!=nullptr)    os << "\t\t\tTF b   : " << tf_b->getFormula() << endl;
@@ -648,16 +648,16 @@ void Algo::TopLepBuilder::print(ostream& os){
 
 
 
-void Algo::TopLepBuilder::init( const FinalState& fs, const Object& obj, const size_t& sz ){
+void Algo::TopLepBuilder::init( const FinalState::FinalState& fs, const Object& obj, const std::size_t sz ){
 
   TransferFunction* tf = nullptr;
 
   switch( fs ){
-  case FinalState::TopLep_l:
+  case FinalState::FinalState::TopLep_l:
     p4_l    = obj.p4;
     index_l = sz;
     break;
-  case FinalState::TopLep_b:
+  case FinalState::FinalState::TopLep_b:
     p4_b    = obj.p4;
     index_b = sz;
     tf = new TransferFunction("tf_b", TF_B , verbose);
@@ -766,19 +766,19 @@ double Algo::TopLepBuilder::eval( const double *xx, LV& invisible ) {
   
 }
 
-Algo::Decay Algo::TopLepBuilder::get_decay(){
+Algo::Decay::Decay Algo::TopLepBuilder::get_decay(){
   return decay;
 }
 
-vector<size_t> Algo::TopLepBuilder::get_variables(){
-  vector<size_t> out;
+vector<std::size_t> Algo::TopLepBuilder::get_variables(){
+  vector<std::size_t> out;
   out.push_back( index_l );
   out.push_back( index_l + 1);
   return out;
 }
 //////////////////////////////////////////////////////
 
-Algo::RadiationBuilder::RadiationBuilder (int verb, Decay type) { 
+Algo::RadiationBuilder::RadiationBuilder (int verb, Decay::Decay type) { 
   decay   = type;
   verbose = verb;
   tf_g    = nullptr;   
@@ -789,29 +789,29 @@ Algo::RadiationBuilder::~RadiationBuilder() {
   if( tf_g   != nullptr ) delete tf_g;
 };
 
-Algo::Decay Algo::RadiationBuilder::get_decay() {
+Algo::Decay::Decay Algo::RadiationBuilder::get_decay() {
   return decay;
 }
 
-vector<size_t> Algo::RadiationBuilder::get_variables(){
-  vector<size_t> out;
+vector<std::size_t> Algo::RadiationBuilder::get_variables(){
+  vector<std::size_t> out;
   out.push_back( index_g );
   return out;
 }
 
 void Algo::RadiationBuilder::print(ostream& os){
-  os << "\t\t\tDecay: " << Algo::translateDecay(decay) << endl; 
+  os << "\t\t\tDecay: " << Algo::Decay::translateDecay(decay) << endl; 
   os << "\t\t\trad" << "    [" << index_g    << "]: p4 = (" << p4_g.Pt() << ", " << p4_g.Eta()  << ", " << p4_g.Phi() << ", " << p4_g.M() << ")" << endl; 
   if(tf_g!=nullptr)    os << "\t\t\tTF " << tf_g->getFormula() << endl;
 }
 
 
-void Algo::RadiationBuilder::init( const FinalState& fs, const Object& obj, const size_t& sz ){
+void Algo::RadiationBuilder::init( const FinalState::FinalState& fs, const Object& obj, const std::size_t sz ){
 
   TransferFunction* tf = nullptr;
 
   switch( fs ){
-  case FinalState::Radiation_u:
+  case FinalState::FinalState::Radiation_u:
     p4_g    = obj.p4;
     index_g = sz;
     tf = new TransferFunction("tf_q", TF_Q , verbose);
@@ -819,7 +819,7 @@ void Algo::RadiationBuilder::init( const FinalState& fs, const Object& obj, cons
     for(auto iobs : obj.obs ) tf->add_pdf_obs( iobs.first, obj, Algo::QuarkTypeUp );      
     tf_g    = tf;
     break;
-  case FinalState::Radiation_d:
+  case FinalState::FinalState::Radiation_d:
     p4_g    = obj.p4;
     index_g = sz;
     tf = new TransferFunction("tf_q", TF_Q , verbose);
@@ -827,7 +827,7 @@ void Algo::RadiationBuilder::init( const FinalState& fs, const Object& obj, cons
     for(auto iobs : obj.obs ) tf->add_pdf_obs( iobs.first, obj, Algo::QuarkTypeDown );
     tf_g    = tf;
     break;
-  case FinalState::Radiation_c:
+  case FinalState::FinalState::Radiation_c:
     p4_g    = obj.p4;
     index_g = sz;
     tf = new TransferFunction("tf_q", TF_Q , verbose);
@@ -835,7 +835,7 @@ void Algo::RadiationBuilder::init( const FinalState& fs, const Object& obj, cons
     for(auto iobs : obj.obs ) tf->add_pdf_obs( iobs.first, obj, Algo::QuarkTypeCharm );
     tf_g    = tf;
     break;
-  case FinalState::Radiation_b:
+  case FinalState::FinalState::Radiation_b:
     p4_g    = obj.p4;
     index_g = sz;
     tf = new TransferFunction("tf_b", TF_B , verbose);
@@ -843,7 +843,7 @@ void Algo::RadiationBuilder::init( const FinalState& fs, const Object& obj, cons
     for(auto iobs : obj.obs ) tf->add_pdf_obs( iobs.first, obj, Algo::QuarkTypeBottom );      
     tf_g    = tf;
     break;
-  case FinalState::Radiation_g: //do not assume the parton flavour
+  case FinalState::FinalState::Radiation_g: //do not assume the parton flavour
     p4_g    = obj.p4;
     index_g = sz;
     tf = new TransferFunction("tf_q", TF_Q , verbose);
