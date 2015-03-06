@@ -86,9 +86,9 @@ namespace MEM {
 
     double probability(const double*, const vector<int>&) const;
 
-    double t_decay_amplitude(const TLorentzVector&, const TLorentzVector&, const TLorentzVector&) const;
+    double t_Decay_amplitude(const TLorentzVector&, const TLorentzVector&, const TLorentzVector&) const;
 
-    double H_decay_amplitude(const TLorentzVector&, const TLorentzVector&) const;
+    double H_Decay_amplitude(const TLorentzVector&, const TLorentzVector&) const;
 
     double pdf(const double&, const double&, const double&) const;
 

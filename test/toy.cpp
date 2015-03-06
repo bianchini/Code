@@ -101,132 +101,132 @@ int main(int argc, char *argv[]){
 
   Algo::ToyGenerator* toyGenerator = new Algo::ToyGenerator(verbose, seed);
 
-  vector<Algo::Decay> decays;
+  vector<Algo::Decay::Decay> Decay::Decays;
 
   switch( gen_hypo ){
   case GEN_tH_wH:
-    decays.push_back( Algo::Decay::TopHad );
-    decays.push_back( Algo::Decay::Higgs ); 
+    Decay::Decays.push_back( Algo::Decay::Decay::TopHad );
+    Decay::Decays.push_back( Algo::Decay::Decay::Higgs ); 
     break;
   case GEN_tH_tL:
-    decays.push_back( Algo::Decay::TopHad );  
-    decays.push_back( Algo::Decay::TopLep );   
+    Decay::Decays.push_back( Algo::Decay::Decay::TopHad );  
+    Decay::Decays.push_back( Algo::Decay::Decay::TopLep );   
     break;
   case GEN_tH_tL_hH:
-    decays.push_back( Algo::Decay::TopHad );
-    decays.push_back( Algo::Decay::TopLep ); 
-    decays.push_back( Algo::Decay::Higgs );
+    Decay::Decays.push_back( Algo::Decay::Decay::TopHad );
+    Decay::Decays.push_back( Algo::Decay::Decay::TopLep ); 
+    Decay::Decays.push_back( Algo::Decay::Decay::Higgs );
     break;
   case GEN_tL_tL_hH:
-    decays.push_back( Algo::Decay::TopLep );  
-    decays.push_back( Algo::Decay::TopLep );  
-    decays.push_back( Algo::Decay::Higgs );   
+    Decay::Decays.push_back( Algo::Decay::Decay::TopLep );  
+    Decay::Decays.push_back( Algo::Decay::Decay::TopLep );  
+    Decay::Decays.push_back( Algo::Decay::Decay::Higgs );   
     break;
   case GEN_tH_tH_hH:
-    decays.push_back( Algo::Decay::TopHad );  
-    decays.push_back( Algo::Decay::TopHad );  
-    decays.push_back( Algo::Decay::Higgs );  
+    Decay::Decays.push_back( Algo::Decay::Decay::TopHad );  
+    Decay::Decays.push_back( Algo::Decay::Decay::TopHad );  
+    Decay::Decays.push_back( Algo::Decay::Decay::Higgs );  
     break;
   case GEN_tH_bb:
-    decays.push_back( Algo::Decay::TopHad ); 
-    decays.push_back( Algo::Decay::Radiation_b );  
-    decays.push_back( Algo::Decay::Radiation_b );  
+    Decay::Decays.push_back( Algo::Decay::Decay::TopHad ); 
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_b );  
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_b );  
     break;
   case GEN_udb_tL:
-    decays.push_back( Algo::Decay::Radiation_u );       
-    decays.push_back( Algo::Decay::Radiation_d );        
-    decays.push_back( Algo::Decay::Radiation_b ); 
-    decays.push_back( Algo::Decay::TopLep );  
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_u );       
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_d );        
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_b ); 
+    Decay::Decays.push_back( Algo::Decay::Decay::TopLep );  
     break;
   case GEN_tH_tL_bb:
-    decays.push_back( Algo::Decay::TopHad );  
-    decays.push_back( Algo::Decay::TopLep );        
-    decays.push_back( Algo::Decay::Radiation_b );     
-    decays.push_back( Algo::Decay::Radiation_b );  
+    Decay::Decays.push_back( Algo::Decay::Decay::TopHad );  
+    Decay::Decays.push_back( Algo::Decay::Decay::TopLep );        
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_b );     
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_b );  
     break;
   case GEN_tH_tL_cc:
-    decays.push_back( Algo::Decay::TopHad );  
-    decays.push_back( Algo::Decay::TopLep );        
-    decays.push_back( Algo::Decay::Radiation_c );     
-    decays.push_back( Algo::Decay::Radiation_c );  
+    Decay::Decays.push_back( Algo::Decay::Decay::TopHad );  
+    Decay::Decays.push_back( Algo::Decay::Decay::TopLep );        
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_c );     
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_c );  
     break;
   case GEN_tH_tL_dd:
-    decays.push_back( Algo::Decay::TopHad );
-    decays.push_back( Algo::Decay::TopLep );
-    decays.push_back( Algo::Decay::Radiation_g );
-    decays.push_back( Algo::Decay::Radiation_g );
+    Decay::Decays.push_back( Algo::Decay::Decay::TopHad );
+    Decay::Decays.push_back( Algo::Decay::Decay::TopLep );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_g );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_g );
     break;
   case GEN_tL_tL_bb:
-    decays.push_back( Algo::Decay::TopLep ); 
-    decays.push_back( Algo::Decay::TopLep );  
-    decays.push_back( Algo::Decay::Radiation_b );     
-    decays.push_back( Algo::Decay::Radiation_b );  
+    Decay::Decays.push_back( Algo::Decay::Decay::TopLep ); 
+    Decay::Decays.push_back( Algo::Decay::Decay::TopLep );  
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_b );     
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_b );  
     break;
   case GEN_tL_tL_dd:
-    decays.push_back( Algo::Decay::TopLep );
-    decays.push_back( Algo::Decay::TopLep );
-    decays.push_back( Algo::Decay::Radiation_d );
-    decays.push_back( Algo::Decay::Radiation_d );
+    Decay::Decays.push_back( Algo::Decay::Decay::TopLep );
+    Decay::Decays.push_back( Algo::Decay::Decay::TopLep );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_d );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_d );
     break;
   case GEN_tH_tH_bb:
-    decays.push_back( Algo::Decay::TopHad ); 
-    decays.push_back( Algo::Decay::TopHad ); 
-    decays.push_back( Algo::Decay::Radiation_b );  
-    decays.push_back( Algo::Decay::Radiation_b );  
+    Decay::Decays.push_back( Algo::Decay::Decay::TopHad ); 
+    Decay::Decays.push_back( Algo::Decay::Decay::TopHad ); 
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_b );  
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_b );  
     break;
   case GEN_tH_tH_dd:
-    decays.push_back( Algo::Decay::TopHad );
-    decays.push_back( Algo::Decay::TopHad );
-    decays.push_back( Algo::Decay::Radiation_d );
-    decays.push_back( Algo::Decay::Radiation_d );
+    Decay::Decays.push_back( Algo::Decay::Decay::TopHad );
+    Decay::Decays.push_back( Algo::Decay::Decay::TopHad );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_d );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_d );
     break;
   case GEN_tL_ggggg:
-    decays.push_back( Algo::Decay::TopLep );
-    decays.push_back( Algo::Decay::Radiation_g );
-    decays.push_back( Algo::Decay::Radiation_g );
-    decays.push_back( Algo::Decay::Radiation_g );
-    decays.push_back( Algo::Decay::Radiation_g );
-    decays.push_back( Algo::Decay::Radiation_g );
+    Decay::Decays.push_back( Algo::Decay::Decay::TopLep );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_g );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_g );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_g );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_g );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_g );
     break;
   case GEN_lm_gggggg:
-    decays.push_back( Algo::Decay::Lepton );
-    decays.push_back( Algo::Decay::MET );
-    decays.push_back( Algo::Decay::Radiation_g );
-    decays.push_back( Algo::Decay::Radiation_g );
-    decays.push_back( Algo::Decay::Radiation_g );
-    decays.push_back( Algo::Decay::Radiation_g );
-    decays.push_back( Algo::Decay::Radiation_g );
-    decays.push_back( Algo::Decay::Radiation_g );
+    Decay::Decays.push_back( Algo::Decay::Decay::Lepton );
+    Decay::Decays.push_back( Algo::Decay::Decay::MET );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_g );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_g );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_g );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_g );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_g );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_g );
     break;
   case GEN_lm_ggggbb:
-    decays.push_back( Algo::Decay::Lepton );
-    decays.push_back( Algo::Decay::MET );
-    decays.push_back( Algo::Decay::Radiation_b );
-    decays.push_back( Algo::Decay::Radiation_b );
-    decays.push_back( Algo::Decay::Radiation_g );
-    decays.push_back( Algo::Decay::Radiation_g );
-    decays.push_back( Algo::Decay::Radiation_g );
-    decays.push_back( Algo::Decay::Radiation_g );
+    Decay::Decays.push_back( Algo::Decay::Decay::Lepton );
+    Decay::Decays.push_back( Algo::Decay::Decay::MET );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_b );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_b );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_g );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_g );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_g );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_g );
     break;
   case GEN_tHLost_tL_Hh_d:
-    decays.push_back( Algo::Decay::TopHadLost );
-    decays.push_back( Algo::Decay::TopLep );
-    decays.push_back( Algo::Decay::Higgs );
-    decays.push_back( Algo::Decay::Radiation_d );
+    Decay::Decays.push_back( Algo::Decay::Decay::TopHadLost );
+    Decay::Decays.push_back( Algo::Decay::Decay::TopLep );
+    Decay::Decays.push_back( Algo::Decay::Decay::Higgs );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_d );
     break;
   case GEN_tHLost_tL_ddd:
-    decays.push_back( Algo::Decay::TopHadLost );
-    decays.push_back( Algo::Decay::TopLep );
-    decays.push_back( Algo::Decay::Radiation_d );
-    decays.push_back( Algo::Decay::Radiation_d );
-    decays.push_back( Algo::Decay::Radiation_d );
+    Decay::Decays.push_back( Algo::Decay::Decay::TopHadLost );
+    Decay::Decays.push_back( Algo::Decay::Decay::TopLep );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_d );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_d );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_d );
     break;
   case GEN_tHLost_tL_bbd:
-    decays.push_back( Algo::Decay::TopHadLost );
-    decays.push_back( Algo::Decay::TopLep );
-    decays.push_back( Algo::Decay::Radiation_b );
-    decays.push_back( Algo::Decay::Radiation_b );
-    decays.push_back( Algo::Decay::Radiation_d );
+    Decay::Decays.push_back( Algo::Decay::Decay::TopHadLost );
+    Decay::Decays.push_back( Algo::Decay::Decay::TopLep );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_b );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_b );
+    Decay::Decays.push_back( Algo::Decay::Decay::Radiation_d );
     break;
   default:
     break;
@@ -235,7 +235,7 @@ int main(int argc, char *argv[]){
   int itoy = 0;
   while( itoy < ntoys ){
     vector<Algo::Object> out = 
-      toyGenerator->generate( decays , smear, btag );
+      toyGenerator->generate( Decay::Decays , smear, btag );
 
     int count_j = 0;
     int count_l = 0;
@@ -308,9 +308,9 @@ int main(int argc, char *argv[]){
       }
       tester->push_back_object( invisible  , 'm');
 
-      map<string, vector<Algo::Decay> > hypotheses;
-      hypotheses["H0"] = {Algo::Decay::TopHad, Algo::Decay::TopLep};
-      hypotheses["H1"] = {Algo::Decay::TopLep, Algo::Decay::Radiation_u, Algo::Decay::Radiation_d, Algo::Decay::Radiation_b};
+      map<string, vector<Algo::Decay::Decay> > hypotheses;
+      hypotheses["H0"] = {Algo::Decay::Decay::TopHad, Algo::Decay::Decay::TopLep};
+      hypotheses["H1"] = {Algo::Decay::Decay::TopLep, Algo::Decay::Decay::Radiation_u, Algo::Decay::Decay::Radiation_d, Algo::Decay::Decay::Radiation_b};
       if(verbose>0) tester->print(cout);
       tester->test( hypotheses );
       if(tester->get_status()>0) cerr << "ERROR STATUS for tester" << endl;
@@ -338,10 +338,10 @@ int main(int argc, char *argv[]){
       }
       tester->push_back_object( invisible  , 'm');
 
-      map<string, vector<Algo::Decay> > hypotheses;
-      hypotheses["H0"] = {Algo::Decay::TopHad, Algo::Decay::TopLep, Algo::Decay::Higgs};
-      hypotheses["H1"] = {Algo::Decay::TopHad, Algo::Decay::TopLep, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b};
-      hypotheses["H2"] = {Algo::Decay::TopHad, Algo::Decay::TopLep, Algo::Decay::Radiation_d, Algo::Decay::Radiation_d};
+      map<string, vector<Algo::Decay::Decay> > hypotheses;
+      hypotheses["H0"] = {Algo::Decay::Decay::TopHad, Algo::Decay::Decay::TopLep, Algo::Decay::Decay::Higgs};
+      hypotheses["H1"] = {Algo::Decay::Decay::TopHad, Algo::Decay::Decay::TopLep, Algo::Decay::Decay::Radiation_b, Algo::Decay::Decay::Radiation_b};
+      hypotheses["H2"] = {Algo::Decay::Decay::TopHad, Algo::Decay::Decay::TopLep, Algo::Decay::Decay::Radiation_d, Algo::Decay::Decay::Radiation_d};
       if(verbose>0) tester->print(cout);
       tester->test( hypotheses );
       if(tester->get_status()>0) cerr << "ERROR STATUS for tester" << endl;
@@ -368,9 +368,9 @@ int main(int argc, char *argv[]){
       }
       tester->push_back_object( invisible  , 'm');
 
-      map<string, vector<Algo::Decay> > hypotheses;
-      hypotheses["H0"] = {Algo::Decay::TopLep, Algo::Decay::TopLep, Algo::Decay::Higgs};
-      hypotheses["H1"] = {Algo::Decay::TopLep, Algo::Decay::TopLep, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b};
+      map<string, vector<Algo::Decay::Decay> > hypotheses;
+      hypotheses["H0"] = {Algo::Decay::Decay::TopLep, Algo::Decay::Decay::TopLep, Algo::Decay::Decay::Higgs};
+      hypotheses["H1"] = {Algo::Decay::Decay::TopLep, Algo::Decay::Decay::TopLep, Algo::Decay::Decay::Radiation_b, Algo::Decay::Decay::Radiation_b};
       if(verbose>0) tester->print(cout);
       tester->test( hypotheses );
       if(tester->get_status()>0) cerr << "ERROR STATUS for tester" << endl;
@@ -394,9 +394,9 @@ int main(int argc, char *argv[]){
         }
       }
 
-      map<string, vector<Algo::Decay> > hypotheses;
-      hypotheses["H0"] = {Algo::Decay::TopHad, Algo::Decay::TopHad, Algo::Decay::Higgs};
-      hypotheses["H1"] = {Algo::Decay::TopHad, Algo::Decay::TopHad, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b};
+      map<string, vector<Algo::Decay::Decay> > hypotheses;
+      hypotheses["H0"] = {Algo::Decay::Decay::TopHad, Algo::Decay::Decay::TopHad, Algo::Decay::Decay::Higgs};
+      hypotheses["H1"] = {Algo::Decay::Decay::TopHad, Algo::Decay::Decay::TopHad, Algo::Decay::Decay::Radiation_b, Algo::Decay::Decay::Radiation_b};
       if(verbose>0) tester->print(cout);
       tester->test( hypotheses );
       if(tester->get_status()>0) cerr << "ERROR STATUS for tester" << endl;
@@ -421,10 +421,10 @@ int main(int argc, char *argv[]){
 	}
       }
 
-      map<string, vector<Algo::Decay> > hypotheses;
-      //hypotheses["H0"] = {Algo::Decay::TopHadLost, Algo::Decay::Higgs, Algo::Decay::Radiation_g};
-      hypotheses["H0"] = {Algo::Decay::TopHad, Algo::Decay::Higgs};
-      hypotheses["H1"] = {Algo::Decay::TopHad, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b};
+      map<string, vector<Algo::Decay::Decay> > hypotheses;
+      //hypotheses["H0"] = {Algo::Decay::Decay::TopHadLost, Algo::Decay::Decay::Higgs, Algo::Decay::Decay::Radiation_g};
+      hypotheses["H0"] = {Algo::Decay::Decay::TopHad, Algo::Decay::Decay::Higgs};
+      hypotheses["H1"] = {Algo::Decay::Decay::TopHad, Algo::Decay::Decay::Radiation_b, Algo::Decay::Decay::Radiation_b};
       if(verbose>0) tester->print(cout);
       tester->test( hypotheses );
       if(tester->get_status()>0) cerr << "ERROR STATUS for tester" << endl;
@@ -451,10 +451,10 @@ int main(int argc, char *argv[]){
       }
       tester->push_back_object( invisible  , 'm');
       
-      map<string, vector<Algo::Decay> > hypotheses;
-      hypotheses["H0"] = { Algo::Decay::TopLep };
-      hypotheses["H1"] = { Algo::Decay::Radiation_g, Algo::Decay::Radiation_g,Algo::Decay::Radiation_g,
-			   Algo::Decay::Radiation_g, Algo::Decay::Radiation_g,Algo::Decay::Radiation_g};
+      map<string, vector<Algo::Decay::Decay> > hypotheses;
+      hypotheses["H0"] = { Algo::Decay::Decay::TopLep };
+      hypotheses["H1"] = { Algo::Decay::Decay::Radiation_g, Algo::Decay::Decay::Radiation_g,Algo::Decay::Decay::Radiation_g,
+			   Algo::Decay::Decay::Radiation_g, Algo::Decay::Decay::Radiation_g,Algo::Decay::Decay::Radiation_g};
       if(verbose>0) tester->print(cout);
       tester->test( hypotheses );
       if(tester->get_status()>0) cerr << "ERROR STATUS for tester" << endl;
@@ -483,17 +483,17 @@ int main(int argc, char *argv[]){
       }
       tester->push_back_object( invisible  , 'm');
 
-      map<string, vector<Algo::Decay> > hypotheses;
+      map<string, vector<Algo::Decay::Decay> > hypotheses;
       // lepton + jets
-      hypotheses["Ha1"]  = { Algo::Decay::Radiation_d, Algo::Decay::Radiation_d,Algo::Decay::Radiation_d,
-			     Algo::Decay::Radiation_d, Algo::Decay::Radiation_d,Algo::Decay::Radiation_d}; // 0
-      hypotheses["Ha2"]  = { Algo::Decay::Radiation_b, Algo::Decay::Radiation_b,Algo::Decay::Radiation_d,
-                             Algo::Decay::Radiation_d, Algo::Decay::Radiation_d,Algo::Decay::Radiation_d}; // 1
-      hypotheses["Hb0"] = {Algo::Decay::TopHad, Algo::Decay::TopLep, Algo::Decay::Radiation_g, Algo::Decay::Radiation_g}; // 2
-      hypotheses["Hb1"] = {Algo::Decay::TopHad, Algo::Decay::TopLep, Algo::Decay::Radiation_d, Algo::Decay::Radiation_d}; // 3
-      hypotheses["Hb2"] = {Algo::Decay::TopHad, Algo::Decay::TopLep, Algo::Decay::Radiation_c, Algo::Decay::Radiation_c}; // 4
-      hypotheses["Hb3"] = {Algo::Decay::TopHad, Algo::Decay::TopLep, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b}; // 5
-      hypotheses["Hs"]  = {Algo::Decay::TopHad, Algo::Decay::TopLep, Algo::Decay::Higgs}; // 6
+      hypotheses["Ha1"]  = { Algo::Decay::Decay::Radiation_d, Algo::Decay::Decay::Radiation_d,Algo::Decay::Decay::Radiation_d,
+			     Algo::Decay::Decay::Radiation_d, Algo::Decay::Decay::Radiation_d,Algo::Decay::Decay::Radiation_d}; // 0
+      hypotheses["Ha2"]  = { Algo::Decay::Decay::Radiation_b, Algo::Decay::Decay::Radiation_b,Algo::Decay::Decay::Radiation_d,
+                             Algo::Decay::Decay::Radiation_d, Algo::Decay::Decay::Radiation_d,Algo::Decay::Decay::Radiation_d}; // 1
+      hypotheses["Hb0"] = {Algo::Decay::Decay::TopHad, Algo::Decay::Decay::TopLep, Algo::Decay::Decay::Radiation_g, Algo::Decay::Decay::Radiation_g}; // 2
+      hypotheses["Hb1"] = {Algo::Decay::Decay::TopHad, Algo::Decay::Decay::TopLep, Algo::Decay::Decay::Radiation_d, Algo::Decay::Decay::Radiation_d}; // 3
+      hypotheses["Hb2"] = {Algo::Decay::Decay::TopHad, Algo::Decay::Decay::TopLep, Algo::Decay::Decay::Radiation_c, Algo::Decay::Decay::Radiation_c}; // 4
+      hypotheses["Hb3"] = {Algo::Decay::Decay::TopHad, Algo::Decay::Decay::TopLep, Algo::Decay::Decay::Radiation_b, Algo::Decay::Decay::Radiation_b}; // 5
+      hypotheses["Hs"]  = {Algo::Decay::Decay::TopHad, Algo::Decay::Decay::TopLep, Algo::Decay::Decay::Higgs}; // 6
       if(verbose>0) tester->print(cout);
       tester->test( hypotheses );
       if(tester->get_status()>0) cerr << "ERROR STATUS for tester" << endl;
@@ -521,9 +521,9 @@ int main(int argc, char *argv[]){
       }
       tester->push_back_object( invisible  , 'm');
 
-      map<string, vector<Algo::Decay> > hypotheses;
-      hypotheses["H0"] = {Algo::Decay::TopHadLost, Algo::Decay::TopLep, Algo::Decay::Higgs, Algo::Decay::Radiation_d};
-      hypotheses["H1"] = {Algo::Decay::TopHad, Algo::Decay::TopLep, Algo::Decay::Higgs};
+      map<string, vector<Algo::Decay::Decay> > hypotheses;
+      hypotheses["H0"] = {Algo::Decay::Decay::TopHadLost, Algo::Decay::Decay::TopLep, Algo::Decay::Decay::Higgs, Algo::Decay::Decay::Radiation_d};
+      hypotheses["H1"] = {Algo::Decay::Decay::TopHad, Algo::Decay::Decay::TopLep, Algo::Decay::Decay::Higgs};
       if(verbose>0) tester->print(cout);
       tester->test( hypotheses );
       if(tester->get_status()>0) cerr << "ERROR STATUS for tester" << endl;
@@ -551,13 +551,13 @@ int main(int argc, char *argv[]){
       }
       tester->push_back_object( invisible  , 'm');
 
-      map<string, vector<Algo::Decay> > hypotheses;
-      hypotheses["Hs0"] = {Algo::Decay::TopHadLost, Algo::Decay::TopLep, Algo::Decay::Higgs,       Algo::Decay::Radiation_d};
-      hypotheses["Hs1"] = {Algo::Decay::TopHad,     Algo::Decay::TopLep, Algo::Decay::Higgs};
-      hypotheses["Hb0"] = {Algo::Decay::TopHadLost, Algo::Decay::TopLep, Algo::Decay::Radiation_d, Algo::Decay::Radiation_d, Algo::Decay::Radiation_d};
-      hypotheses["Hb1"] = {Algo::Decay::TopHad,     Algo::Decay::TopLep, Algo::Decay::Radiation_d, Algo::Decay::Radiation_d};
-      hypotheses["Hb2"] = {Algo::Decay::TopHadLost, Algo::Decay::TopLep, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b, Algo::Decay::Radiation_d};
-      hypotheses["Hb3"] = {Algo::Decay::TopHad,     Algo::Decay::TopLep, Algo::Decay::Radiation_b, Algo::Decay::Radiation_b};
+      map<string, vector<Algo::Decay::Decay> > hypotheses;
+      hypotheses["Hs0"] = {Algo::Decay::Decay::TopHadLost, Algo::Decay::Decay::TopLep, Algo::Decay::Decay::Higgs,       Algo::Decay::Decay::Radiation_d};
+      hypotheses["Hs1"] = {Algo::Decay::Decay::TopHad,     Algo::Decay::Decay::TopLep, Algo::Decay::Decay::Higgs};
+      hypotheses["Hb0"] = {Algo::Decay::Decay::TopHadLost, Algo::Decay::Decay::TopLep, Algo::Decay::Decay::Radiation_d, Algo::Decay::Decay::Radiation_d, Algo::Decay::Decay::Radiation_d};
+      hypotheses["Hb1"] = {Algo::Decay::Decay::TopHad,     Algo::Decay::Decay::TopLep, Algo::Decay::Decay::Radiation_d, Algo::Decay::Decay::Radiation_d};
+      hypotheses["Hb2"] = {Algo::Decay::Decay::TopHadLost, Algo::Decay::Decay::TopLep, Algo::Decay::Decay::Radiation_b, Algo::Decay::Decay::Radiation_b, Algo::Decay::Decay::Radiation_d};
+      hypotheses["Hb3"] = {Algo::Decay::Decay::TopHad,     Algo::Decay::Decay::TopLep, Algo::Decay::Decay::Radiation_b, Algo::Decay::Decay::Radiation_b};
       if(verbose>0) tester->print(cout);
       tester->test( hypotheses );
       if(tester->get_status()>0) cerr << "ERROR STATUS for tester" << endl;

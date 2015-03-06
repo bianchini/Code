@@ -5,8 +5,8 @@
 #include "Math/Factory.h"
 #include "Math/Functor.h"
 
-#include "interface/StandardIncludes.h"
-#include "interface/Event.h"
+#include "TTH/MEIntegratorStandalone/interface/StandardIncludes.h"
+#include "TTH/MEIntegratorStandalone/interface/Event.h"
 
 namespace Algo {
 
@@ -29,7 +29,7 @@ namespace Algo {
     void add_object_observables ( const string&, const double& , const char);
      
     // method called by user
-    void test( const map< string,vector<Decay>>& );
+    void test( const map< string,vector<Decay::Decay> >& );
 
     // print objects
     void print(ostream&);
@@ -43,7 +43,7 @@ namespace Algo {
   private:
 
     // Add hypothesis. Called by test()
-    void assume(Decay); 
+    void assume(Decay::Decay); 
 
     // Read the parameters and do permutations. Uses:
     //   - unpack_assumptions()
@@ -76,14 +76,14 @@ namespace Algo {
 
     // check whether a given variable is 
     // in at least one permutation
-    bool is_variable_used( const size_t );
+    bool is_variable_used( const std::size_t );
 
     // print permutation  
-    void print_permutation(const vector<std::pair<FinalState,size_t>>&) const;
+    void print_permutation(const vector<std::pair<FinalState::FinalState,std::size_t> >&) const;
 
     // filter out permutations. Uses:
     //  - print_permutation()
-    bool go_to_next(vector<vector<std::pair<FinalState,size_t>>> &);
+    bool go_to_next(vector<vector<std::pair<FinalState::FinalState,std::size_t> > > &);
 
     // internal method to save global variables
     void save_global_variables();
@@ -97,31 +97,31 @@ namespace Algo {
     vector<Algo::Object> p4_MET;  
 
     // filled by test()
-    vector<Decay> decays;
+    vector<Decay::Decay> decays;
 
     // vector or particles. Filled by unpack_assumptions()
     // it gets permutated by init()
-    vector<pair<FinalState,size_t>> particles;
+    vector<pair<FinalState::FinalState, std::size_t> > particles;
 
     // the actual permutations
     vector<Algo::CombBuilder*> permutations;
 
-    size_t nParam_j;
-    size_t nParam_n;
-    size_t nParam_m;
+    std::size_t nParam_j;
+    std::size_t nParam_n;
+    std::size_t nParam_m;
     int    count_hypo;
     int    count_perm;
-    size_t count_TopHad;
-    size_t count_TopHadLost;
-    size_t count_WHad;
-    size_t count_TopLep;
-    size_t count_Higgs;
-    size_t count_Radiation_u;
-    size_t count_Radiation_d;
-    size_t count_Radiation_c;
-    size_t count_Radiation_b;
-    size_t count_Radiation_g;
-    size_t invisible;
+    std::size_t count_TopHad;
+    std::size_t count_TopHadLost;
+    std::size_t count_WHad;
+    std::size_t count_TopLep;
+    std::size_t count_Higgs;
+    std::size_t count_Radiation_u;
+    std::size_t count_Radiation_d;
+    std::size_t count_Radiation_c;
+    std::size_t count_Radiation_b;
+    std::size_t count_Radiation_g;
+    std::size_t invisible;
     int verbose;
     int error_code;
 

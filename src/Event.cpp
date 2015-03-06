@@ -7,6 +7,12 @@ Algo::Event::Event( TTree* t ){
 }
 
 
+Algo::Event::Event(){
+  outTree = nullptr;
+}
+
+
+
 Algo::Event::~Event(){ };
 
 void Algo::Event::fillTree(){

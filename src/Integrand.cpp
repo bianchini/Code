@@ -454,12 +454,12 @@ bool MEM::Integrand::accept_perm( const vector<int>& perm ){
 
   switch( fs ){
   case FinalState::LH:
-    if(perm[0]>=0 && obs_jets[perm[0]].getObs(Observable::BTAG)>0.5) return false; // <== W->qq
-    if(perm[1]>=0 && obs_jets[perm[1]].getObs(Observable::BTAG)>0.5) return false; // <== W->qq
-    if(perm[2]>=0 && obs_jets[perm[2]].getObs(Observable::BTAG)<0.5) return false; // <== t->b
-    if(perm[3]>=0 && obs_jets[perm[3]].getObs(Observable::BTAG)<0.5) return false; // <== t->b
-    if(perm[4]>=0 && obs_jets[perm[4]].getObs(Observable::BTAG)<0.5) return false; // <== H->bb
-    if(perm[5]>=0 && obs_jets[perm[5]].getObs(Observable::BTAG)<0.5) return false; // <== H->bb
+    if(perm[0]>=0 && obs_jets[perm[0]]->getObs(Observable::BTAG)>0.5) return false; // <== W->qq
+    if(perm[1]>=0 && obs_jets[perm[1]]->getObs(Observable::BTAG)>0.5) return false; // <== W->qq
+    if(perm[2]>=0 && obs_jets[perm[2]]->getObs(Observable::BTAG)<0.5) return false; // <== t->b
+    if(perm[3]>=0 && obs_jets[perm[3]]->getObs(Observable::BTAG)<0.5) return false; // <== t->b
+    if(perm[4]>=0 && obs_jets[perm[4]]->getObs(Observable::BTAG)<0.5) return false; // <== H->bb
+    if(perm[5]>=0 && obs_jets[perm[5]]->getObs(Observable::BTAG)<0.5) return false; // <== H->bb
 
     //for( auto visited : perm_indexes_assumption ){
     //bool swap_W = visited[2]==perm[2];
@@ -817,9 +817,9 @@ double MEM::Integrand::probability(const double* x, const vector<int>& perm ) co
 	 << ", m(H)=" << (lv_b+lv_bbar).M() << endl;
   }
 
-  m *= t_decay_amplitude(lv_q1, lv_qbar1, lv_b1);
-  m *= t_decay_amplitude(lv_q2, lv_qbar2, lv_b2);
-  m *= (hypo==Hypothesis::TTH ? H_decay_amplitude(lv_b, lv_bbar) : 1.0 );
+  m *= t_Decay_amplitude(lv_q1, lv_qbar1, lv_b1);
+  m *= t_Decay_amplitude(lv_q2, lv_qbar2, lv_b2);
+  m *= (hypo==Hypothesis::TTH ? H_Decay_amplitude(lv_b, lv_bbar) : 1.0 );
   m *= scattering( lv_q1+lv_qbar1+lv_b1, lv_q2+lv_qbar2+lv_b2, lv_b, lv_bbar, x1, x2);
   m *= pdf( x1, x2 , hypo==Hypothesis::TTH ? (2*MTOP + MH)/2 : TMath::Sqrt( 4*MTOP*MTOP + TMath::Power(lv_b.Pt() + lv_bbar.Pt(), 2) )  );
 
@@ -964,12 +964,12 @@ double MEM::Integrand::pdf(const double& x1, const double& x2, const double& Q) 
   return (f1*f2)/(x1*x2);
 }
 
-double MEM::Integrand::t_decay_amplitude(const TLorentzVector&, const TLorentzVector&, const TLorentzVector&) const{
+double MEM::Integrand::t_Decay_amplitude(const TLorentzVector&, const TLorentzVector&, const TLorentzVector&) const{
   double p{1.};
   return p;
 }
 
-double MEM::Integrand::H_decay_amplitude(const TLorentzVector&, const TLorentzVector&) const{
+double MEM::Integrand::H_Decay_amplitude(const TLorentzVector&, const TLorentzVector&) const{
   double p{1.};
   return p;
 }

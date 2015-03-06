@@ -13,8 +13,8 @@ using namespace std;
 namespace Algo {
 
   struct TreeStruct {    
-    size_t n_h;             // num of hypo
-    size_t n_dim;           // total number of dimensions
+    std::size_t n_h;             // num of hypo
+    std::size_t n_dim;           // total number of dimensions
     int    all_time;        // total CPU time (msec)
     int    n_btag;          // n btag
     int    n_jet;           // n jet
@@ -39,8 +39,8 @@ namespace Algo {
       os << "\tn_btag   = " << n_btag << endl;
       os << "\tn_jet    = " << n_jet  << endl;
       os << "\tn_lep    = " << n_lep  << endl;
-      size_t it_p {0};
-      for( size_t i = 0 ; (i < n_h && i < (size_t)HMAX) ; ++i){
+      std::size_t it_p = 0;
+      for( std::size_t i = 0 ; (i < n_h && i < (std::size_t)HMAX) ; ++i){
 	os << "\tHypo "     << i << ": "   << endl;
 	os << "\tstatus["     << i << "] = " << status[i];
 	os << ", strategy[" << i << "] = " << strategy[i];
@@ -63,6 +63,7 @@ namespace Algo {
 
   struct Event {
     Event (TTree*) ;
+    Event();
     ~Event();
     void fillTree () ;
     void printTree() ;
