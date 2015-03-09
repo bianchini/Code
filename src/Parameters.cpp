@@ -77,6 +77,14 @@ double MEM::transfer_function(double* y, double* x, const TFType& type, const in
       cout << "\t\ttransfer_function: Evaluate W(" << y[0]-x[0] << " , " << y[1]-x[1] << ", TFType::MET) = " << w << endl;
     break;
 
+  case TFType::Recoil:
+    // x[0] = sum pT_x ; x[1] = sum pT_y
+    // y[0] = rho_x    ; y[1] = rho_y
+    w *= 1.0;
+    if( debug&DebugVerbosity::integration) 
+      cout << "\t\ttransfer_function: Evaluate W(" << y[0] << ", " << y[1] << " | " << x[0] << ", " << x[1] << "; TFType::Recoil) = " << w << endl;
+    break;
+
   case TFType::bLost:
   case TFType::qLost:
     // x[0]     = parton energy ;
@@ -97,8 +105,9 @@ double MEM::transfer_function(double* y, double* x, const TFType& type, const in
       E   = x[0];
       H   = x[1];
       par = TF_Q_param[ eta_to_bin(H) ];
-      w  *= (1 - 0.5*(TMath::Erf(  (TF_ACC_param[1]*TMath::CosH(H) - (par[0] + par[1]*E) ) /
-				   (E*TMath::Sqrt(par[2]*par[2] + par[3]*par[3]/E + par[4]*par[4]/E/E)) ) + 1 ) );
+      double mean_pt  = (par[0] + par[1]*E)/TMath::CosH(H);
+      double sigma_pt = E*TMath::Sqrt(par[2]*par[2] + par[3]*par[3]/E + par[4]*par[4]/E/E)/TMath::CosH(H);
+      w *= 0.5*(TMath::Erf( (TF_ACC_param[1] - mean_pt)/sigma_pt ) + 1 ) ; 
       if( debug&DebugVerbosity::integration) 
 	cout << "\t\ttransfer_function: Evaluate W(" <<  TF_ACC_param[1] << " | " << E << ", " << H << ", TFType::qLost) = " << w << endl;
     }

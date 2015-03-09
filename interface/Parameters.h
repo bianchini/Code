@@ -65,10 +65,10 @@ namespace MEM {
        {0.30, 0.70}
      };
 
-  enum DebugVerbosity { silent=0, input=2, init=4, init_more=8, event=16, integration=32};
+  enum DebugVerbosity { silent=1, input=2, init=4, init_more=8, event=16, integration=32};
  
 
-  enum class TFType {bReco=0, qReco=1, bLost=2, qLost=3, muReco=4, elReco=5, MET=6, Unknown=7};
+  enum class TFType {bReco=0, qReco=1, bLost=2, qLost=3, muReco=4, elReco=5, MET=6, Recoil=7, Unknown=8};
 
   bool isQuark   (const TFType&);
   bool isNeutrino(const TFType&);
@@ -138,6 +138,10 @@ namespace MEM {
   enum class FinalState { HH=0, LH=1, LL=2, Undefined=3};
 
   enum class Assumption { ZeroQuarkLost=0, OneQuarkLost, TwoQuarkLost};
+
+  enum class Permutations { BTagged=0, QUntagged, QQbarSymmetry, BBbarSymmetry};
+
+  enum IntegrandType { Constant=1, Jacobian=2, Transfer=4, ScattAmpl=8, DecayAmpl=16, PDF=32 };
 
   struct CompPerm {
     bool operator()(int a, int b){

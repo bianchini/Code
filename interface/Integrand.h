@@ -42,6 +42,15 @@ namespace MEM {
     // (ObjectType defined in Parameters.h)
     void push_back_object( const LV& , const ObjectType&);
     
+    // filter out permutations
+    void set_permutation_strategy(const initializer_list<MEM::Permutations>&);
+
+    // choose what to include into the integrand
+    void set_integrand(const int&);
+    
+    // choose c.o.m. energy
+    void set_sqrts(const double&);
+
     // add object information
     // WARNING: to be called just after push_back of related object!
     // (using .back() method of std::vector<>)
@@ -71,7 +80,8 @@ namespace MEM {
     // test if given assunption is viable
     bool test_assumption( const size_t&, size_t& );
 
-    bool accept_perm( const vector<int>& );
+    // filter out permutations
+    bool accept_perm( const vector<int>&, const initializer_list<Permutations>& ) const;
 
     // main method. Needed by GSLMCIntegrator
     double Eval(const double*) const;
@@ -95,6 +105,12 @@ namespace MEM {
     double scattering(const TLorentzVector&, const TLorentzVector&, const TLorentzVector&, const TLorentzVector&, 
 		      double&, double&) const;
 
+    // evaluate TF
+    double transfer(const PS&, const vector<int>&) const;
+
+    // evaluate ME
+    double matrix  (const PS&) const;
+
     // solve for energy given the masses and angles
     double solve( const LV&,  const double& ,  const double& , const TVector3&, const double&, int&) const;
 
@@ -115,6 +131,9 @@ namespace MEM {
 
     // debug
     int debug_code;
+
+    // what to include within the integrand
+    int int_code;
 
     // integration type
     Hypothesis hypo;
@@ -141,8 +160,17 @@ namespace MEM {
     // VEGAS space
     std::map< PSVar, size_t > map_to_var;
 
+    // map between a particle and the jet position in obs_jets/obs_leptons
+    // to which the particle is matched
+    std::map< PSPart, size_t > map_to_part;
+
+    // strategy on permutations
+    std::initializer_list<MEM::Permutations> permutation_strategies;
+
     // VEGAS integrator
     ROOT::Math::GSLMCIntegrator* ig2;
+
+    double Sqrt_s;
 
   };
 
