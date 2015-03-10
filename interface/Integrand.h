@@ -4,7 +4,6 @@
 // user headers
 #include "interface/Parameters.h"
 
-
 extern "C" {
   void pphttxcallme2born_( double*, double[20], double*, double* );
 }
@@ -46,7 +45,7 @@ namespace MEM {
     void set_permutation_strategy(const initializer_list<MEM::Permutations>&);
 
     // choose what to include into the integrand
-    void set_integrand(const int&);
+    void set_integrand(const int =0);
     
     // choose c.o.m. energy
     void set_sqrts(const double&);
@@ -92,11 +91,13 @@ namespace MEM {
     int create_PS_LL(MEM::PS&, const double*, const vector<int>&) const;
     int create_PS_HH(MEM::PS&, const double*, const vector<int>&) const;
 
-    void extend_PS(PS&, const PSPart&, const double& , const double& , const TVector3&, const int&, const PSVar&,const PSVar&,const PSVar&,const TFType&) const;
+    void extend_PS(PS&, const PSPart&, const double& , const double& , const TVector3&, const int&, const PSVar&,const PSVar&,const PSVar&,const TFType&, const int =0) const;
 
     double probability(const double*, const vector<int>&) const;
 
-    double t_decay_amplitude(const TLorentzVector&, const TLorentzVector&, const TLorentzVector&) const;
+    double constants() const;
+
+    double t_decay_amplitude(const TLorentzVector&, const TLorentzVector&, const TLorentzVector&, const int&) const;
 
     double H_decay_amplitude(const TLorentzVector&, const TLorentzVector&) const;
 
@@ -158,11 +159,11 @@ namespace MEM {
 
     // map between parameter names (physical) and positions in
     // VEGAS space
-    std::map< PSVar, size_t > map_to_var;
+    std::unordered_map< PSVar, size_t , PSVarHash, PSVarEqual> map_to_var;
 
     // map between a particle and the jet position in obs_jets/obs_leptons
     // to which the particle is matched
-    std::map< PSPart, size_t > map_to_part;
+    std::unordered_map< PSPart, size_t, PSPartHash, PSPartEqual> map_to_part;
 
     // strategy on permutations
     std::initializer_list<MEM::Permutations> permutation_strategies;

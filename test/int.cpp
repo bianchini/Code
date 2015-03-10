@@ -12,8 +12,6 @@
 using namespace std;
 using namespace MEM;
 
-double PI = TMath::Pi();
-
 int main(){
 
   Integrand* integrand = new Integrand(DebugVerbosity::init
@@ -47,16 +45,16 @@ int main(){
 
   integrand->set_permutation_strategy( {Permutations::BTagged, Permutations::QUntagged, Permutations::QQbarSymmetry, Permutations::BBbarSymmetry});
   integrand->set_integrand(IntegrandType::Constant
-			   |IntegrandType::Jacobian
 			   |IntegrandType::ScattAmpl
 			   |IntegrandType::DecayAmpl
+			   |IntegrandType::Jacobian
 			   |IntegrandType::PDF
 			   |IntegrandType::Transfer
 			   );
 
   //integrand->run( Hypothesis::TTH,  {} );
-  integrand->run( Hypothesis::TTH,  {PSVar::cos_qbar1, PSVar::phi_qbar1} );
-  //integrand->run( Hypothesis::TTBB, {} );
+  //integrand->run( Hypothesis::TTH,  {PSVar::cos_qbar1, PSVar::phi_qbar1} );
+  integrand->run( Hypothesis::TTBB, {} );
   integrand->next_event();
 
   delete integrand;

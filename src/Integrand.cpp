@@ -1,6 +1,7 @@
 #include "interface/Integrand.h"
 
-
+//typedef std::unordered_map<MEM::PSPart, MEM::GenPart, MEM::PSPartHash, MEM::PSPartEqual> PSMap;
+typedef std::map<MEM::PSPart, MEM::GenPart> PSMap;
 
 MEM::Integrand::Integrand(int debug){
 
@@ -16,13 +17,15 @@ MEM::Integrand::Integrand(int debug){
   n_skip             = 0;
   Sqrt_s             = 13000.;
 
-  int_code = 
-    IntegrandType::Constant|
-    IntegrandType::Jacobian|
-    IntegrandType::ScattAmpl|
-    IntegrandType::DecayAmpl|
-    IntegrandType::PDF|
-    IntegrandType::Transfer ;
+  int_code           = 0; 
+  /*    
+	IntegrandType::Constant|
+	IntegrandType::Jacobian|
+	IntegrandType::ScattAmpl|
+	IntegrandType::DecayAmpl|
+	IntegrandType::PDF|
+	IntegrandType::Transfer ; 
+  */
 
   // init PDF set
   LHAPDF::initPDFSet(1, "cteq65.LHgrid");
@@ -289,7 +292,6 @@ void MEM::Integrand::push_back_object(const LV& p4,  const MEM::ObjectType& type
     obs_leptons.push_back( obj ); 
     break;
   case ObjectType::MET:
-  case ObjectType::Recoil:
     obs_mets.push_back( obj ); 
     break;
   default:
@@ -317,7 +319,6 @@ void MEM::Integrand::add_object_observable( const std::pair<MEM::Observable, dou
       (obs_leptons.back())->addObs( obs.first, obs.second );
     break;
   case ObjectType::MET:
-  case ObjectType::Recoil:
     if(obs_mets.size()>0) 
       (obs_mets.back())->addObs( obs.first, obs.second );
     break;
@@ -329,7 +330,7 @@ void MEM::Integrand::add_object_observable( const std::pair<MEM::Observable, dou
   return;
 }
 
-void MEM::Integrand::set_integrand(const int& code){
+void MEM::Integrand::set_integrand(const int code){
   int_code = code;
 }
 
@@ -348,6 +349,9 @@ void MEM::Integrand::run( const MEM::Hypothesis h, const initializer_list<MEM::P
     cout << "Integrand::run(): START" << endl;
   }
   
+  // benchmark time: start clock for global timing
+  auto t0 = high_resolution_clock::now();
+
   // return value
   double prob{0.};
 
@@ -361,8 +365,11 @@ void MEM::Integrand::run( const MEM::Hypothesis h, const initializer_list<MEM::P
   prob += make_assumption( list );
   
   if( debug_code&DebugVerbosity::init ){
-    cout << "\tProbability = " << prob << endl;    
-    cout << "\tTotal function calls = " << n_calls << ". Fraction of skipped calls: " << n_skip << "/" << n_calls << "=" << float(n_skip)/n_calls << endl;    
+    cout << "\tProbability = " << prob << endl;
+    cout << "\tTotal function calls = " << n_calls << ". Fraction of skipped calls: " << n_skip << "/" << n_calls+n_skip << "=" << float(n_skip)/(n_calls+n_skip) << endl;    
+    auto t1 = high_resolution_clock::now();
+    int time = static_cast<int>(duration_cast<milliseconds>(t1-t0).count());
+    cout << "\tJobe done in " << time*0.001 << " second" << endl;
     cout << "Integrand::run(): END" << endl;
   }
 
@@ -489,6 +496,8 @@ double MEM::Integrand::make_assumption( const initializer_list<MEM::PSVar>& lost
   double xL[npar], xU[npar];
   get_edges(xL, lost, npar, 0);
   get_edges(xU, lost, npar, 1);      
+
+  double volume = get_width(xL,xU,npar);
   
   // function
   ROOT::Math::Functor toIntegrate(this, &MEM::Integrand::Eval, npar);  
@@ -496,7 +505,8 @@ double MEM::Integrand::make_assumption( const initializer_list<MEM::PSVar>& lost
   
   // do the integral
   prob = ig2->Integral(xL,xU);
-
+  if(!int_code) prob /= volume;
+  
   if( debug_code&DebugVerbosity::init ){
     cout << "Integrand::make_assumption(): END" << endl;
   }
@@ -654,9 +664,11 @@ double MEM::Integrand::Eval(const double* x) const{
 
 int MEM::Integrand::create_PS(MEM::PS& ps, const double* x, const vector<int>& perm ) const {
 
+#ifdef DEBUG_MODE
   if( debug_code&DebugVerbosity::integration ){
     cout << "\tIntegrand::create_PS(): START" << endl;
   }
+#endif
 
   switch( fs ){
   case FinalState::LH:
@@ -672,19 +684,23 @@ int MEM::Integrand::create_PS(MEM::PS& ps, const double* x, const vector<int>& p
     break;
   }
 
+#ifdef DEBUG_MODE
   if( debug_code&DebugVerbosity::integration ){
     cout << "\tIntegrand::create_PS(): END" << endl;
   }
-  
+#endif
+
   return 0;
 }
 
 
 int MEM::Integrand::create_PS_LH(MEM::PS& ps, const double* x, const vector<int>& perm ) const {
 
+#ifdef DEBUG_MODE
   if( debug_code&DebugVerbosity::integration ){
     cout << "\tIntegrand::create_PS_LH(): START" << endl;
   }
+#endif
 
   // corrupted phase space
   int accept{0};
@@ -749,7 +765,7 @@ int MEM::Integrand::create_PS_LH(MEM::PS& ps, const double* x, const vector<int>
   MEM::Object* lep = obs_leptons[ nl_q2 ]; 
   dir     = lep->p4().Vect().Unit(); 
   E       = lep->p4().E();
-  extend_PS( ps, PSPart::q2, E, 0., dir, nl_q2, PSVar::cos_q2, PSVar::phi_q2, PSVar::E_q2, TFType::muReco ); 
+  extend_PS( ps, PSPart::q2, E, 0., dir, nl_q2, PSVar::cos_q2, PSVar::phi_q2, PSVar::E_q2, TFType::muReco, int(lep->getObs(Observable::CHARGE)) ); 
     
   /////  PSPart::qbar2
   dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_qbar2)->second ]) );
@@ -791,17 +807,25 @@ int MEM::Integrand::create_PS_LH(MEM::PS& ps, const double* x, const vector<int>
     MEM::Object* obj = obs_jets[ perm[nj_bbar] ];
     dir     = obj->p4().Vect().Unit();
     E_REC   = obj->p4().E();
+    E_LOW   = obj->getObs(Observable::E_LOW_B) ;
+    E_HIGH  = obj->getObs(Observable::E_HIGH_B);        
   }
   else{
     dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_bbar)->second ]) );
     dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_bbar)->second ] );
+    E_LOW   = 0.;
+    E_HIGH  = 1000.;
   }
-  E    = hypo==Hypothesis::TTBB ? x[ map_to_var.find(PSVar::E_bbar)->second ]   : solve( ps.lv(PSPart::b), DMH2, MB, dir, E_REC, accept);
+  E    = hypo==Hypothesis::TTBB ?  
+    E_LOW + (E_HIGH-E_LOW)*(x[ map_to_var.find(PSVar::E_bbar)->second ]) : 
+    solve( ps.lv(PSPart::b), DMH2, MB, dir, E_REC, accept);
   extend_PS( ps, PSPart::bbar, E, MB, dir, perm[nj_bbar], PSVar::cos_bbar, PSVar::phi_bbar, PSVar::E_bbar,  (perm[nj_bbar]>=0?TFType::bReco:TFType::bLost) ); 
 
+#ifdef DEBUG_MODE
   if( debug_code&DebugVerbosity::integration ){
     cout << "\tIntegrand::create_PS_LH(): END" << endl;
   }
+#endif
 
   return accept;
 }
@@ -809,12 +833,13 @@ int MEM::Integrand::create_PS_LH(MEM::PS& ps, const double* x, const vector<int>
 void MEM::Integrand::extend_PS(MEM::PS& ps, const MEM::PSPart& part, 
 			       const double& E,  const double& M, const TVector3& dir,
 			       const int& pos,  const PSVar& var_cos, const PSVar& var_phi, const PSVar& var_E, 
-			       const TFType& type) const {
+			       const TFType& type, const int charge) const {
 
   double E_phys  = TMath::Max(E,M); 
   double P       = sqrt(E_phys*E_phys - M*M);
-  ps.set(part,  MEM::GenPart(TLorentzVector( dir*P, E_phys ), type ) );
+  ps.set(part,  MEM::GenPart(TLorentzVector( dir*P, E_phys ), type, charge ) );
 
+#ifdef DEBUG_MODE
   if( debug_code&DebugVerbosity::integration ){
     cout << "\t\tExtend phase-space point: adding variable " << static_cast<size_t>(part) << endl;
     if(  map_to_var.find(var_E)!=map_to_var.end() )
@@ -829,6 +854,8 @@ void MEM::Integrand::extend_PS(MEM::PS& ps, const MEM::PSPart& part,
       cout << "\t\tUsing obs[" << pos << "]" << endl;
     }
   }
+#endif
+
 }
 
 
@@ -836,9 +863,11 @@ int MEM::Integrand::create_PS_LL(MEM::PS& ps, const double* x, const vector<int>
 
   int accept{0};
 
+#ifdef DEBUG_MODE
   if( debug_code&DebugVerbosity::integration ){
     cout << "\tIntegrand::create_PS_LL(): START" << endl;
   }
+#endif
 
   // map a quark to an index inside the obs_ collections
   size_t nl_q1    =  map_to_part.find(PSPart::q1)->second; 
@@ -859,7 +888,7 @@ int MEM::Integrand::create_PS_LL(MEM::PS& ps, const double* x, const vector<int>
   MEM::Object* lep1 = obs_leptons[ nl_q1 ];
   dir     = lep1->p4().Vect().Unit();
   E       = lep1->p4().E();
-  extend_PS( ps, PSPart::q1, E, 0., dir, nl_q1, PSVar::cos_q1, PSVar::phi_q1, PSVar::E_q1, TFType::muReco ); 
+  extend_PS( ps, PSPart::q1, E, 0., dir, nl_q1, PSVar::cos_q1, PSVar::phi_q1, PSVar::E_q1, TFType::muReco, int(lep1->getObs(Observable::CHARGE)) ); 
 
   /////  PSPart::qbar1
   dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_qbar1)->second ]) );
@@ -884,7 +913,7 @@ int MEM::Integrand::create_PS_LL(MEM::PS& ps, const double* x, const vector<int>
   MEM::Object* lep2 = obs_leptons[ nl_q2 ];
   dir     = lep2->p4().Vect().Unit();
   E       = lep2->p4().E();
-  extend_PS( ps, PSPart::q2, E, 0., dir, nl_q2, PSVar::cos_q2, PSVar::phi_q2, PSVar::E_q2, TFType::muReco ); 
+  extend_PS( ps, PSPart::q2, E, 0., dir, nl_q2, PSVar::cos_q2, PSVar::phi_q2, PSVar::E_q2, TFType::muReco, int(lep2->getObs(Observable::CHARGE)) ); 
 
   /////  PSPart::qbar2
   dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_qbar2)->second ]) );
@@ -934,9 +963,11 @@ int MEM::Integrand::create_PS_LL(MEM::PS& ps, const double* x, const vector<int>
   E    = hypo==Hypothesis::TTBB ? x[ map_to_var.find(PSVar::E_bbar)->second ]   : solve( ps.lv(PSPart::b), DMH2, MB, dir, E_REC, accept);
   extend_PS( ps, PSPart::bbar, E, MB, dir, perm[nj_bbar], PSVar::cos_bbar, PSVar::phi_bbar, PSVar::E_bbar,  (perm[nj_bbar]>=0?TFType::bReco:TFType::bLost) ); 
 
+#ifdef DEBUG_MODE
   if( debug_code&DebugVerbosity::integration ){
     cout << "\tIntegrand::create_PS_LH(): END" << endl;
   }
+#endif
 
   return accept;
 }
@@ -947,26 +978,36 @@ int MEM::Integrand::create_PS_HH(MEM::PS& ps, const double* x, const vector<int>
 
 double MEM::Integrand::probability(const double* x, const vector<int>& perm ) const {
 
+#ifdef DEBUG_MODE
   if( debug_code&DebugVerbosity::integration ){
     cout << "\tIntegrand::probability(): START" << endl;
   }
+#endif
 
   // the total probability
   double p{1.0};
-  if( !(int_code&IntegrandType::Constant) ) return p;
+  if( !int_code ) return p;
 
   // create phas-space point and test if it is physical
   PS ps;
   int accept = create_PS(ps, x, perm);
 
+#ifdef DEBUG_MODE
   if( debug_code&DebugVerbosity::integration ) ps.print(cout);
+#endif
+  
   if( accept<0 ){
+#ifdef DEBUG_MODE
     if( debug_code&DebugVerbosity::integration){
       cout << "\tCORRUPTED PS (no solution): return 0." << endl;      
     }
+#endif
     ++(const_cast<Integrand*>(this)->n_skip);
     return 0.;
   }
+
+  // 2Pi's and pp flux factor
+  p *= constants();
 
   // theory
   p *= matrix(ps);
@@ -974,9 +1015,11 @@ double MEM::Integrand::probability(const double* x, const vector<int>& perm ) co
   // experiment
   p *= transfer(ps, perm);
 
+#ifdef DEBUG_MODE
   if( debug_code&DebugVerbosity::integration ){
     cout << "\tIntegrand::probability(): END" << endl;
   }
+#endif
 
   return p;
 }
@@ -996,15 +1039,17 @@ double MEM::Integrand::matrix(const PS& ps) const {
   LV lv_b     = ps.lv(PSPart::b);
   LV lv_bbar  = ps.lv(PSPart::bbar);
 
+#ifdef DEBUG_MODE
   if( debug_code&DebugVerbosity::integration ){
     cout << "\t\tFilling m..." << endl;
     cout << "\t\tCheck masses: m(W1)=" << (lv_q1+lv_qbar1).M() << ", m(t1)=" << (lv_q1+lv_qbar1+lv_b1).M()
 	 << ", m(W2)=" << (lv_q2+lv_qbar2).M() << ", m(t2)=" << (lv_q2+lv_qbar2+lv_b2).M() 
 	 << ", m(H)=" << (lv_b+lv_bbar).M() << endl;
   }
+#endif
 
-  m *= t_decay_amplitude(lv_q1, lv_qbar1, lv_b1);
-  m *= t_decay_amplitude(lv_q2, lv_qbar2, lv_b2);
+  m *= t_decay_amplitude(lv_q1, lv_qbar1, lv_b1, ps.charge(PSPart::q1) );
+  m *= t_decay_amplitude(lv_q2, lv_qbar2, lv_b2, ps.charge(PSPart::q2) );
   m *= H_decay_amplitude(lv_b, lv_bbar);
   m *= scattering( lv_q1+lv_qbar1+lv_b1, lv_q2+lv_qbar2+lv_b2, lv_b, lv_bbar, x1, x2);
   m *= pdf( x1, x2 , lv_b.Pt()+lv_bbar.Pt() );
@@ -1034,7 +1079,7 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm) const {
   rho_x -= obs_mets[0]->p4().Py();
 
   // Dealing with jets and leptons
-  map<MEM::PSPart, MEM::GenPart>::const_iterator p;
+  PSMap::const_iterator p;
   for( p = ps.begin() ; p != ps.end() ; ++p ){    
 
     if( isLepton  ( p->second.type ) ){
@@ -1045,11 +1090,13 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm) const {
       // subtract from total pT
       pT_x  -= p->second.lv.Px();
       pT_y  -= p->second.lv.Py();
+#ifdef DEBUG_MODE
       if( debug_code&DebugVerbosity::integration ){
 	cout << "\tDealing with a lepton..." << endl;
 	cout << "\t\trho_x -= " << obj->p4().Px() << ", pT_x -= " << p->second.lv.Px() << endl;
 	cout << "\t\trho_y -= " << obj->p4().Py() << ", pT_y -= " << p->second.lv.Py() << endl;
       }
+#endif
       continue;
     }
     if( isNeutrino( p->second.type ) ){
@@ -1059,11 +1106,13 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm) const {
       // subtract from total pT
       pT_x -= p->second.lv.Px();
       pT_y -= p->second.lv.Py();
+#ifdef DEBUG_MODE
       if( debug_code&DebugVerbosity::integration ){
 	cout << "\tDealing with a neutrino..." << endl;
 	cout << "\t\tnu_x -= " <<  p->second.lv.Px() << ", pT_x -= " << p->second.lv.Px() << endl;
         cout << "\t\tnu_y -= " <<  p->second.lv.Py() << ", pT_y -= " << p->second.lv.Py() << endl;
       }
+#endif
       continue;
     }      
 
@@ -1083,18 +1132,22 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm) const {
       e_rec =  obj->p4().E();
       rho_x -= obj->p4().Px();
       rho_y -= obj->p4().Py();
+#ifdef DEBUG_MODE
       if( debug_code&DebugVerbosity::integration ){
 	cout << "\tDealing with a jet..." << endl;
 	cout << "\t\trho_x -= " << obj->p4().Px() << ", pT_x -= " << p->second.lv.Px() << endl;
 	cout << "\t\trho_y -= " << obj->p4().Py() << ", pT_y -= " << p->second.lv.Py() << endl;
       }
+#endif
     }
     else{
+#ifdef DEBUG_MODE
       if( debug_code&DebugVerbosity::integration ){
 	cout << "\tDealing with a missed jet..." << endl;
 	cout << "\t\trho_x -= " << 0 << ", pT_x -= " << p->second.lv.Px() << endl;
 	cout << "\t\trho_y -= " << 0 << ", pT_y -= " << p->second.lv.Py() << endl;
       }
+#endif
     }
 
     // build x,y vectors 
@@ -1129,7 +1182,7 @@ double MEM::Integrand::scattering(const TLorentzVector& top, const TLorentzVecto
 				  double& x1, double& x2) const{
 
   // return value (address passed to OpenLoops)
-  double M2{1.};
+  double M2{1.};  
 
   // temporary objects
   TLorentzVector t, tx, b, bx, h, sum;
@@ -1208,11 +1261,13 @@ double MEM::Integrand::scattering(const TLorentzVector& top, const TLorentzVecto
     break;
   }
 
+#ifdef DEBUG_MODE
   if( debug_code&DebugVerbosity::integration ){
     cout << "\t\tTotal (px,py,pz,E) = (" <<  sum.Px() << "," <<  sum.Py()<< "," <<  sum.Pz()<< "," <<  sum.E() << ")" << endl;
     cout << "\t\tGluons (x1,x2)     = (" << x1 << "," << x2 << ")" << endl;
     cout << "\t\tM2 (OpenLoops)     = " << M2 << endl;
   }
+#endif
 
   return M2;
 }
@@ -1221,7 +1276,7 @@ double MEM::Integrand::pdf(const double& x1, const double& x2, const double& dyn
   double p{1.};
   if( !(int_code&IntegrandType::PDF) ) return p;
 
-  double Q{MTOP};
+  double Q{2*MTOP};
   switch( hypo ){
   case Hypothesis::TTH:
     Q = (2*MTOP + MH)/2;
@@ -1235,24 +1290,93 @@ double MEM::Integrand::pdf(const double& x1, const double& x2, const double& dyn
 
   double f1 =  LHAPDF::xfx(1, x1, Q, 0)/x1;
   double f2 =  LHAPDF::xfx(1, x2, Q, 0)/x2;
+
+#ifdef DEBUG_MODE
   if( debug_code&DebugVerbosity::integration ){
     cout << "\t\tPDF(x1,Q)*PDF(x2,Q) = " << f1 << "*" << f2 << endl;
   }
+#endif
+
   p = (f1*f2)/(x1*x2);
-  return p;
-}
-
-double MEM::Integrand::t_decay_amplitude(const TLorentzVector&, const TLorentzVector&, const TLorentzVector&) const{
-  double p{1.};
-  if( !(int_code&IntegrandType::DecayAmpl) ) return p;
 
   return p;
 }
 
-double MEM::Integrand::H_decay_amplitude(const TLorentzVector&, const TLorentzVector&) const{
+double MEM::Integrand::constants() const {
+  double p{1.};
+  if( !(int_code&IntegrandType::Constant) ) return p;
+  return TMath::Power(1./(2.*PI), 4)/(4*Sqrt_s*Sqrt_s);
+}
+
+double MEM::Integrand::t_decay_amplitude(const TLorentzVector& q, const TLorentzVector& qbar, const TLorentzVector& b, const int& charge_q) const{
   double p{1.};
   if( !(int_code&IntegrandType::DecayAmpl) ) return p;
-  if(hypo==Hypothesis::TTBB) return p;
+
+  p *= BWTOP;
+
+  TLorentzVector w = q+qbar;
+  TLorentzVector t = w+b;
+  double InvJac = TMath::Abs(2*MW2/qbar.E()*( w.E() - w.Vect().Dot( b.Vect().Unit() )/b.Beta() ));
+  double Jac    = (1./InvJac) * q.Vect().Mag() * qbar.Vect().Mag() * b.Vect().Mag() / (2*2*2);
+  if( int_code&IntegrandType::Jacobian ) 
+    p *= Jac;
+
+  double x_e1 = 2*(q*t)/MTOP2;
+  double x_e2 = 2*(qbar*t)/MTOP2;
+
+  // if the flavour is determined, use formula. Otherwise, take average.
+  double m2   = charge_q!=0 ? x_e1*(1-MUB-x_e1) : 0.5*(x_e1*(1-MUB-x_e1) + x_e2*(1-MUB-x_e2));
+  m2 *= (32*PI*MTOP4*GEWK4/(MW*GW));
+  if(m2<0){
+    cout << "\tIntegrand::t_decay_amplitude() returned negative |M2|..." << endl;
+    return 0.;
+  }
+  p *= m2;
+
+#ifdef DEBUG_MODE
+  if( debug_code&DebugVerbosity::integration ){
+    cout << "\tIntegrand::t_decay_amplitude():" << endl;
+    cout << "\t\tBreit-Wigner top = " << BWTOP << " GeV^-2" << endl;
+    cout << "\t\tJacobian (Eqbar,Eb) -> (m2_qq, m2_qqb) = " << Jac << " GeV" << endl;
+    cout << "\t\t|M2|(t->bqq') = " << m2 << (charge_q==0?" (charge symmetrised)" : "")  << endl;
+    cout << "\t\tTotal = " << p << " GeV^-1" << endl;
+  }
+#endif
+
+  return p;
+}
+
+double MEM::Integrand::H_decay_amplitude(const TLorentzVector& b, const TLorentzVector& bbar) const{
+  double p{1.};
+  if( !(int_code&IntegrandType::DecayAmpl) ) return p;
+
+  double InvJac{1.0};
+  double m2{1.0};
+  if( hypo==Hypothesis::TTH ){
+    p *= BWH;
+    InvJac = TMath::Abs(2*(b.E() - b.Vect().Dot( bbar.Vect().Unit() )/bbar.Beta()));
+    m2 = 2*YB2*MH2*PSHBB;
+  }
+  double Jac    = (1./InvJac) * b.Vect().Mag() * bbar.Vect().Mag() / (2*2);
+  if( int_code&IntegrandType::Jacobian ) 
+    p *= Jac; 
+
+  p *= m2;
+
+#ifdef DEBUG_MODE
+  if( debug_code&DebugVerbosity::integration ){
+    cout << "\tIntegrand::H_decay_amplitude():" << endl;
+    if( hypo==Hypothesis::TTH ){
+      cout << "\t\tBreit-Wigner Higgs = " << BWH << " GeV^-2" << endl;
+      cout << "\t\tJacobian (Eb,Ebbar) -> (E_b, m2_bb) = " << Jac << " GeV" << endl;
+      cout << "\t\t|M2|(t->bqq') = " << m2 << " GeV^2" << endl;
+      cout << "\t\tTotal = " << p << " GeV" << endl;
+    }
+    else{
+      cout << "\t\tJacobian = " << Jac << " GeV^2" << endl;
+    }
+  }
+#endif
 
   return p;
 }
@@ -1262,9 +1386,11 @@ double MEM::Integrand::solve(const LV& p4_w, const double& DM2, const double& M,
   double a     = DM2/p4_w.E();
   double b     = TMath::Cos(p4_w.Angle(e_b));
   if( M<1e-03 ){
+#ifdef DEBUG_MODE
     if( debug_code&DebugVerbosity::integration ){
       cout << "\t\tUse masless formula: " << a << "/(1-" << b << ")=" << a/(1-b) << endl;  
     }
+#endif
     if( b<1. ) return a/(1-b);
     else{
       accept = -1;
@@ -1283,9 +1409,11 @@ double MEM::Integrand::solve(const LV& p4_w, const double& DM2, const double& M,
 
   // make sure there is >0 solutions
   if( (a2 + b2 - 1)<0. ){
+#ifdef DEBUG_MODE
     if( debug_code&DebugVerbosity::integration ){
       cout << "\t\t(a2 + b2 - 1)<0. return max()" << endl;
     }
+#endif
     accept = -1;
     return numeric_limits<double>::max();
   }
@@ -1296,9 +1424,11 @@ double MEM::Integrand::solve(const LV& p4_w, const double& DM2, const double& M,
 
   // make sure this is >1 ( g_m < g_p )
   if( g_p < 1.0 ){
+#ifdef DEBUG_MODE
     if( debug_code&DebugVerbosity::integration ){
       cout << "\t\tg_p=" << g_p << ": return max()" << endl;
     }
+#endif
     accept = -1;
     return numeric_limits<double>::max();
   }
@@ -1310,29 +1440,36 @@ double MEM::Integrand::solve(const LV& p4_w, const double& DM2, const double& M,
   switch( b>0 ){
   case true :
     if( discr<0 ){
+#ifdef DEBUG_MODE
       if( debug_code&DebugVerbosity::integration ){
 	cout << "\t\tb>0 AND discr<0: return root closest to target" << endl;
       }
+#endif
       return ( TMath::Abs(target-g_p)<TMath::Abs(target-g_m) ? g_p*M : g_m*M );
     }
+#ifdef DEBUG_MODE
     if( debug_code&DebugVerbosity::integration ){
       cout << "\t\tb>0 AND discr>0: return g_p*M" << endl;
     }
+#endif
     return g_p*M;
     break;
   case false:
     if( discr>0 ){
+#ifdef DEBUG_MODE
       if( debug_code&DebugVerbosity::integration ){
 	cout << "\t\tb<0 AND discr>0: return g_m*M" << endl;
       }
+#endif
       return g_m*M;
     }
     break;
   }
-
+#ifdef DEBUG_MODE
   if( debug_code&DebugVerbosity::integration ){
     cout << "\tIntegrand::solve(): END" << endl;
   }
+#endif
 
   accept = -1;
   return numeric_limits<double>::max();

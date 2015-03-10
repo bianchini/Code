@@ -1,5 +1,8 @@
 #include "interface/Parameters.h"
 
+//typedef std::unordered_map<MEM::PSPart, MEM::GenPart, MEM::PSPartHash, MEM::PSPartEqual> PSMap;
+typedef std::map<MEM::PSPart, MEM::GenPart> PSMap;
+
 size_t MEM::eta_to_bin( const double& eta ){
   if( fabs(eta)<1.0 ) return 0;
   if( fabs(eta)>1.0 ) return 1;
@@ -49,8 +52,10 @@ double MEM::transfer_function(double* y, double* x, const TFType& type, const in
     s1 = E*TMath::Sqrt(par[2]*par[2] + par[3]*par[3]/E + par[4]*par[4]/E/E);
     s2 = E*TMath::Sqrt(par[7]*par[7] + par[8]*par[8]/E + par[9]*par[9]/E/E);
     w *= f*TMath::Gaus(y[0], m1, s1, 1) + (1-f)*TMath::Gaus(y[0], m2, s2, 1);
+#ifdef DEBUG_MODE
     if( debug&DebugVerbosity::integration) 
       cout << "\t\ttransfer_function: Evaluate W(" << y[0] << " | E=" << E << ", y=" << H << ", TFType::bReco) = " << w << endl;
+#endif
     break;
     
   case TFType::qReco:
@@ -63,8 +68,10 @@ double MEM::transfer_function(double* y, double* x, const TFType& type, const in
     m1  = par[0] + par[1]*E;
     s1  = E*TMath::Sqrt(par[2]*par[2] + par[3]*par[3]/E + par[4]*par[4]/E/E);
     w  *= TMath::Gaus(y[0], m1, s1, 1);
+#ifdef DEBUG_MODE
     if( debug&DebugVerbosity::integration) 
       cout << "\t\ttransfer_function: Evaluate W(" << y[0] << " | E=" << E << ", y=" << H << ", TFType::qReco) = " << w << endl;
+#endif
     break;
     
   case TFType::MET:
@@ -73,16 +80,20 @@ double MEM::transfer_function(double* y, double* x, const TFType& type, const in
 
     par = TF_MET_param;
     w *= TMath::Gaus(y[0], x[0], par[0], 1)*TMath::Gaus(y[1], x[1], par[1], 1);
+#ifdef DEBUG_MODE
     if( debug&DebugVerbosity::integration) 
       cout << "\t\ttransfer_function: Evaluate W(" << y[0]-x[0] << " , " << y[1]-x[1] << ", TFType::MET) = " << w << endl;
+#endif
     break;
 
   case TFType::Recoil:
     // x[0] = sum pT_x ; x[1] = sum pT_y
     // y[0] = rho_x    ; y[1] = rho_y
     w *= 1.0;
+#ifdef DEBUG_MODE
     if( debug&DebugVerbosity::integration) 
       cout << "\t\ttransfer_function: Evaluate W(" << y[0] << ", " << y[1] << " | " << x[0] << ", " << x[1] << "; TFType::Recoil) = " << w << endl;
+#endif
     break;
 
   case TFType::bLost:
@@ -95,8 +106,10 @@ double MEM::transfer_function(double* y, double* x, const TFType& type, const in
     par = TF_ACC_param;
     if( TMath::Abs(x[1])>par[0] ){
       w = par[2];
+#ifdef DEBUG_MODE
       if( debug&DebugVerbosity::integration) 
 	cout << "\t\ttransfer_function: Evaluate W(" << x[0] << ", " << x[1] << ", TFType::qLost) = " << w << endl;
+#endif
     } 
     else{
       // x[0]     = parton energy ; 
@@ -108,8 +121,10 @@ double MEM::transfer_function(double* y, double* x, const TFType& type, const in
       double mean_pt  = (par[0] + par[1]*E)/TMath::CosH(H);
       double sigma_pt = E*TMath::Sqrt(par[2]*par[2] + par[3]*par[3]/E + par[4]*par[4]/E/E)/TMath::CosH(H);
       w *= 0.5*(TMath::Erf( (TF_ACC_param[1] - mean_pt)/sigma_pt ) + 1 ) ; 
+#ifdef DEBUG_MODE
       if( debug&DebugVerbosity::integration) 
 	cout << "\t\ttransfer_function: Evaluate W(" <<  TF_ACC_param[1] << " | " << E << ", " << H << ", TFType::qLost) = " << w << endl;
+#endif
     }
     break;
   default:
@@ -162,11 +177,11 @@ pair<double, double> MEM::get_support(double* y, const TFType& type, const doubl
     }
     e_H += step_size;
   }
-
+#ifdef DEBUG_MODE
   if( debug&DebugVerbosity::integration) 
     cout << "MEM::get_support: E(reco) = " << e_rec << " ==> range at " << alpha 
 	 << " CL is [" << e_L << ", " << e_H << "] (stepping every " << step_size << " GeV)" << endl;
-  
+#endif
   return make_pair(e_L, e_H);
 }
 
@@ -177,16 +192,20 @@ MEM::PS::PS(size_t d){
 
 MEM::PS::~PS(){}
 
-map<MEM::PSPart, MEM::GenPart>::const_iterator MEM::PS::begin() const {
+PSMap::const_iterator MEM::PS::begin() const {
   return val.begin();
 }
 
-map<MEM::PSPart, MEM::GenPart>::const_iterator MEM::PS::end() const {
+PSMap::const_iterator MEM::PS::end() const {
   return val.end();
 }
 
 LV MEM::PS::lv(const MEM::PSPart& p) const { 
   return val.find(p)!=val.end() ? (val.find(p)->second).lv : LV() ; 
+}
+
+int MEM::PS::charge(const MEM::PSPart& p) const {
+  return val.find(p)!=val.end() ? (val.find(p)->second).charge : 0 ;
 }
 
 MEM::TFType MEM::PS::type(const MEM::PSPart& p) const {
@@ -219,7 +238,7 @@ MEM::Object::~Object(){}
 LV MEM::Object::p4() const { return p; }
 
 double MEM::Object::getObs(const Observable& name) const { 
-  return (obs.find(name)!=obs.end() ? obs.find(name)->second : -99.);
+  return (obs.find(name)!=obs.end() ? obs.find(name)->second : 0.);
 }
 
 bool MEM::Object::isSet(const Observable& name) const { 

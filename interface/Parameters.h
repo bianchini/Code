@@ -1,15 +1,21 @@
 #ifndef PARAMETERS_H
 #define PARAMETERS_H
 
+#ifndef DEBUG_MODE 
+#define DEBUG_MODE
+#endif
+
 // std library
 #include<iostream>
 #include<map>
+#include<unordered_map>
 #include<assert.h>
 #include<vector>
 #include<bitset> 
 #include<algorithm>  
 #include<initializer_list>
 #include<limits> 
+#include<chrono>
 
 // ROOT
 #include "TLorentzVector.h"
@@ -25,22 +31,40 @@
 
 typedef TLorentzVector LV;
 using namespace std;
+using namespace std::chrono;
 
 namespace MEM {
   
   size_t eta_to_bin( const double& );
 
+  constexpr double PI   = 3.14159265359;
   constexpr double MTOP = 174.3;
+  constexpr double MTOP2= MTOP*MTOP;
+  constexpr double MTOP4= MTOP2*MTOP2;
+  constexpr double GTOP = 2.0;
   constexpr double MB   = 4.8;
+  constexpr double MB2  = MB*MB;
+  constexpr double MUB  = MB2/MTOP2;
   constexpr double MQ   = 0.;
   constexpr double ML   = 0.;
   constexpr double MW   = 80.19;
+  constexpr double MW2  = MW*MW;
+  constexpr double GW   = 2.08;
   constexpr double DMT2 = (MTOP*MTOP-MB*MB-MW*MW)*0.5;
   constexpr double MH   = 125.;
+  constexpr double MH2  = MH*MH;
+  constexpr double PSHBB= 1-4*MB2/MH2;
+  constexpr double GH   = 0.00407;
   constexpr double DMH2 = (MH*MH-2*MB*MB)*0.5;
   constexpr double DMW2 = (MW*MW)*0.5;
-  constexpr double PTTHRESHOLD = 30.;
-  
+  constexpr double GFERMI = 1.166e-05;
+  constexpr double GEWK2  = GFERMI/sqrt(2)*8*MW2;
+  constexpr double GEWK4  = GEWK2*GEWK2;
+  constexpr double YB     = MB*sqrt(sqrt(2)*GFERMI);
+  constexpr double YB2    = YB*YB;
+  constexpr double BWTOP  = PI/MTOP/GTOP;
+  constexpr double BWH    = PI/MH/GH;
+    
   const double TF_Q_param[2][5] =
     { { 0.00e+00, 1.00e+00, 0.00e+00, 1.56e+00, 0.00e+00 },
       { 0.00e+00, 1.00e+00, 1.30e-01, 1.52e+00, 0.00e+00 }
@@ -111,26 +135,62 @@ namespace MEM {
                      q2=3, qbar2=4, b2=5,
                      b =6, bbar =7 };
 
+  class PSVarHash{
+  public:
+    std::size_t operator()(PSVar const& s) const {
+      std::size_t h1 = std::hash<size_t>()(static_cast<size_t>(s));
+      return h1;
+    }
+  };
+
+  class PSVarEqual{
+  public:
+    bool operator()( const PSVar& a, const PSVar& b ) const {
+      return static_cast<size_t>(a)==static_cast<size_t>(b);
+    }
+  };
+
+  class PSPartHash{
+  public:
+    std::size_t operator()(PSPart const& s) const {
+      std::size_t h1 = std::hash<size_t>()(static_cast<size_t>(s));
+      return h1;
+    }
+  };
+
+  class PSPartEqual{
+  public:
+    bool operator()( const PSPart& a, const PSPart& b ) const {
+      return static_cast<size_t>(a)==static_cast<size_t>(b);
+    }
+  };
+
+
   struct GenPart {
     GenPart(){ lv = LV(); type = TFType::Unknown;}
-    GenPart(const LV& a, const TFType& b){ lv = a; type = b;}    
+    GenPart(const LV& a, const TFType& b, const int c){ lv = a; type = b; charge=c;}    
     LV lv;
     TFType type;
+    int charge;
   };
-  
+
+  //typedef std::unordered_map<MEM::PSPart, MEM::GenPart, MEM::PSPartHash, MEM::PSPartEqual> PSMap;
+  typedef std::map<MEM::PSPart, MEM::GenPart> PSMap; 
+
   class PS {
   public: 
     PS( size_t=0);
     ~PS();
-    map<PSPart, GenPart>::const_iterator begin() const;
-    map<PSPart, GenPart>::const_iterator end() const;
+    PSMap::const_iterator begin() const;
+    PSMap::const_iterator end() const;
     LV lv(const PSPart&) const;  
+    int charge(const PSPart& ) const;
     TFType type(const PSPart&) const;
     void set(const PSPart&, const GenPart&);    
     void print(ostream&) const;
   private:
     size_t dim;
-    std::map<PSPart, GenPart> val;
+    PSMap val;
   };
   
   enum class Hypothesis { TTH=0, TTBB=1, Undefined=3 };
