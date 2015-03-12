@@ -50,13 +50,16 @@ namespace MEM {
     // choose c.o.m. energy
     void set_sqrts(const double&);
 
+    // choose n calls
+    void set_ncalls(const size_t&);
+
     // add object information
     // WARNING: to be called just after push_back of related object!
     // (using .back() method of std::vector<>)
     void add_object_observable(const pair<Observable, double>&, const ObjectType& );
 
     // main method: call it to have the ME calculated
-    void run( const Hypothesis =Hypothesis::TTH, const initializer_list<PSVar> ={});
+    void run( const FinalState =FinalState::LH, const Hypothesis =Hypothesis::TTH, const initializer_list<PSVar> ={});
 
     // clear containers and counters after each event
     void next_event();
@@ -65,7 +68,7 @@ namespace MEM {
   private:
 
     // initialise (once for event)
-    void init( const Hypothesis=Hypothesis::TTH);
+    void init( const FinalState =FinalState::LH, const Hypothesis=Hypothesis::TTH);
 
     // create a map between variable names and positions
     void fill_map( const initializer_list<PSVar>& );
@@ -86,12 +89,14 @@ namespace MEM {
     double Eval(const double*) const;
     
     // create PS point
-    int create_PS   (MEM::PS&, const double*, const vector<int>&) const;
-    int create_PS_LH(MEM::PS&, const double*, const vector<int>&) const;
-    int create_PS_LL(MEM::PS&, const double*, const vector<int>&) const;
-    int create_PS_HH(MEM::PS&, const double*, const vector<int>&) const;
+    int create_PS    (MEM::PS&, const double*, const vector<int>&) const;
+    int create_PS_LH (MEM::PS&, const double*, const vector<int>&) const;
+    int create_PS_LL (MEM::PS&, const double*, const vector<int>&) const;
+    int create_PS_HH (MEM::PS&, const double*, const vector<int>&) const;
+    int create_PS_TTH(MEM::PS&, const double*, const vector<int>&) const;
 
     void extend_PS(PS&, const PSPart&, const double& , const double& , const TVector3&, const int&, const PSVar&,const PSVar&,const PSVar&,const TFType&, const int =0) const;
+    void extend_PS_nodebug(PS&, const PSPart&, const double& , const double& , const TVector3&) const;
 
     double probability(const double*, const vector<int>&) const;
 
@@ -112,6 +117,9 @@ namespace MEM {
     // evaluate ME
     double matrix  (const PS&) const;
 
+    // evaluate ME
+    double matrix_nodecay (const PS&) const;
+
     // solve for energy given the masses and angles
     double solve( const LV&,  const double& ,  const double& , const TVector3&, const double&, int&) const;
 
@@ -127,6 +135,9 @@ namespace MEM {
     // count function calls
     int n_calls;
 
+    // set number of calls
+    int n_max_calls;
+
     // count number of invalid phase space points
     int n_skip;
 
@@ -141,6 +152,9 @@ namespace MEM {
 
     // number of unknowns
     size_t num_of_vars;
+
+    // number of original dimensions
+    size_t ps_dim;
 
     // keep track of howm many jets one would expect
     size_t naive_jet_counting;
@@ -171,7 +185,11 @@ namespace MEM {
     // VEGAS integrator
     ROOT::Math::GSLMCIntegrator* ig2;
 
+    // the com energy
     double Sqrt_s;
+
+    //transform energies into adimensional quantitities
+    double EMAX;
 
   };
 

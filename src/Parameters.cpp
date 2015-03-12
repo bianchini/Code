@@ -1,7 +1,7 @@
 #include "interface/Parameters.h"
 
-//typedef std::unordered_map<MEM::PSPart, MEM::GenPart, MEM::PSPartHash, MEM::PSPartEqual> PSMap;
-typedef std::map<MEM::PSPart, MEM::GenPart> PSMap;
+typedef std::unordered_map<MEM::PSPart, MEM::GenPart, MEM::PSPartHash, MEM::PSPartEqual> PSMap;
+//typedef std::map<MEM::PSPart, MEM::GenPart> PSMap;
 
 size_t MEM::eta_to_bin( const double& eta ){
   if( fabs(eta)<1.0 ) return 0;
@@ -217,13 +217,18 @@ void MEM::PS::set(const MEM::PSPart& a, const MEM::GenPart& b){
 }
 
 void MEM::PS::print(ostream& os) const{
+  cout << "\tContent of this PS: dim(PS)=" << dim << "..." << endl;
   for( auto p = val.begin() ; p != val.end() ; ++p ){
-    cout << "\tPS[" << static_cast<size_t>(p->first) << "] : type("
-	 << static_cast<size_t>(p->second.type) << ") "
+    cout << "\t\tPS[" << static_cast<size_t>(p->first) << "] : type("
+	 << static_cast<size_t>(p->second.type) << "), (pT,h,phi,M)=("
 	 << p->second.lv.Pt() << ", "
 	 << p->second.lv.Eta() << ", "
 	 << p->second.lv.Phi() << ", "
-	 << p->second.lv.M()
+	 << p->second.lv.M() << "), (px,py,pz,E)=("
+	 << p->second.lv.Px() << ", "
+	 << p->second.lv.Py() << ", "
+	 << p->second.lv.Pz() << ", "
+	 << p->second.lv.E() << ")"
 	 << endl; 
   }
 }

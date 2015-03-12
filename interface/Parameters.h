@@ -101,12 +101,26 @@ namespace MEM {
 
   pair<double, double> get_support( double*, const TFType&, const double&, const int&);
 
-  enum class ObjectType { Jet=0, Lepton, MET, Recoil};
+  enum class ObjectType { Jet=0, Lepton=1, MET=2, Recoil=3};
 
-  enum class Observable { E_LOW_Q, E_HIGH_Q, E_LOW_B, E_HIGH_B, BTAG, CHARGE};
+  enum class Observable { E_LOW_Q=0, E_HIGH_Q=1, E_LOW_B=2, E_HIGH_B=3, BTAG=4, CHARGE=5};
 
-  class Object {   
-    
+  class ObsHash{
+  public:
+    std::size_t operator()(const Observable& s) const {
+      std::size_t h1 = std::hash<size_t>()(static_cast<size_t>(s));
+      return h1;
+    }
+  };
+
+  class ObsEqual{
+  public:
+    bool operator()( const Observable& a, const Observable& b ) const {
+      return static_cast<size_t>(a)==static_cast<size_t>(b);
+    }
+  };
+
+  class Object {       
   public:
     Object(const LV&, const ObjectType&); 
     ~Object(); 
@@ -118,7 +132,7 @@ namespace MEM {
   private:
     LV p;
     ObjectType type;
-    map<Observable,double> obs; 
+    std::unordered_map<Observable,double, ObsHash, ObsEqual > obs; 
   };  
  
   
@@ -129,15 +143,21 @@ namespace MEM {
       E_qbar2=12, cos_qbar2=13, phi_qbar2=14,  
       E_b2=15,    cos_b2=16,    phi_b2=17,
       E_b=18,     cos_b=19,     phi_b=20,  
-      E_bbar=21,  cos_bbar=22,  phi_bbar=23};
+      E_bbar=21,  cos_bbar=22,  phi_bbar=23,
+      P_t=24,     cos_t=25,     phi_t=26,
+      P_tbar=27,  cos_tbar=28,  phi_tbar=29,
+      P_h=30,     cos_h=31,     phi_h=32,
+      Px_h=33,    Py_h=34,      Pz_h=35};
   
-  enum class PSPart {q1=0, qbar1=1, b1=2,
-                     q2=3, qbar2=4, b2=5,
-                     b =6, bbar =7 };
+  enum class PSPart {
+      q1=0, qbar1=1, b1=2,
+      q2=3, qbar2=4, b2=5,
+      b =6, bbar =7, 
+      t=8,  tbar=9, h=10 };
 
   class PSVarHash{
   public:
-    std::size_t operator()(PSVar const& s) const {
+    std::size_t operator()(const PSVar& s) const {
       std::size_t h1 = std::hash<size_t>()(static_cast<size_t>(s));
       return h1;
     }
@@ -174,8 +194,8 @@ namespace MEM {
     int charge;
   };
 
-  //typedef std::unordered_map<MEM::PSPart, MEM::GenPart, MEM::PSPartHash, MEM::PSPartEqual> PSMap;
-  typedef std::map<MEM::PSPart, MEM::GenPart> PSMap; 
+  typedef std::unordered_map<MEM::PSPart, MEM::GenPart, MEM::PSPartHash, MEM::PSPartEqual> PSMap;
+  //typedef std::map<MEM::PSPart, MEM::GenPart> PSMap; 
 
   class PS {
   public: 
@@ -195,7 +215,7 @@ namespace MEM {
   
   enum class Hypothesis { TTH=0, TTBB=1, Undefined=3 };
 
-  enum class FinalState { HH=0, LH=1, LL=2, Undefined=3};
+  enum class FinalState { HH=0, LH=1, LL=2, TTH=3, Undefined=4};
 
   enum class Assumption { ZeroQuarkLost=0, OneQuarkLost, TwoQuarkLost};
 

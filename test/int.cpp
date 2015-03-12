@@ -20,6 +20,7 @@ int main(){
 				       //|DebugVerbosity::integration
 				       );
 
+  /*  
   integrand->push_back_object     ( TLorentzVector(50,0, 10, sqrt(50*50+10*10)),    ObjectType::Jet );
   integrand->add_object_observable( make_pair(Observable::BTAG, 0.), ObjectType::Jet);
 
@@ -44,6 +45,8 @@ int main(){
   integrand->push_back_object     ( TLorentzVector(30,0,0,30),        ObjectType::MET );
 
   integrand->set_permutation_strategy( {Permutations::BTagged, Permutations::QUntagged, Permutations::QQbarSymmetry, Permutations::BBbarSymmetry});
+  */
+
   integrand->set_integrand(IntegrandType::Constant
 			   |IntegrandType::ScattAmpl
 			   |IntegrandType::DecayAmpl
@@ -51,10 +54,13 @@ int main(){
 			   |IntegrandType::PDF
 			   |IntegrandType::Transfer
 			   );
+  integrand->set_ncalls(500000);
+			   
+  //integrand->run( FinalState::LH, Hypothesis::TTH,  {} );
+  //integrand->run( FinalState::LH, Hypothesis::TTH,  {PSVar::cos_qbar1, PSVar::phi_qbar1} );
+  //integrand->run( FinalState::LH, Hypothesis::TTBB, {} );
+  integrand->run( FinalState::TTH, Hypothesis::TTH,  {} );
 
-  //integrand->run( Hypothesis::TTH,  {} );
-  //integrand->run( Hypothesis::TTH,  {PSVar::cos_qbar1, PSVar::phi_qbar1} );
-  integrand->run( Hypothesis::TTBB, {} );
   integrand->next_event();
 
   delete integrand;
