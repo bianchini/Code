@@ -39,8 +39,9 @@ namespace MEM {
 
     // add objects (jets, leptons, MET)
     // (ObjectType defined in Parameters.h)
-    void push_back_object( const LV& , const ObjectType&);
-    
+    void push_back_object( const LV& , const ObjectType&);    
+    void push_back_object( Object* );
+
     // filter out permutations
     void set_permutation_strategy(const initializer_list<MEM::Permutations>&);
 
@@ -84,6 +85,9 @@ namespace MEM {
 
     // filter out permutations
     bool accept_perm( const vector<int>&, const initializer_list<Permutations>& ) const;
+
+    // a constanta value for each permutation
+    double get_permutation_constants(  const vector<int>& ) const;
 
     // main method. Needed by GSLMCIntegrator
     double Eval(const double*) const;
@@ -170,6 +174,8 @@ namespace MEM {
     // contain indexes of obs_jets that need permutations
     std::vector< vector<int> > perm_indexes;
     std::vector< vector<int> > perm_indexes_assumption;
+    std::vector< double >      perm_const_assumption;
+
 
     // map between parameter names (physical) and positions in
     // VEGAS space

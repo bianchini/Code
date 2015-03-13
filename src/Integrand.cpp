@@ -18,7 +18,7 @@ MEM::Integrand::Integrand(int debug){
   n_skip             = 0;
   n_max_calls        = 4000;
   Sqrt_s             = 13000.; //GeV 
-  EMAX               = 5000.;
+  EMAX               = 8000.;
 
   int_code           = 0; 
   /*    
@@ -40,14 +40,15 @@ MEM::Integrand::Integrand(int debug){
 MEM::Integrand::~Integrand(){
   if( debug_code&DebugVerbosity::init )  
     cout << "Integrand::~Integrand()" << endl;    
-  for( auto j : obs_jets )     delete j;
-  for( auto l : obs_leptons )  delete l;
-  for( auto m : obs_mets )     delete m;
+  //for( auto j : obs_jets )     delete j;
+  //for( auto l : obs_leptons )  delete l;
+  //for( auto m : obs_mets )     delete m;
   obs_jets.clear();
   obs_leptons.clear();
   obs_mets.clear();
   perm_indexes.clear();
   perm_indexes_assumption.clear();
+  perm_const_assumption.clear();
   map_to_var.clear();
   map_to_part.clear();
 }
@@ -204,10 +205,10 @@ void MEM::Integrand::get_edges(double* lim, const initializer_list<PSVar>& lost,
     break;
   case FinalState::TTH:
     lim[map_to_var[PSVar::P_t]]      =  edge ?  EMAX :  0.;
-    lim[map_to_var[PSVar::cos_t]]    =  edge ? +0.9  : -0.9; //0.9 corresponds to |eta|<4.5
+    lim[map_to_var[PSVar::cos_t]]    =  edge ? +0.99  : -0.99; //0.9 corresponds to |eta|<4.5
     lim[map_to_var[PSVar::phi_t]]    =  edge ? +TMath::Pi() : -TMath::Pi();
     lim[map_to_var[PSVar::P_tbar]]   =  edge ?  EMAX :  0.;
-    lim[map_to_var[PSVar::cos_tbar]] =  edge ? +0.9  : -0.9;
+    lim[map_to_var[PSVar::cos_tbar]] =  edge ? +0.99  : -0.99;
     lim[map_to_var[PSVar::phi_tbar]] =  edge ? +TMath::Pi() : -TMath::Pi();
     lim[map_to_var[PSVar::Pz_h]]     =  edge ?  EMAX/2 : -EMAX/2;
     break;
@@ -330,6 +331,31 @@ void MEM::Integrand::push_back_object(const LV& p4,  const MEM::ObjectType& type
   return;
 }
 
+void MEM::Integrand::push_back_object(MEM::Object* obj){
+
+  switch( obj->type() ){
+  case ObjectType::Jet:
+    obs_jets.push_back( obj ); 
+    break;
+  case ObjectType::Lepton:
+    obs_leptons.push_back( obj ); 
+    break;
+  case ObjectType::MET:
+    obs_mets.push_back( obj ); 
+    break;
+  default:
+    cout << "*** MEM::Intgrator::push_back_object(): Unknown type of object added" << endl;
+    break;
+  }
+
+  if( debug_code&DebugVerbosity::input ){
+    cout << "Integrand::fill_map(): SUMMARY" << endl;
+    obj->print(cout);
+  }
+  
+  return;
+}
+
 void MEM::Integrand::add_object_observable( const std::pair<MEM::Observable, double>& obs, const ObjectType& type ){
   
   switch( type ){
@@ -410,9 +436,9 @@ void MEM::Integrand::next_event(){
   if( debug_code&DebugVerbosity::init ){
     cout << "Integrand::next_event(): START" << endl;
   }
-  for( auto j : obs_jets )     delete j;
-  for( auto l : obs_leptons )  delete l;
-  for( auto m : obs_mets )     delete m;
+  //for( auto j : obs_jets )     delete j;
+  //for( auto l : obs_leptons )  delete l;
+  //for( auto m : obs_mets )     delete m;
   obs_jets.clear();
   obs_leptons.clear();
   obs_mets.clear();  
@@ -424,6 +450,7 @@ void MEM::Integrand::next_event(){
   n_skip             = 0;
   perm_indexes.clear();
   perm_indexes_assumption.clear();
+  perm_const_assumption.clear();
   map_to_var.clear();
   map_to_part.clear();
   if( debug_code&DebugVerbosity::init ){
@@ -438,6 +465,7 @@ void MEM::Integrand::next_hypo(){
   if(ig2!=nullptr) delete ig2;
   perm_indexes.clear();
   perm_indexes_assumption.clear();
+  perm_const_assumption.clear();
   map_to_var.clear();
   map_to_part.clear();
   n_calls = 0;
@@ -498,24 +526,26 @@ double MEM::Integrand::make_assumption( const initializer_list<MEM::PSVar>& lost
     // then push back the permutation
     count = 0;
     for(auto ind : perm){ if(ind<0) ++count; }
+
     if(count!=(lost.size()/2))  continue;
-
     if( !accept_perm( perm, permutation_strategies)) continue;
-
-    perm_indexes_assumption.push_back( perm );    
+    
+    perm_indexes_assumption.push_back( perm ); 
+    perm_const_assumption.push_back( get_permutation_constants(perm) );
   }  
 
   if( debug_code&DebugVerbosity::init_more ) {
     size_t n_perm{0};
     for( auto perm : perm_indexes_assumption ){
-      cout << "\tperm. " << n_perm++ << ": [ ";
+      cout << "\tperm. " << n_perm << ", k-factor=" << perm_const_assumption[n_perm] << ": [ ";
+      ++n_perm;
       for( auto ind : perm )
 	cout << ind << " ";
       cout << "]" << endl;
     }
   }
   if( debug_code&DebugVerbosity::init ) 
-    cout << "\tAssumption: a total of " << perm_indexes_assumption.size() << " has been considered for this assumption" << endl;
+    cout << "\tA total of " << perm_indexes_assumption.size() << " permutations have been considered for this assumption" << endl;
 
   // create integration ranges
   size_t npar = num_of_vars+2*extra_jets;
@@ -675,18 +705,108 @@ bool MEM::Integrand::accept_perm( const vector<int>& perm, const initializer_lis
   return true;
 }
 
-double MEM::Integrand::Eval(const double* x) const{
-  double prob{0.};
+double MEM::Integrand::get_permutation_constants( const vector<int>& perm ) const {
 
-  size_t n_perm{0};
-  for( auto perm : perm_indexes_assumption ){
-    //if(n_perm>0) break;
-    prob += probability(x, perm);
-    ++n_perm;
+  if( debug_code&DebugVerbosity::init ){
+    cout << "Integrand::get_permutation_constants(): START" << endl;
   }
 
+  double p{1.};
+  double DeltaE{1.};
+  size_t pos;
+
+  MEM::Object* obj = nullptr;
+  switch( fs ){
+  case FinalState::LH:
+    // PSVar::E_q
+    pos = map_to_part.find(PSPart::q1)->second;
+    obj = obs_jets[ perm[pos] ];
+    DeltaE = (obj->getObs(Observable::E_HIGH_Q) - obj->getObs(Observable::E_LOW_Q));
+    if( debug_code&DebugVerbosity::init ) cout << "\tdE_q = " << DeltaE << " GeV" << endl;
+    p *= DeltaE;
+
+    // PSVar::E_b
+    pos = map_to_part.find(PSPart::b)->second;
+    obj = obs_jets[ perm[pos] ];
+    DeltaE = (obj->getObs(Observable::E_HIGH_B) - obj->getObs(Observable::E_LOW_B)); 
+    if( debug_code&DebugVerbosity::init ) cout << "\tdE_b = " << DeltaE << " GeV" << endl;
+    p *= DeltaE;
+
+    // PSVar::E_bbar
+    if( hypo==Hypothesis::TTBB ){
+      pos = map_to_part.find(PSPart::bbar)->second;
+      obj = obs_jets[ perm[pos] ];
+      DeltaE = (obj->getObs(Observable::E_HIGH_B) - obj->getObs(Observable::E_LOW_B));
+    if( debug_code&DebugVerbosity::init ) cout << "\tdE_bbar = " << DeltaE << " GeV" << endl;
+      p *= DeltaE;
+    }
+    break;
+  case FinalState::LL:
+    // PSVar::E_b 
+    pos = map_to_part.find(PSPart::b)->second;
+    obj = obs_jets[ perm[pos] ];
+    DeltaE = (obj->getObs(Observable::E_HIGH_B) - obj->getObs(Observable::E_LOW_B));
+    if( debug_code&DebugVerbosity::init ) cout << "\tdE_b = " << DeltaE << " GeV" << endl;
+    p *= DeltaE;
+
+    // PSVar::E_bbar 
+    if( hypo==Hypothesis::TTBB ){
+      pos = map_to_part.find(PSPart::bbar)->second;
+      obj = obs_jets[ perm[pos] ];
+      DeltaE = (obj->getObs(Observable::E_HIGH_B) - obj->getObs(Observable::E_LOW_B));
+      if( debug_code&DebugVerbosity::init ) cout << "\tdE_bbar = " << DeltaE << " GeV" << endl;
+      p *= DeltaE;
+    }
+    break;
+  default:
+    break;
+  }
+
+  if( debug_code&DebugVerbosity::init ){
+    cout << "\tVariable transformation permutation-dependent returned p=" << p << endl;
+  }
+
+  if( debug_code&DebugVerbosity::init ){
+    cout << "Integrand::get_permutation_constants(): END" << endl;
+  }
+
+  return p;
+}
+
+
+double MEM::Integrand::Eval(const double* x) const{
+
+#ifdef DEBUG_MODE
+    if( debug_code&DebugVerbosity::integration ){
+      cout << "\tIntegrand::Eval(): START" << endl;
+      cout << "\t\tVEGAS call num. " << n_calls << endl;
+    }
+#endif
+
+  double p{0.};
+
+  for( size_t n_perm = 0; n_perm < perm_indexes_assumption.size() ; ++n_perm ){
+    double p0 = probability(x, perm_indexes_assumption[n_perm]);
+    double p1 = perm_const_assumption[n_perm];
+#ifdef DEBUG_MODE
+    if( debug_code&DebugVerbosity::integration ){
+      cout << "\t\tPermutation #" << n_perm 
+	   << " => p = (" << p0 << "*" << p1 << ") = " << (p0*p1) << endl;
+      cout << "\t\t\tP --> " << p << " + " << (p0*p1) << endl;
+    }
+#endif
+    p += (p0*p1);
+  }
+  
   ++(const_cast<Integrand*>(this)->n_calls);
-  return prob;
+
+#ifdef DEBUG_MODE
+  if( debug_code&DebugVerbosity::integration ){
+    cout << "\tIntegrand::Eval(): END" << endl;
+  }
+#endif
+
+  return p;
 }
 
 int MEM::Integrand::create_PS(MEM::PS& ps, const double* x, const vector<int>& perm ) const {
@@ -1458,7 +1578,7 @@ double MEM::Integrand::pdf(const double& x1, const double& x2, const double& dyn
 double MEM::Integrand::constants() const {
   double p{1.};
   if( !(int_code&IntegrandType::Constant) ) return p;
-  return TMath::Power((2.*PI), int(4-3*ps_dim))/(4*Sqrt_s*Sqrt_s*Sqrt_s*Sqrt_s);
+  return TMath::Power((2.*PI), int(4-3*ps_dim))/(Sqrt_s*Sqrt_s*Sqrt_s*Sqrt_s);
 }
 
 double MEM::Integrand::t_decay_amplitude(const TLorentzVector& q, const TLorentzVector& qbar, const TLorentzVector& b, const int& charge_q) const{

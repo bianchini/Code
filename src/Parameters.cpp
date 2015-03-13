@@ -233,14 +233,21 @@ void MEM::PS::print(ostream& os) const{
   }
 }
 
-MEM::Object::Object(const LV& lv, const MEM::ObjectType& t){ 
-  p   = lv; 
-  type = t; 
+MEM::Object::Object(const LV& lv, const MEM::ObjectType& ty){ 
+  p  = lv; 
+  t  = ty; 
+} 
+
+MEM::Object::Object(){ 
+  p = LV(1e-06,0.,0.,1e-06); 
+  t = ObjectType::Unknown; 
 } 
 
 MEM::Object::~Object(){}    
 
 LV MEM::Object::p4() const { return p; }
+
+MEM::ObjectType MEM::Object::type() const { return t; }
 
 double MEM::Object::getObs(const Observable& name) const { 
   return (obs.find(name)!=obs.end() ? obs.find(name)->second : 0.);
@@ -255,7 +262,7 @@ void MEM::Object::addObs(const Observable& name, const double& val){
 }
 
 void MEM::Object::print(ostream& os) const {
-  os << "\tType: " << static_cast<int>(type) << ", p=(Pt, Eta, Phi, M)=("
+  os << "\tType: " << static_cast<int>(t) << ", p=(Pt, Eta, Phi, M)=("
      << p.Pt() << ", " << p.Eta() << ", " << p.Phi() << ", " << p.M()
      << ")" << endl;
 }

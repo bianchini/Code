@@ -101,7 +101,7 @@ namespace MEM {
 
   pair<double, double> get_support( double*, const TFType&, const double&, const int&);
 
-  enum class ObjectType { Jet=0, Lepton=1, MET=2, Recoil=3};
+  enum class ObjectType { Jet=0, Lepton=1, MET=2, Recoil=3, Unknown=4};
 
   enum class Observable { E_LOW_Q=0, E_HIGH_Q=1, E_LOW_B=2, E_HIGH_B=3, BTAG=4, CHARGE=5};
 
@@ -123,15 +123,17 @@ namespace MEM {
   class Object {       
   public:
     Object(const LV&, const ObjectType&); 
+    Object(); 
     ~Object(); 
     LV p4() const;
+    ObjectType type() const;
     double getObs(const Observable&) const; 
     bool isSet(const Observable&) const;
     void addObs(const Observable&, const double&);
     void print(ostream& os) const;
   private:
     LV p;
-    ObjectType type;
+    ObjectType t;
     std::unordered_map<Observable,double, ObsHash, ObsEqual > obs; 
   };  
  
