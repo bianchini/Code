@@ -1,0 +1,18 @@
+<lcgdict>
+	<class name="MEM::Integrand"/>
+	<class name="MEM::Object"/>
+	<enum name="MEM::PSVar::PSVar"/>
+	<enum name="MEM::PSPart::PSPart"/>
+	<enum name="MEM::ObjectType::ObjectType"/>
+	<enum name="MEM::Observable::Observable"/>
+	<enum name="MEM::Hypothesis::Hypothesis"/>
+	<enum name="MEM::FinalState::FinalState"/>
+	<enum name="MEM::Assumption::Assumption"/>
+	<enum name="MEM::Permutations::Permutations"/>
+	<enum name="MEM::IntegrandType::IntegrandType"/>
+	<enum name="MEM::DebugVerbosity"/>
+	
+	<class name="std::vector<MEM::PSVar::PSVar>"/>
+	<class name="std::vector<MEM::Permutations::Permutations>"/>
+
+</lcgdict>

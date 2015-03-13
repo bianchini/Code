@@ -1,6 +1,6 @@
 #include "interface/Integrand.h"
 
-typedef std::unordered_map<MEM::PSPart, MEM::GenPart, MEM::PSPartHash, MEM::PSPartEqual> PSMap;
+//qtypedef std::unordered_map<MEM::PSPart, MEM::GenPart, MEM::PSPartHash, MEM::PSPartEqual> PSMap;
 //typedef std::map<MEM::PSPart, MEM::GenPart> PSMap;
 
 MEM::Integrand::Integrand(int debug){
@@ -61,7 +61,7 @@ MEM::Integrand::~Integrand(){
    - create list of permutations
    - determine number of variables
 */
-void MEM::Integrand::init( const MEM::FinalState f, const MEM::Hypothesis h){
+void MEM::Integrand::init( const MEM::FinalState::FinalState f, const MEM::Hypothesis::Hypothesis h){
 
   if( debug_code&DebugVerbosity::init ){
     cout << "Integrand::init(): START" << endl;
@@ -162,7 +162,7 @@ void MEM::Integrand::init( const MEM::FinalState f, const MEM::Hypothesis h){
   return;
 }
 
-void MEM::Integrand::get_edges(double* lim, const initializer_list<PSVar>& lost, const size_t& nvar, const size_t& edge){
+void MEM::Integrand::get_edges(double* lim, const std::vector<PSVar::PSVar>& lost, const size_t& nvar, const size_t& edge){
 
   // convention is: 
   //   even <=> cosTheta [-1,   +1]
@@ -231,7 +231,7 @@ double MEM::Integrand::get_width(const double* xL, const double* xU, const size_
   return out;
 }
 
-void MEM::Integrand::fill_map(const initializer_list<PSVar>& lost){
+void MEM::Integrand::fill_map(const std::vector<PSVar::PSVar>& lost){
   
   size_t count_extra{0};
   switch( fs ){
@@ -304,7 +304,7 @@ void MEM::Integrand::fill_map(const initializer_list<PSVar>& lost){
   return;
 }
 
-void MEM::Integrand::push_back_object(const LV& p4,  const MEM::ObjectType& type){
+void MEM::Integrand::push_back_object(const LV& p4,  const MEM::ObjectType::ObjectType& type){
 
   Object* obj = new Object(p4, type);
 
@@ -356,7 +356,7 @@ void MEM::Integrand::push_back_object(MEM::Object* obj){
   return;
 }
 
-void MEM::Integrand::add_object_observable( const std::pair<MEM::Observable, double>& obs, const ObjectType& type ){
+void MEM::Integrand::add_object_observable( const std::pair<MEM::Observable::Observable, double>& obs, const ObjectType::ObjectType& type ){
   
   switch( type ){
   case ObjectType::Jet :
@@ -391,12 +391,13 @@ void MEM::Integrand::set_sqrts(const double& s){
   Sqrt_s = s;
 }
 
-void MEM::Integrand::set_permutation_strategy(const initializer_list<MEM::Permutations>& str){
+//void MEM::Integrand::set_permutation_strategy(const std::vector<MEM::Permutations>& str){
+void MEM::Integrand::set_permutation_strategy(const std::vector<MEM::Permutations::Permutations>& str){
   permutation_strategies = str; 
 }
 
 
-void MEM::Integrand::run( const MEM::FinalState f, const MEM::Hypothesis h, const initializer_list<MEM::PSVar> list){
+void MEM::Integrand::run( const MEM::FinalState::FinalState f, const MEM::Hypothesis::Hypothesis h, const std::vector<MEM::PSVar::PSVar> list){
  
   if( debug_code&DebugVerbosity::init ){
     cout << "Integrand::run(): START" << endl;
@@ -485,7 +486,7 @@ bool MEM::Integrand::test_assumption( const size_t& lost, size_t& extra_jets){
   return true;
 }
 
-double MEM::Integrand::make_assumption( const initializer_list<MEM::PSVar>& lost){
+double MEM::Integrand::make_assumption( const std::vector<MEM::PSVar::PSVar>& lost){
 
   if( debug_code&DebugVerbosity::init ){
     cout << "Integrand::make_assumption(): START" << endl;
@@ -571,7 +572,7 @@ double MEM::Integrand::make_assumption( const initializer_list<MEM::PSVar>& lost
   return prob;
 }
 
-bool MEM::Integrand::accept_perm( const vector<int>& perm, const initializer_list<MEM::Permutations>& strategies ) const {
+bool MEM::Integrand::accept_perm( const vector<int>& perm, const std::vector<MEM::Permutations::Permutations>& strategies ) const {
 
   if( debug_code&DebugVerbosity::init_more ){
     cout << "Integrand::accept_perm(): START" << endl;
@@ -980,10 +981,10 @@ int MEM::Integrand::create_PS_LH(MEM::PS& ps, const double* x, const vector<int>
   return accept;
 }
 
-void MEM::Integrand::extend_PS(MEM::PS& ps, const MEM::PSPart& part, 
+void MEM::Integrand::extend_PS(MEM::PS& ps, const MEM::PSPart::PSPart& part, 
 			       const double& E,  const double& M, const TVector3& dir,
-			       const int& pos,  const PSVar& var_cos, const PSVar& var_phi, const PSVar& var_E, 
-			       const TFType& type, const int charge) const {
+			       const int& pos,  const PSVar::PSVar& var_cos, const PSVar::PSVar& var_phi, const PSVar::PSVar& var_E, 
+			       const TFType::TFType& type, const int charge) const {
 
   double E_phys  = TMath::Max(E,M); 
   double P       = sqrt(E_phys*E_phys - M*M);
@@ -1008,7 +1009,7 @@ void MEM::Integrand::extend_PS(MEM::PS& ps, const MEM::PSPart& part,
 
 }
 
-void MEM::Integrand::extend_PS_nodebug(MEM::PS& ps, const MEM::PSPart& part, 
+void MEM::Integrand::extend_PS_nodebug(MEM::PS& ps, const MEM::PSPart::PSPart& part, 
 				       const double& E,  const double& M, const TVector3& dir) const {
   double E_phys  = TMath::Max(E,M); 
   double P       = sqrt(E_phys*E_phys - M*M);
