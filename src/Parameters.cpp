@@ -1,6 +1,6 @@
 #include "interface/Parameters.h"
 
-typedef std::unordered_map<MEM::PSPart, MEM::GenPart, MEM::PSPartHash, MEM::PSPartEqual> PSMap;
+//typedef std::map<MEM::PSPart, MEM::GenPart, MEM::PSPartHash, MEM::PSPartEqual> PSMap;
 //typedef std::map<MEM::PSPart, MEM::GenPart> PSMap;
 
 size_t MEM::eta_to_bin( const double& eta ){
@@ -8,13 +8,13 @@ size_t MEM::eta_to_bin( const double& eta ){
   if( fabs(eta)>1.0 ) return 1;
   return -99;
 }
-bool MEM::isQuark(const MEM::TFType& t) {
+bool MEM::isQuark(const MEM::TFType::TFType& t) {
   return (t==TFType::bReco || t==TFType::qReco || t==TFType::bLost || t==TFType::qLost);
 }
-bool MEM::isNeutrino(const MEM::TFType& t) {
+bool MEM::isNeutrino(const MEM::TFType::TFType& t) {
     return (t==TFType::MET);
   }
-bool MEM::isLepton(const MEM::TFType& t)  {
+bool MEM::isLepton(const MEM::TFType::TFType& t)  {
   return (t==TFType::elReco || t==TFType::muReco);
 }
 
@@ -24,7 +24,7 @@ bool MEM::isLepton(const MEM::TFType& t)  {
 //   x    := gen level quantities
 //   type := decides the TF
 /////////////////////////////////
-double MEM::transfer_function(double* y, double* x, const TFType& type, const int& debug){
+double MEM::transfer_function(double* y, double* x, const TFType::TFType& type, const int& debug){
 
   // return value
   double w{1.};
@@ -139,7 +139,7 @@ double MEM::transfer_function(double* y, double* x, const TFType& type, const in
 //   type  := decides the TF  
 //   alpha := CL (e.g. 0.95, 0.98, ...)
 ///////////////////////////////// 
-pair<double, double> MEM::get_support(double* y, const TFType& type, const double& alpha, const int& debug){
+pair<double, double> MEM::get_support(double* y, const TFType::TFType& type, const double& alpha, const int& debug){
 
   // the reconstructed values
   double e_rec   = y[0];
@@ -192,27 +192,27 @@ MEM::PS::PS(size_t d){
 
 MEM::PS::~PS(){}
 
-PSMap::const_iterator MEM::PS::begin() const {
+MEM::PSMap::const_iterator MEM::PS::begin() const {
   return val.begin();
 }
 
-PSMap::const_iterator MEM::PS::end() const {
+MEM::PSMap::const_iterator MEM::PS::end() const {
   return val.end();
 }
 
-LV MEM::PS::lv(const MEM::PSPart& p) const { 
+LV MEM::PS::lv(const MEM::PSPart::PSPart& p) const { 
   return val.find(p)!=val.end() ? (val.find(p)->second).lv : LV() ; 
 }
 
-int MEM::PS::charge(const MEM::PSPart& p) const {
+int MEM::PS::charge(const MEM::PSPart::PSPart& p) const {
   return val.find(p)!=val.end() ? (val.find(p)->second).charge : 0 ;
 }
 
-MEM::TFType MEM::PS::type(const MEM::PSPart& p) const {
+MEM::TFType::TFType MEM::PS::type(const MEM::PSPart::PSPart& p) const {
   return val.find(p)!=val.end() ? (val.find(p)->second).type : TFType::Unknown ;
 }
 
-void MEM::PS::set(const MEM::PSPart& a, const MEM::GenPart& b){
+void MEM::PS::set(const MEM::PSPart::PSPart& a, const MEM::GenPart& b){
   val[a] = b;
 }
 
@@ -233,7 +233,7 @@ void MEM::PS::print(ostream& os) const{
   }
 }
 
-MEM::Object::Object(const LV& lv, const MEM::ObjectType& ty){ 
+MEM::Object::Object(const LV& lv, const MEM::ObjectType::ObjectType& ty){ 
   p  = lv; 
   t  = ty; 
 } 
@@ -247,17 +247,17 @@ MEM::Object::~Object(){}
 
 LV MEM::Object::p4() const { return p; }
 
-MEM::ObjectType MEM::Object::type() const { return t; }
+MEM::ObjectType::ObjectType MEM::Object::type() const { return t; }
 
-double MEM::Object::getObs(const Observable& name) const { 
+double MEM::Object::getObs(const MEM::Observable::Observable& name) const { 
   return (obs.find(name)!=obs.end() ? obs.find(name)->second : 0.);
 }
 
-bool MEM::Object::isSet(const Observable& name) const { 
+bool MEM::Object::isSet(const MEM::Observable::Observable& name) const { 
   return obs.find(name)!=obs.end();
 }
 
-void MEM::Object::addObs(const Observable& name, const double& val){ 
+void MEM::Object::addObs(const MEM::Observable::Observable& name, const double& val){ 
   obs.insert( make_pair(name, val) ); 
 }
 
@@ -266,4 +266,3 @@ void MEM::Object::print(ostream& os) const {
      << p.Pt() << ", " << p.Eta() << ", " << p.Phi() << ", " << p.M()
      << ")" << endl;
 }
-

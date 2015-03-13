@@ -39,11 +39,12 @@ namespace MEM {
 
     // add objects (jets, leptons, MET)
     // (ObjectType defined in Parameters.h)
-    void push_back_object( const LV& , const ObjectType&);    
+    void push_back_object( const LV& , const ObjectType::ObjectType&);    
     void push_back_object( Object* );
 
     // filter out permutations
-    void set_permutation_strategy(const initializer_list<MEM::Permutations>&);
+    //void set_permutation_strategy(const std::vector<MEM::Permutations>&);
+    void set_permutation_strategy(const std::vector<MEM::Permutations::Permutations>&);
 
     // choose what to include into the integrand
     void set_integrand(const int =0);
@@ -52,15 +53,19 @@ namespace MEM {
     void set_sqrts(const double&);
 
     // choose n calls
-    void set_ncalls(const size_t&);
+    void set_ncalls(const std::size_t&);
 
     // add object information
     // WARNING: to be called just after push_back of related object!
     // (using .back() method of std::vector<>)
-    void add_object_observable(const pair<Observable, double>&, const ObjectType& );
+    void add_object_observable(const pair<Observable::Observable, double>&, const ObjectType::ObjectType& );
 
     // main method: call it to have the ME calculated
-    void run( const FinalState =FinalState::LH, const Hypothesis =Hypothesis::TTH, const initializer_list<PSVar> ={});
+    //void run( const FinalState =FinalState::LH, const Hypothesis =Hypothesis::TTH, const std::vector<PSVar> ={});
+    void run( const FinalState::FinalState=FinalState::LH,
+        const Hypothesis::Hypothesis =Hypothesis::TTH,
+        const std::vector<PSVar::PSVar> = std::vector<PSVar::PSVar>()
+    );
 
     // clear containers and counters after each event
     void next_event();
@@ -69,38 +74,40 @@ namespace MEM {
   private:
 
     // initialise (once for event)
-    void init( const FinalState =FinalState::LH, const Hypothesis=Hypothesis::TTH);
+    void init( const FinalState::FinalState =FinalState::LH,
+        const Hypothesis::Hypothesis=Hypothesis::TTH);
 
     // create a map between variable names and positions
-    void fill_map( const initializer_list<PSVar>& );
+    //void fill_map( const std::vector<PSVar>& );
+    void fill_map( const std::vector<PSVar::PSVar>& );
 
     // make assumption
-    double make_assumption( const initializer_list<PSVar>& );
+    double make_assumption( const std::vector<PSVar::PSVar>& );
 
     // clear containers before new hypothesis
     void next_hypo();
 
     // test if given assunption is viable
-    bool test_assumption( const size_t&, size_t& );
+    bool test_assumption( const std::size_t&, std::size_t& );
 
     // filter out permutations
-    bool accept_perm( const vector<int>&, const initializer_list<Permutations>& ) const;
+    bool accept_perm( const std::vector<int>&, const std::vector<Permutations::Permutations>& ) const;
 
     // a constanta value for each permutation
-    double get_permutation_constants(  const vector<int>& ) const;
+    double get_permutation_constants(  const std::vector<int>& ) const;
 
     // main method. Needed by GSLMCIntegrator
     double Eval(const double*) const;
     
     // create PS point
-    int create_PS    (MEM::PS&, const double*, const vector<int>&) const;
-    int create_PS_LH (MEM::PS&, const double*, const vector<int>&) const;
-    int create_PS_LL (MEM::PS&, const double*, const vector<int>&) const;
-    int create_PS_HH (MEM::PS&, const double*, const vector<int>&) const;
-    int create_PS_TTH(MEM::PS&, const double*, const vector<int>&) const;
+    int create_PS    (MEM::PS&, const double*, const std::vector<int>&) const;
+    int create_PS_LH (MEM::PS&, const double*, const std::vector<int>&) const;
+    int create_PS_LL (MEM::PS&, const double*, const std::vector<int>&) const;
+    int create_PS_HH (MEM::PS&, const double*, const std::vector<int>&) const;
+    int create_PS_TTH(MEM::PS&, const double*, const std::vector<int>&) const;
 
-    void extend_PS(PS&, const PSPart&, const double& , const double& , const TVector3&, const int&, const PSVar&,const PSVar&,const PSVar&,const TFType&, const int =0) const;
-    void extend_PS_nodebug(PS&, const PSPart&, const double& , const double& , const TVector3&) const;
+    void extend_PS(PS&, const PSPart::PSPart&, const double& , const double& , const TVector3&, const int&, const PSVar::PSVar&,const PSVar::PSVar&,const PSVar::PSVar&,const TFType::TFType&, const int =0) const;
+    void extend_PS_nodebug(PS&, const PSPart::PSPart&, const double& , const double& , const TVector3&) const;
 
     double probability(const double*, const vector<int>&) const;
 
@@ -128,10 +135,10 @@ namespace MEM {
     double solve( const LV&,  const double& ,  const double& , const TVector3&, const double&, int&) const;
 
     // get integration edges
-    void get_edges(double*, const initializer_list<PSVar>&, const size_t&, const size_t&);
+    void get_edges(double*, const std::vector<PSVar::PSVar>&, const std::size_t&, const std::size_t&);
 
     // get widths
-    double get_width(const double*, const double*, const size_t);
+    double get_width(const double*, const double*, const std::size_t);
 
     // report an error
     int error_code;
@@ -152,16 +159,16 @@ namespace MEM {
     int int_code;
 
     // integration type
-    Hypothesis hypo;
+    Hypothesis::Hypothesis hypo;
 
     // number of unknowns
-    size_t num_of_vars;
+    std::size_t num_of_vars;
 
     // number of original dimensions
-    size_t ps_dim;
+    std::size_t ps_dim;
 
     // keep track of howm many jets one would expect
-    size_t naive_jet_counting;
+    std::size_t naive_jet_counting;
 
     // measured objects
     std::vector<MEM::Object*> obs_jets;
@@ -169,24 +176,24 @@ namespace MEM {
     std::vector<MEM::Object*> obs_mets;
 
     // final state
-    FinalState fs;
+    FinalState::FinalState fs;
 
     // contain indexes of obs_jets that need permutations
-    std::vector< vector<int> > perm_indexes;
-    std::vector< vector<int> > perm_indexes_assumption;
+    std::vector<std::vector<int> > perm_indexes;
+    std::vector<std::vector<int> > perm_indexes_assumption;
     std::vector< double >      perm_const_assumption;
 
 
     // map between parameter names (physical) and positions in
     // VEGAS space
-    std::unordered_map< PSVar, size_t , PSVarHash, PSVarEqual> map_to_var;
+    boost::unordered_map< PSVar::PSVar, std::size_t, PSVarHash, PSVarEqual> map_to_var;
 
     // map between a particle and the jet position in obs_jets/obs_leptons
     // to which the particle is matched
-    std::unordered_map< PSPart, size_t, PSPartHash, PSPartEqual> map_to_part;
+    boost::unordered_map< PSPart::PSPart, std::size_t, PSPartHash, PSPartEqual> map_to_part;
 
     // strategy on permutations
-    std::initializer_list<MEM::Permutations> permutation_strategies;
+    std::vector<MEM::Permutations::Permutations> permutation_strategies;
 
     // VEGAS integrator
     ROOT::Math::GSLMCIntegrator* ig2;

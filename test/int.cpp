@@ -14,10 +14,12 @@ using namespace MEM;
 
 int main(){
 
-  Integrand* integrand = new Integrand(DebugVerbosity::init
-				       //|DebugVerbosity::init_more
+  Integrand* integrand = new Integrand(
+                       DebugVerbosity::init
+                       |DebugVerbosity::input
+			           |DebugVerbosity::init_more
 				       //|DebugVerbosity::input
-				       |DebugVerbosity::integration
+				       //|DebugVerbosity::integration
 				       );
 
   Object j1( TLorentzVector(50,0, 10, sqrt(50*50+10*10)), ObjectType::Jet );
