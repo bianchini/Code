@@ -12,6 +12,9 @@
 	<enum name="MEM::IntegrandType::IntegrandType"/>
 	<enum name="MEM::DebugVerbosity"/>
 	
+	<class name="MEM::MEMOutput"/>
+	<class name="MEM::MEMConfig"/>
+	
 	<class name="std::vector<MEM::PSVar::PSVar>"/>
 	<class name="std::vector<MEM::Permutations::Permutations>"/>
 
