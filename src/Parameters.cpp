@@ -1,8 +1,5 @@
 #include "interface/Parameters.h"
 
-//typedef std::map<MEM::PSPart, MEM::GenPart, MEM::PSPartHash, MEM::PSPartEqual> PSMap;
-//typedef std::map<MEM::PSPart, MEM::GenPart> PSMap;
-
 size_t MEM::eta_to_bin( const double& eta ){
   if( fabs(eta)<1.0 ) return 0;
   if( fabs(eta)>1.0 ) return 1;
@@ -31,7 +28,7 @@ double MEM::transfer_function(double* y, double* x, const TFType::TFType& type, 
 
   // temporary values;
   double E, H;
-  double m1,s1, m2, s2, f;
+  double m1,s1, m2, s2, f, rho, c1, c2;
 
   // parameters
   const double* par;
@@ -79,7 +76,13 @@ double MEM::transfer_function(double* y, double* x, const TFType::TFType& type, 
     // y[0] = MET_x    ; y[1] = MET_y
 
     par = TF_MET_param;
-    w *= TMath::Gaus(y[0], x[0], par[0], 1)*TMath::Gaus(y[1], x[1], par[1], 1);
+    s1  = par[0];
+    s2  = par[1];
+    rho = par[2];
+    c1  = (y[0]-x[0])*(y[0]-x[0])/s1/s1;
+    c2  = (y[1]-x[1])*(y[1]-x[1])/s2/s2;
+    w *= 1./(2*PI)/s1/s2/sqrt(1.-rho*rho)*TMath::Exp( -0.5/(1.-rho*rho)*( c1*c1 + c2*c2 - 2*rho*c1*c2 ) );
+
 #ifdef DEBUG_MODE
     if( debug&DebugVerbosity::integration) 
       cout << "\t\ttransfer_function: Evaluate W(" << y[0]-x[0] << " , " << y[1]-x[1] << ", TFType::MET) = " << w << endl;
@@ -87,12 +90,20 @@ double MEM::transfer_function(double* y, double* x, const TFType::TFType& type, 
     break;
 
   case TFType::Recoil:
-    // x[0] = sum pT_x ; x[1] = sum pT_y
-    // y[0] = rho_x    ; y[1] = rho_y
-    w *= 1.0;
+    // Sudakov factor
+    // x[0] = pT
+    // y[0] = rhoT if extra_jets==0, else  par[2]+1GeV 
+
+    par = TF_RECOIL_param;    
+    m1 = par[0];
+    s1 = par[1];
+    if( y[0] < par[2] )
+      w *= TMath::Gaus( log(x[0]), m1, s1, 1 );
+    else 
+      w *= 1.;
 #ifdef DEBUG_MODE
     if( debug&DebugVerbosity::integration) 
-      cout << "\t\ttransfer_function: Evaluate W(" << y[0] << ", " << y[1] << " | " << x[0] << ", " << x[1] << "; TFType::Recoil) = " << w << endl;
+      cout << "\t\ttransfer_function: Evaluate W( log(" << x[0] << "); TFType::Recoil) = " << w << endl;
 #endif
     break;
 
@@ -101,16 +112,15 @@ double MEM::transfer_function(double* y, double* x, const TFType::TFType& type, 
     // x[0]     = parton energy ;
     // x[1]     = parton eta;
     // y[0]     = jet energy
-    // param[0] = max eta ; param[1] = min pT; param[2] = acceptance    
+    // par: [0]-> eta acceptance, [1]-> pT cut, [2]-> E max, [3]->acceptance (cos*phi)
 
-    par = TF_ACC_param;
-    if( TMath::Abs(x[1])>par[0] ){
-      w = par[2];
+    if( TMath::Abs(x[1])>TF_ACC_param[0] ){
+      w *= 1.;      
 #ifdef DEBUG_MODE
       if( debug&DebugVerbosity::integration) 
 	cout << "\t\ttransfer_function: Evaluate W(" << x[0] << ", " << x[1] << ", TFType::qLost) = " << w << endl;
 #endif
-    } 
+    }
     else{
       // x[0]     = parton energy ; 
       // x[1]     = parton eta
@@ -120,7 +130,7 @@ double MEM::transfer_function(double* y, double* x, const TFType::TFType& type, 
       par = TF_Q_param[ eta_to_bin(H) ];
       double mean_pt  = (par[0] + par[1]*E)/TMath::CosH(H);
       double sigma_pt = E*TMath::Sqrt(par[2]*par[2] + par[3]*par[3]/E + par[4]*par[4]/E/E)/TMath::CosH(H);
-      w *= 0.5*(TMath::Erf( (TF_ACC_param[1] - mean_pt)/sigma_pt ) + 1 ) ; 
+      w *= 0.5*(TMath::Erf( (TF_ACC_param[1] - mean_pt)/sigma_pt ) + 1 ) ;    
 #ifdef DEBUG_MODE
       if( debug&DebugVerbosity::integration) 
 	cout << "\t\ttransfer_function: Evaluate W(" <<  TF_ACC_param[1] << " | " << E << ", " << H << ", TFType::qLost) = " << w << endl;
@@ -265,4 +275,62 @@ void MEM::Object::print(ostream& os) const {
   os << "\tType: " << static_cast<int>(t) << ", p=(Pt, Eta, Phi, M)=("
      << p.Pt() << ", " << p.Eta() << ", " << p.Phi() << ", " << p.M()
      << ")" << endl;
+}
+
+MEM::MEMConfig::MEMConfig(int nmc, double ab, double re, int ic, double s, double e, std::string pdf){
+  n_max_calls = nmc;
+  abs         = ab;
+  rel         = re;
+  int_code    = ic;
+  sqrts       = s;
+  emax        = e;
+  pdfset      = pdf;
+  is_default  = true;
+  for( int i = 0; i < 4 ; ++i){
+    for( int j = 0; j < 2 ; ++j){
+      for( int k = 0; k < 2 ; ++k){
+	calls[i][j][k] = 4000;
+      }
+    }
+  }
+  perm_pruning = {};
+}
+
+void MEM::MEMConfig::defaultCfg(){
+  
+  calls
+    [ static_cast<std::size_t>(FinalState::FinalState::LH) ]
+    [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTH)]
+    [ static_cast<std::size_t>(Assumption::Assumption::ZeroQuarkLost)] = 2000;     
+  calls
+    [ static_cast<std::size_t>(FinalState::FinalState::LH) ]
+    [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTBB)]
+    [ static_cast<std::size_t>(Assumption::Assumption::ZeroQuarkLost)] = 2000;
+  calls
+    [ static_cast<std::size_t>(FinalState::FinalState::LH) ]
+    [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTH)]
+    [ static_cast<std::size_t>(Assumption::Assumption::OneQuarkLost)] = 4000;     
+  calls
+    [ static_cast<std::size_t>(FinalState::FinalState::LH) ]
+    [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTBB)]
+    [ static_cast<std::size_t>(Assumption::Assumption::OneQuarkLost)] = 4000;
+  calls
+    [ static_cast<std::size_t>(FinalState::FinalState::LL) ]
+    [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTH)]
+    [ static_cast<std::size_t>(Assumption::Assumption::ZeroQuarkLost)] = 10000;     
+  calls
+    [ static_cast<std::size_t>(FinalState::FinalState::LL) ]
+    [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTBB)]
+    [ static_cast<std::size_t>(Assumption::Assumption::ZeroQuarkLost)] = 10000;      
+  
+  int_code = 
+    IntegrandType::IntegrandType::Constant
+    |IntegrandType::IntegrandType::ScattAmpl
+    |IntegrandType::IntegrandType::DecayAmpl
+    |IntegrandType::IntegrandType::Jacobian
+    |IntegrandType::IntegrandType::PDF
+    |IntegrandType::IntegrandType::Transfer;
+  
+  perm_pruning = {Permutations::BTagged, Permutations::QUntagged,
+		  Permutations::QQbarSymmetry, Permutations::BBbarSymmetry};
 }

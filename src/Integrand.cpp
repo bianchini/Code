@@ -1,9 +1,6 @@
 #include "interface/Integrand.h"
 
-//qtypedef std::unordered_map<MEM::PSPart, MEM::GenPart, MEM::PSPartHash, MEM::PSPartEqual> PSMap;
-//typedef std::map<MEM::PSPart, MEM::GenPart> PSMap;
-
-MEM::Integrand::Integrand(int debug){
+MEM::Integrand::Integrand(int debug, const MEMConfig& config){
 
   // establish invariants
   debug_code         = debug;
@@ -11,27 +8,16 @@ MEM::Integrand::Integrand(int debug){
   num_of_vars        = 0;
   ps_dim             = 0;
   naive_jet_counting = 0;
+  extra_jets         = 0;
   fs                 = FinalState::Undefined;
   hypo               = Hypothesis::Undefined;
   ig2                = nullptr;
   n_calls            = 0;
   n_skip             = 0;
-  n_max_calls        = 4000;
-  Sqrt_s             = 13000.; //GeV 
-  EMAX               = 8000.;
-
-  int_code           = 0; 
-  /*    
-	IntegrandType::Constant|
-	IntegrandType::Jacobian|
-	IntegrandType::ScattAmpl|
-	IntegrandType::DecayAmpl|
-	IntegrandType::PDF|
-	IntegrandType::Transfer ; 
-  */
+  cfg                = config;
 
   // init PDF set
-  LHAPDF::initPDFSet(1, "cteq65.LHgrid");
+  LHAPDF::initPDFSet(1, cfg.pdfset);
 
   if( debug_code&DebugVerbosity::init )  
     cout << "Integrand::Integrand(): START" << endl;
@@ -40,9 +26,6 @@ MEM::Integrand::Integrand(int debug){
 MEM::Integrand::~Integrand(){
   if( debug_code&DebugVerbosity::init )  
     cout << "Integrand::~Integrand()" << endl;    
-  //for( auto j : obs_jets )     delete j;
-  //for( auto l : obs_leptons )  delete l;
-  //for( auto m : obs_mets )     delete m;
   obs_jets.clear();
   obs_leptons.clear();
   obs_mets.clear();
@@ -153,7 +136,7 @@ void MEM::Integrand::init( const MEM::FinalState::FinalState f, const MEM::Hypot
 
   if( debug_code&DebugVerbosity::init ){
     cout << "\tTotal of " << num_of_vars << " unknowns" << endl;
-    cout << "\tIntegration code: " << int_code << endl;
+    cout << "\tIntegration code: " << cfg.int_code << endl;
   }
 
   if( debug_code&DebugVerbosity::init ){
@@ -204,13 +187,13 @@ void MEM::Integrand::get_edges(double* lim, const std::vector<PSVar::PSVar>& los
   case FinalState::HH:
     break;
   case FinalState::TTH:
-    lim[map_to_var[PSVar::P_t]]      =  edge ?  EMAX :  0.;
+    lim[map_to_var[PSVar::P_t]]      =  edge ?  cfg.emax :  0.;
     lim[map_to_var[PSVar::cos_t]]    =  edge ? +0.99  : -0.99; //0.9 corresponds to |eta|<4.5
     lim[map_to_var[PSVar::phi_t]]    =  edge ? +TMath::Pi() : -TMath::Pi();
-    lim[map_to_var[PSVar::P_tbar]]   =  edge ?  EMAX :  0.;
+    lim[map_to_var[PSVar::P_tbar]]   =  edge ?  cfg.emax :  0.;
     lim[map_to_var[PSVar::cos_tbar]] =  edge ? +0.99  : -0.99;
     lim[map_to_var[PSVar::phi_tbar]] =  edge ? +TMath::Pi() : -TMath::Pi();
-    lim[map_to_var[PSVar::Pz_h]]     =  edge ?  EMAX/2 : -EMAX/2;
+    lim[map_to_var[PSVar::Pz_h]]     =  edge ?  cfg.emax/2 : -cfg.emax/2;
     break;
   default:
     break;
@@ -380,57 +363,86 @@ void MEM::Integrand::add_object_observable( const std::pair<MEM::Observable::Obs
 }
 
 void MEM::Integrand::set_integrand(const int code){
-  int_code = code;
+  cfg.int_code = code;
 }
 
 void MEM::Integrand::set_ncalls(const size_t& n){
-  n_max_calls = n;
+  cfg.n_max_calls = n;
+  cfg.is_default  = false;
 }
 
 void MEM::Integrand::set_sqrts(const double& s){
-  Sqrt_s = s;
+  cfg.sqrts = s;
+}
+
+void MEM::Integrand::set_cfg(const MEMConfig& config){
+  cfg = config;
 }
 
 //void MEM::Integrand::set_permutation_strategy(const std::vector<MEM::Permutations>& str){
 void MEM::Integrand::set_permutation_strategy(const std::vector<MEM::Permutations::Permutations>& str){
-  permutation_strategies = str; 
+  cfg.perm_pruning = str; 
 }
 
 
-void MEM::Integrand::run( const MEM::FinalState::FinalState f, const MEM::Hypothesis::Hypothesis h, const std::vector<MEM::PSVar::PSVar> list){
- 
+MEM::MEMOutput MEM::Integrand::run( const MEM::FinalState::FinalState f, const MEM::Hypothesis::Hypothesis h, const std::vector<MEM::PSVar::PSVar> list){
+
   if( debug_code&DebugVerbosity::init ){
     cout << "Integrand::run(): START" << endl;
   }
-  
-  // benchmark time: start clock for global timing
+
+  // the output for this evaluation
+  MEMOutput out;
+
+  // start the clock....
   auto t0 = high_resolution_clock::now();
-
-  // return value
-  double prob{0.};
-
+  
   // prepare permutation, count variables
   init(f,h);
 
+  // number of calls
+  int nmaxcalls = cfg.is_default ? 
+    cfg.calls[static_cast<std::size_t>(fs)][static_cast<std::size_t>(h)][list.size()/2] : 
+    cfg.n_max_calls;
+
   // create integrator
-  ig2 = new ROOT::Math::GSLMCIntegrator(ROOT::Math::IntegrationMultiDim::kVEGAS, 1.e-12, 1.e-5, n_max_calls);
+  ig2 = new ROOT::Math::GSLMCIntegrator(ROOT::Math::IntegrationMultiDim::kVEGAS, cfg.abs, cfg.rel, nmaxcalls);
+
+  if( debug_code&DebugVerbosity::init ){
+    ig2->Options().Print(std::cout);
+    ig2->ExtraOptions()->Print(std::cout);
+  }
+
+  // start the clock....
+  auto t1 = high_resolution_clock::now();
 
   // do the calculation
-  prob += make_assumption( list );
-  
+  double prob = make_assumption( list ); 
+
+  // stop the clock!
+  auto t2 = high_resolution_clock::now();
+
+  out.p             = prob;
+  out.p_err         = ig2->Error();
+  out.chi2          = ig2->ChiSqr();
+  out.time          = static_cast<int>(duration_cast<milliseconds>(t2-t1).count());
+  out.num_perm      = perm_indexes_assumption.size();
+  out.final_state   = fs;
+  out.hypothesis    = h;
+  out.assumption    = list.size()/2;
+  out.num_max_calls = nmaxcalls;
+  out.num_calls     = n_calls;
+  out.efficiency    = float(n_calls)/(n_calls+n_skip);
+
   if( debug_code&DebugVerbosity::init ){
-    cout << "\tProbability = " << prob << endl;
-    cout << "\tTotal function calls = " << n_calls << ". Fraction of skipped calls: " << n_skip << "/" << n_calls+n_skip << "=" << float(n_skip)/(n_calls+n_skip) << endl;    
-    auto t1 = high_resolution_clock::now();
-    int time = static_cast<int>(duration_cast<milliseconds>(t1-t0).count());
-    cout << "\tJobe done in " << time*0.001 << " second" << endl;
-    cout << "Integrand::run(): END" << endl;
+    out.print(cout);
+    cout << "Integrand::run(): DONE in " << static_cast<int>(duration_cast<milliseconds>(t2-t0).count())*0.001 << " sec" << endl;
   }
 
   // delete stuff and prepare for new hypothesis
   next_hypo();
 
-  return;
+  return out;
 }
 
 void MEM::Integrand::next_event(){
@@ -447,8 +459,10 @@ void MEM::Integrand::next_event(){
   num_of_vars        = 0;
   ps_dim             = 0;
   naive_jet_counting = 0;
+  extra_jets         = 0;
   n_calls            = 0;
   n_skip             = 0;
+  cfg.is_default     = true;
   perm_indexes.clear();
   perm_indexes_assumption.clear();
   perm_const_assumption.clear();
@@ -476,7 +490,7 @@ void MEM::Integrand::next_hypo(){
   }
 }
 
-bool MEM::Integrand::test_assumption( const size_t& lost, size_t& extra_jets){
+bool MEM::Integrand::test_assumption( const size_t& lost){
 
   if( (obs_jets.size()+lost) < naive_jet_counting){
     if( debug_code&DebugVerbosity::init ) cout << "\t This assumption cannot be made: too few jets" << endl;
@@ -497,9 +511,7 @@ double MEM::Integrand::make_assumption( const std::vector<MEM::PSVar::PSVar>& lo
   // an assumption may not be consistent with the number of observed jets
   // E.g.: assume 1 lost quark but 2 jets missing wrt to expectation
   // N.B. extra_jets filled here!!!
-  size_t extra_jets{0};
-  if(!test_assumption(lost.size()/2, extra_jets)) // <-- filling extra_jets
-    return prob;
+  if(!test_assumption(lost.size()/2)) return prob;
 
   perm_indexes_assumption.clear();
 
@@ -529,7 +541,7 @@ double MEM::Integrand::make_assumption( const std::vector<MEM::PSVar::PSVar>& lo
     for(auto ind : perm){ if(ind<0) ++count; }
 
     if(count!=(lost.size()/2))  continue;
-    if( !accept_perm( perm, permutation_strategies)) continue;
+    if( !accept_perm( perm, cfg.perm_pruning )) continue;
     
     perm_indexes_assumption.push_back( perm ); 
     perm_const_assumption.push_back( get_permutation_constants(perm) );
@@ -563,7 +575,7 @@ double MEM::Integrand::make_assumption( const std::vector<MEM::PSVar::PSVar>& lo
   
   // do the integral
   prob = ig2->Integral(xL,xU);
-  if(!int_code) prob /= volume;
+  if(!cfg.int_code) prob /= volume;
   
   if( debug_code&DebugVerbosity::init ){
     cout << "Integrand::make_assumption(): END" << endl;
@@ -1193,7 +1205,7 @@ double MEM::Integrand::probability(const double* x, const vector<int>& perm ) co
 
   // the total probability
   double p{1.0};
-  if( !int_code ) return p;
+  if( !cfg.int_code ) return p;
 
   // create phas-space point and test if it is physical
   PS ps(ps_dim);
@@ -1309,10 +1321,12 @@ double MEM::Integrand::matrix_nodecay(const PS& ps) const {
 
 double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm) const {
   double w{1.};
-  if( !(int_code&IntegrandType::Transfer) ) return w;
+  if( !(cfg.int_code&IntegrandType::Transfer) ) return w;
 
   double nu_x {0.}; // total nu's px
   double nu_y {0.}; // total nu's py
+  double corr_nu_x {0.}; // sum of dPx
+  double corr_nu_y {0.}; // sum of dPy
   double rho_x{0.}; // recoil px
   double rho_y{0.}; // recoil py
   double pT_x {0.}; // pT px
@@ -1376,11 +1390,15 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm) const {
       e_rec =  obj->p4().E();
       rho_x -= obj->p4().Px();
       rho_y -= obj->p4().Py();
+      corr_nu_x += (e_rec-e_gen)*obj->p4().Px()/obj->p4().P();
+      corr_nu_y += (e_rec-e_gen)*obj->p4().Py()/obj->p4().P();
 #ifdef DEBUG_MODE
       if( debug_code&DebugVerbosity::integration ){
 	cout << "\tDealing with a jet..." << endl;
 	cout << "\t\trho_x -= " << obj->p4().Px() << ", pT_x -= " << p->second.lv.Px() << endl;
 	cout << "\t\trho_y -= " << obj->p4().Py() << ", pT_y -= " << p->second.lv.Py() << endl;
+	cout << "\t\tdE_x   = " << (e_rec-e_gen)*obj->p4().Px()/obj->p4().P() << endl;
+	cout << "\t\tdE_y   = " << (e_rec-e_gen)*obj->p4().Py()/obj->p4().P() << endl;
       }
 #endif
     }
@@ -1401,16 +1419,14 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm) const {
   }
 
   // Dealing with the MET
-  if( fs!=FinalState::HH ){
-    double y[2] = { obs_mets[0]->p4().Px(), obs_mets[0]->p4().Py() };
-    double x[2] = { nu_x, nu_y };
-    w *= transfer_function( y, x, TFType::MET, debug_code );
-  }
+  double y_MET[2] = { obs_mets[0]->p4().Px(), obs_mets[0]->p4().Py() };
+  double x_Nu [2] = { nu_x-corr_nu_x, nu_y-corr_nu_y };
+  w *= transfer_function( y_MET, x_Nu, TFType::MET, debug_code );
 
   // Dealing with the recoil
-  double y[2] = { rho_x, rho_y };
-  double x[2] = { pT_x,  pT_y  };
-  w *= transfer_function( y, x, TFType::Recoil, debug_code );
+  double y_rho[1] = { (extra_jets>0 ? TF_RECOIL_param[2]+1. : sqrt(rho_x*rho_x + rho_y*rho_y)) };
+  double x_pT [1] = { sqrt(pT_x*pT_x + pT_y*pT_y)  };
+  w *= transfer_function( y_rho, x_pT, TFType::Recoil, debug_code );
 
   if( TMath::IsNaN(w) ){
     cout << "\tA NaN occurred while evaluation w..." << endl;
@@ -1439,7 +1455,7 @@ double MEM::Integrand::scattering(const TLorentzVector& top, const TLorentzVecto
   // the total sum (needed to get the boost factor);
   TLorentzVector vSum = hypo==Hypothesis::TTH ? t+tx+h : t+tx+b+bx;
 
-  if(vSum.E()>Sqrt_s){
+  if(vSum.E()>cfg.sqrts){
     x1 = .99;
     x2 = .99;
     return 0.;
@@ -1495,9 +1511,9 @@ double MEM::Integrand::scattering(const TLorentzVector& top, const TLorentzVecto
   // update x1 and x2
   double E  = sum.E();
   double Pz = sum.Pz();
-  x1 = ( Pz + E)/Sqrt_s;
-  x2 = (-Pz + E)/Sqrt_s;
-  if( !(int_code&IntegrandType::ScattAmpl) ) return M2;
+  x1 = ( Pz + E)/cfg.sqrts;
+  x2 = (-Pz + E)/cfg.sqrts;
+  if( !(cfg.int_code&IntegrandType::ScattAmpl) ) return M2;
 
   // create gluon p4s
   TLorentzVector g1 = TLorentzVector(0.,0.,  (E+Pz)/2., (E+Pz)/2.);
@@ -1546,7 +1562,7 @@ double MEM::Integrand::scattering(const TLorentzVector& top, const TLorentzVecto
 
 double MEM::Integrand::pdf(const double& x1, const double& x2, const double& dynamical ) const{
   double p{1.};
-  if( !(int_code&IntegrandType::PDF) ) return p;
+  if( !(cfg.int_code&IntegrandType::PDF) ) return p;
 
   if(x1>0.99 || x2>0.99) return 0.;
 
@@ -1578,13 +1594,13 @@ double MEM::Integrand::pdf(const double& x1, const double& x2, const double& dyn
 
 double MEM::Integrand::constants() const {
   double p{1.};
-  if( !(int_code&IntegrandType::Constant) ) return p;
-  return TMath::Power((2.*PI), int(4-3*ps_dim))/(Sqrt_s*Sqrt_s*Sqrt_s*Sqrt_s);
+  if( !(cfg.int_code&IntegrandType::Constant) ) return p;
+  return TMath::Power((2.*PI), int(4-3*ps_dim))/(cfg.sqrts*cfg.sqrts*cfg.sqrts*cfg.sqrts);
 }
 
 double MEM::Integrand::t_decay_amplitude(const TLorentzVector& q, const TLorentzVector& qbar, const TLorentzVector& b, const int& charge_q) const{
   double p{1.};
-  if( !(int_code&IntegrandType::DecayAmpl) ) return p;
+  if( !(cfg.int_code&IntegrandType::DecayAmpl) ) return p;
 
   p *= BWTOP;
 
@@ -1592,7 +1608,7 @@ double MEM::Integrand::t_decay_amplitude(const TLorentzVector& q, const TLorentz
   TLorentzVector t = w+b;
   double InvJac = TMath::Abs(2*MW2/qbar.E()*( w.E() - w.Vect().Dot( b.Vect().Unit() )/b.Beta() ));
   double Jac    = (1./InvJac) * q.Vect().Mag() * qbar.Vect().Mag() * b.Vect().Mag() / (2*2*2);
-  if( int_code&IntegrandType::Jacobian ) 
+  if( cfg.int_code&IntegrandType::Jacobian ) 
     p *= Jac;
 
   double x_e1 = 2*(q*t)/MTOP2;
@@ -1622,7 +1638,7 @@ double MEM::Integrand::t_decay_amplitude(const TLorentzVector& q, const TLorentz
 
 double MEM::Integrand::H_decay_amplitude(const TLorentzVector& b, const TLorentzVector& bbar) const{
   double p{1.};
-  if( !(int_code&IntegrandType::DecayAmpl) ) return p;
+  if( !(cfg.int_code&IntegrandType::DecayAmpl) ) return p;
 
   double InvJac{1.0};
   double m2{1.0};
@@ -1632,7 +1648,7 @@ double MEM::Integrand::H_decay_amplitude(const TLorentzVector& b, const TLorentz
     m2 = 2*YB2*MH2*PSHBB;
   }
   double Jac    = (1./InvJac) * b.Vect().Mag() * bbar.Vect().Mag() / (2*2);
-  if( int_code&IntegrandType::Jacobian ) 
+  if( cfg.int_code&IntegrandType::Jacobian ) 
     p *= Jac; 
 
   p *= m2;

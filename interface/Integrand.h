@@ -32,7 +32,7 @@ namespace MEM {
   public:    
 
     // constructor (initialise with verbosity)
-    Integrand( int =0);
+    Integrand( int =0, const MEMConfig& =MEMConfig() );
     
     // detstructor
     ~Integrand();
@@ -55,6 +55,9 @@ namespace MEM {
     // choose n calls
     void set_ncalls(const std::size_t&);
 
+    // set main cfg
+    void set_cfg(const MEMConfig&);
+
     // add object information
     // WARNING: to be called just after push_back of related object!
     // (using .back() method of std::vector<>)
@@ -62,10 +65,10 @@ namespace MEM {
 
     // main method: call it to have the ME calculated
     //void run( const FinalState =FinalState::LH, const Hypothesis =Hypothesis::TTH, const std::vector<PSVar> ={});
-    void run( const FinalState::FinalState=FinalState::LH,
-        const Hypothesis::Hypothesis =Hypothesis::TTH,
-        const std::vector<PSVar::PSVar> = std::vector<PSVar::PSVar>()
-    );
+    MEMOutput run( const FinalState::FinalState=FinalState::LH,
+		   const Hypothesis::Hypothesis =Hypothesis::TTH,
+		   const std::vector<PSVar::PSVar> = std::vector<PSVar::PSVar>()
+		   );
 
     // clear containers and counters after each event
     void next_event();
@@ -88,7 +91,7 @@ namespace MEM {
     void next_hypo();
 
     // test if given assunption is viable
-    bool test_assumption( const std::size_t&, std::size_t& );
+    bool test_assumption( const std::size_t&);
 
     // filter out permutations
     bool accept_perm( const std::vector<int>&, const std::vector<Permutations::Permutations>& ) const;
@@ -146,17 +149,14 @@ namespace MEM {
     // count function calls
     int n_calls;
 
-    // set number of calls
-    int n_max_calls;
-
     // count number of invalid phase space points
     int n_skip;
 
     // debug
     int debug_code;
 
-    // what to include within the integrand
-    int int_code;
+    // main configurator
+    MEMConfig cfg;
 
     // integration type
     Hypothesis::Hypothesis hypo;
@@ -169,6 +169,7 @@ namespace MEM {
 
     // keep track of howm many jets one would expect
     std::size_t naive_jet_counting;
+    std::size_t extra_jets;
 
     // measured objects
     std::vector<MEM::Object*> obs_jets;
@@ -183,7 +184,6 @@ namespace MEM {
     std::vector<std::vector<int> > perm_indexes_assumption;
     std::vector< double >      perm_const_assumption;
 
-
     // map between parameter names (physical) and positions in
     // VEGAS space
     boost::unordered_map< PSVar::PSVar, std::size_t, PSVarHash, PSVarEqual> map_to_var;
@@ -192,17 +192,8 @@ namespace MEM {
     // to which the particle is matched
     boost::unordered_map< PSPart::PSPart, std::size_t, PSPartHash, PSPartEqual> map_to_part;
 
-    // strategy on permutations
-    std::vector<MEM::Permutations::Permutations> permutation_strategies;
-
     // VEGAS integrator
     ROOT::Math::GSLMCIntegrator* ig2;
-
-    // the com energy
-    double Sqrt_s;
-
-    //transform energies into adimensional quantitities
-    double EMAX;
 
   };
 

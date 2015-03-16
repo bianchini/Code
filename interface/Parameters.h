@@ -8,6 +8,7 @@
 // std library
 #include<iostream>
 #include<map>
+#include<string>
 
 
 #include<assert.h>
@@ -90,8 +91,9 @@ namespace MEM {
     { { -3.60e+00, 1.00e+00, 0.00e+00, 0.99e+00, 5.70e+00,-3.30e+00, 0.94e+00, 0.16e+00, 1.70e+00, 6.60e+00, 0.65e+00 },
       { -4.30e+00, 0.98e+00, 0.00e+00, 1.90e+00, 6.00e+00, 0.91e+01, 0.87e+00, 0.23e+00, 1.10e+00, 0.00e+00, 0.65e+00 },
     };
-  const double TF_MET_param[2] = {20., 20.};
-  const double TF_ACC_param[3] = {2.5, 30., 1.0};
+  const double TF_MET_param   [2] = {20.,  20.};
+  const double TF_RECOIL_param[3] = {4.1,  1.35,  30.};
+  const double TF_ACC_param   [3] = {2.5, 30.};
 
   const double BTAG_Q_param[2][2] = 
     { {0.98, 0.02},
@@ -213,7 +215,6 @@ namespace MEM {
     }
   };
 
-
   struct GenPart {
     GenPart(){ lv = LV(); type = TFType::Unknown;}
     GenPart(const LV& a, const TFType::TFType& b, const int c){ lv = a; type = b; charge=c;}    
@@ -249,7 +250,7 @@ namespace MEM {
   }
   
   namespace Assumption {
-    enum Assumption { ZeroQuarkLost=0, OneQuarkLost, TwoQuarkLost};
+    enum Assumption { ZeroQuarkLost=0, OneQuarkLost=1, TwoQuarkLost=2};
   }
   
   namespace Permutations {
@@ -263,6 +264,70 @@ namespace MEM {
   struct CompPerm {
     bool operator()(int a, int b){
       return a>b;
+    }
+  };
+
+  
+  struct MEMConfig{
+    MEMConfig( int =4000, double =1.e-12, double =1.e-5, int =0, double =13000., double =8000., string ="cteq65.LHgrid");
+    void defaultCfg();
+
+    // optionally this can be called instead of the built-in array
+    int n_max_calls;
+
+    // "map" between an integration type and the number of function calls
+    // FinalState vs Hypothesis vs Assumption
+    int calls[4][2][2];
+
+    // the VEGAS options
+    double rel;
+    double abs;
+
+    // what to include into the integrand
+    int int_code;
+    
+    // sqrt of S and maximum quark energy
+    double sqrts;
+    double emax;
+
+    // pdf set (to be initiated once)
+    string pdfset;
+
+    // strategy to prune permutations
+    std::vector<Permutations::Permutations> perm_pruning;
+
+    // if true, use n_max_calls instead of the built-in array
+    bool is_default;    
+  };
+
+  struct MEMOutput{
+    double p;
+    double p_err;
+    double chi2;
+    int time;	
+    int num_max_calls;	
+    int num_calls;
+    float efficiency;
+    std::size_t num_perm;    
+    FinalState::FinalState final_state;
+    Hypothesis::Hypothesis hypothesis;
+    std::size_t assumption;
+    void print(std::ostream& os){
+      os.precision(3);
+      os << "\tProbability             = (" << p << " +/- " << p_err << ")" << endl;
+      os.precision(2);
+      os << "\tRelative precision      = " << (p_err/p)*100 << "%" << endl;
+      os.precision(3);
+      os << "\tChi2                    = " << chi2 << endl;
+      os << "\tFinal state             = " << static_cast<std::size_t>(final_state) << endl;
+      os << "\tHypothesis              = " << static_cast<std::size_t>(hypothesis) << endl;
+      os << "\tNumber of unreco's jets = " << assumption << endl;
+      os << "\tNumber of permutations  = " << num_perm << endl;
+      os << "\tTotal number of calls   = " << num_calls << endl;
+      os << "\tMaximum number of calls = " << num_max_calls << endl;
+      os << "\tPhase-space efficiency  = " << efficiency*100 << "%" << endl;
+      os << "\tJobe done in " << time*0.001 << " seconds" << endl;
+      os.precision(8);
     }
   };
   

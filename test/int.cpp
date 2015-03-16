@@ -14,13 +14,16 @@ using namespace MEM;
 
 int main(){
 
+  MEMConfig cfg;
+  cfg.defaultCfg();
+
   Integrand* integrand = new Integrand(
-                       DebugVerbosity::init
-                       |DebugVerbosity::input
-			           |DebugVerbosity::init_more
+				       DebugVerbosity::init
+				       |DebugVerbosity::input
+				       |DebugVerbosity::init_more
 				       //|DebugVerbosity::input
 				       //|DebugVerbosity::integration
-				       );
+				       , cfg);
 
   Object j1( TLorentzVector(50,0, 10, sqrt(50*50+10*10)), ObjectType::Jet );
   j1.addObs( Observable::BTAG, 0. );  
@@ -49,8 +52,10 @@ int main(){
   integrand->push_back_object( &l1 );
   integrand->push_back_object( &l2 );
   integrand->push_back_object( &met );
+
+  /*
   integrand->set_permutation_strategy
-    ( {Permutations::BTagged, Permutations::QUntagged, 
+    (  {Permutations::BTagged, Permutations::QUntagged, 
 	Permutations::QQbarSymmetry, Permutations::BBbarSymmetry} );
 
   integrand->set_integrand(IntegrandType::Constant
@@ -62,14 +67,16 @@ int main(){
 			   );
   integrand->set_ncalls(4000);
   integrand->set_sqrts (13000.);
+  */
+  //integrand->set_ncalls(1000);
+
+  MEMOutput res;
 			   
   //integrand->run( FinalState::LH, Hypothesis::TTH,  {} );
-  integrand->run( FinalState::LL, Hypothesis::TTH,  {} );
-
+  res = integrand->run( FinalState::LL, Hypothesis::TTH,  {} );
   //integrand->run( FinalState::LH, Hypothesis::TTH,  {PSVar::cos_qbar1, PSVar::phi_qbar1} );
   //integrand->run( FinalState::LH, Hypothesis::TTBB, {} );
   //integrand->run( FinalState::TTH, Hypothesis::TTH,  {} );
-
   integrand->next_event();
 
   delete integrand;
