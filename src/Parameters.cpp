@@ -15,6 +15,9 @@ bool MEM::isLepton(const MEM::TFType::TFType& t)  {
   return (t==TFType::elReco || t==TFType::muReco);
 }
 
+double MEM::Chi2Corr(const double& x, const double& y, const double& Vx, const double& Vy, const double& rho){
+  return  1./(1-rho*rho)*( x*x/Vx + y*y/Vy - 2*rho*x*y/TMath::Sqrt(Vx*Vy) ) ;
+}
 
 /////////////////////////////////
 //   y    := observables
@@ -85,7 +88,7 @@ double MEM::transfer_function(double* y, double* x, const TFType::TFType& type, 
 
 #ifdef DEBUG_MODE
     if( debug&DebugVerbosity::integration) 
-      cout << "\t\ttransfer_function: Evaluate W(" << y[0]-x[0] << " , " << y[1]-x[1] << ", TFType::MET) = " << w << endl;
+      cout << "\t\ttransfer_function: Evaluate W(" << y[0] << "-" << x[0] << " , " << y[1] << "-" << x[1] << ", TFType::MET) = " << w << endl;
 #endif
     break;
 
@@ -151,6 +154,111 @@ double MEM::transfer_function(double* y, double* x, const TFType::TFType& type, 
 ///////////////////////////////// 
 pair<double, double> MEM::get_support(double* y, const TFType::TFType& type, const double& alpha, const int& debug){
 
+  if( type==TFType::TFType::MET ){
+
+    double alpha_n = TMath::Abs(alpha);
+    int sign       = alpha>0?1:0;
+
+    // the MET px and py
+    double Px        = y[0];
+    double Py        = y[1];
+
+    // return values
+    double xLowPhi   = -TMath::Pi();
+    double xHighPhi  = +TMath::Pi();
+
+    double phiStep   = 0.04;
+
+    // phi of MET vector
+    double Phi       = Py>0?TMath::ACos(Px/sqrt(Px*Px+Py*Py)):2*TMath::Pi()-TMath::ACos(Px/sqrt(Px*Px+Py*Py));
+    if( debug&DebugVerbosity::init_more) cout << "MET phi at " << Phi << endl;
+
+    // elements of the MET cov matrix
+    double Vx        = TF_MET_param[0]*TF_MET_param[0];
+    double Vy        = TF_MET_param[1]*TF_MET_param[1];
+    double rho       = TF_MET_param[2];
+
+    // chi2 cut to find the CL
+    double chi2Cut   = TMath::ChisquareQuantile(alpha_n ,2);    
+
+    // boundaries of the box
+    //double PxMax     = Px + TMath::Sqrt(Vx*TMath::ChisquareQuantile(alpha_n ,1));
+    //double PxMin     = Px - TMath::Sqrt(Vx*TMath::ChisquareQuantile(alpha_n ,1));
+    //double PyMax     = Py + TMath::Sqrt(Vy*TMath::ChisquareQuantile(alpha_n ,1));
+    //double PyMin     = Py - TMath::Sqrt(Vy*TMath::ChisquareQuantile(alpha_n ,1));
+    //if( debug&DebugVerbosity::init_more) cout << "BOX: [" <<  PxMin << "," << PxMax << "] x [" <<  PyMin << "," << PyMax << "]"  << endl;
+
+    // MET TF at zero
+    double tfAtZero = Chi2Corr(Px,Py,Vx,Vy,rho);
+
+    // nothing to do...
+    if( tfAtZero <= chi2Cut ){
+      if( debug&DebugVerbosity::init_more)
+	cout << "(0,0) is inside the 2-sigma CL => integrate over -TMath::Pi()/+TMath::Pi()" << endl;
+    }
+
+    // search for boundaries
+    else{
+
+      if( debug&DebugVerbosity::init_more)
+	cout << "(0,0) is outside the 2-sigma CL => find phi-window with interpolation..." << endl;	
+      
+      for( int dir = 0; dir < 2 ; ++dir){	
+
+	if(dir!=sign) continue;
+	if( debug&DebugVerbosity::init_more) cout << "Doing scan along " << (dir?"+":"-") << " direction" << endl;
+
+	bool stopPhiScan = false;
+	for(std::size_t step = 0; step <= (std::size_t)(TMath::Pi()/phiStep) && !stopPhiScan; ++step){
+	  double phi = Phi + double(2.*dir-1)*phiStep*step;
+	  //if(phi<0.) phi += 2*TMath::Pi();
+	  //else if(phi>2*TMath::Pi())  phi -= 2*TMath::Pi();
+	  if( debug&DebugVerbosity::init_more) cout << "\tScan phi=" << phi << endl;
+	  double sin    = TMath::Sin(phi);
+	  double cos    = TMath::Cos(phi);
+	  bool crossing = false;
+	  //bool exceeded = false;
+	  //bool alreadyInTheBox = PxMax*PxMin<=0. && PyMax*PyMin<=0.;
+
+	  double p_step = 2.;
+	  for(std::size_t stepP = 0; stepP<200 && !crossing && /*!exceeded && !crossing &&*/ !stopPhiScan; ++stepP){
+	    double Px_P = stepP*p_step*cos;
+	    double Py_P = stepP*p_step*sin;	    
+	    //if( alreadyInTheBox && (Px_P>PxMax || Px_P<PxMin || Py_P>PyMax || Py_P<PyMin)){
+	    //exceeded = true;
+	    //if( debug&DebugVerbosity::init_more) cout << "\tWas in box, and got out at P=" << stepP*p_step << endl;
+	    //continue;
+	    //}
+	    //else if( !alreadyInTheBox && (Px_P>PxMax || Px_P<PxMin || Py_P>PyMax || Py_P<PyMin)){
+	      //if( debug&DebugVerbosity::init_more) cout << "\tWas not in the box, and I am still out at P=" << stepP*5 << endl;
+	      //continue;
+	    //}
+	    
+	    if( Chi2Corr(Px_P-Px, Py_P-Py, Vx, Vy, rho) < chi2Cut ) {
+	      crossing = true;	 
+	      if( debug&DebugVerbosity::init_more) 
+		cout << "\tWas not in the box, and found crossing at (" << Px_P << "," << Py_P << ")" << endl;
+	    }
+	  } // end loop over |P|
+	  
+	  if(!crossing){
+	    if( debug&DebugVerbosity::init_more) cout << "\tNo crossing at " << phi << " => stop phi scan" << endl;
+	    if(dir==0) xLowPhi  = phi+0.5*phiStep;
+	    if(dir==1) xHighPhi = phi-0.5*phiStep;
+	    stopPhiScan = true;
+	  }
+	}
+      }
+      
+      //xLowPhi  = -TMath::ACos(TMath::Cos( Phi - xLowPhi ));
+      //xHighPhi = +TMath::ACos(TMath::Cos( Phi - xHighPhi));
+      xLowPhi  -= Phi;
+      xHighPhi -= Phi;
+    }
+    
+    return make_pair(xLowPhi,xHighPhi);
+  } 
+
   // the reconstructed values
   double e_rec   = y[0];
   double eta_rec = y[1];
@@ -188,7 +296,7 @@ pair<double, double> MEM::get_support(double* y, const TFType::TFType& type, con
     e_H += step_size;
   }
 #ifdef DEBUG_MODE
-  if( debug&DebugVerbosity::integration) 
+  if( debug&DebugVerbosity::init_more) 
     cout << "MEM::get_support: E(reco) = " << e_rec << " ==> range at " << alpha 
 	 << " CL is [" << e_L << ", " << e_H << "] (stepping every " << step_size << " GeV)" << endl;
 #endif
@@ -329,7 +437,9 @@ void MEM::MEMConfig::defaultCfg(){
     |IntegrandType::IntegrandType::DecayAmpl
     |IntegrandType::IntegrandType::Jacobian
     |IntegrandType::IntegrandType::PDF
-    |IntegrandType::IntegrandType::Transfer;
+    |IntegrandType::IntegrandType::Transfer
+    |IntegrandType::IntegrandType::Sudakov
+    |IntegrandType::IntegrandType::Recoil;
   
   perm_pruning = {Permutations::BTagged, Permutations::QUntagged,
 		  Permutations::QQbarSymmetry, Permutations::BBbarSymmetry};

@@ -91,7 +91,7 @@ namespace MEM {
     { { -3.60e+00, 1.00e+00, 0.00e+00, 0.99e+00, 5.70e+00,-3.30e+00, 0.94e+00, 0.16e+00, 1.70e+00, 6.60e+00, 0.65e+00 },
       { -4.30e+00, 0.98e+00, 0.00e+00, 1.90e+00, 6.00e+00, 0.91e+01, 0.87e+00, 0.23e+00, 1.10e+00, 0.00e+00, 0.65e+00 },
     };
-  const double TF_MET_param   [2] = {20.,  20.};
+  const double TF_MET_param   [3] = {20.,  20., 0.};
   const double TF_RECOIL_param[3] = {4.1,  1.35,  30.};
   const double TF_ACC_param   [3] = {2.5, 30.};
 
@@ -117,6 +117,8 @@ namespace MEM {
   bool isQuark   (const TFType::TFType&);
   bool isNeutrino(const TFType::TFType&);
   bool isLepton  (const TFType::TFType&);
+  double Chi2Corr(const double&, const double&, const double&, const double&, const double&);
+
   double transfer_function( double*,  double*, const TFType::TFType&, const int&);
 
   pair<double, double> get_support( double*, const TFType::TFType&, const double&, const int&);
@@ -258,7 +260,7 @@ namespace MEM {
   }
   
   namespace IntegrandType {
-    enum IntegrandType { Constant=1, Jacobian=2, Transfer=4, ScattAmpl=8, DecayAmpl=16, PDF=32 };
+    enum IntegrandType { Constant=1, Jacobian=2, Transfer=4, ScattAmpl=8, DecayAmpl=16, PDF=32, Sudakov=64, Recoil=128 };
   }
   
   struct CompPerm {

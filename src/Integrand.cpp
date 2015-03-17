@@ -151,12 +151,15 @@ void MEM::Integrand::get_edges(double* lim, const std::vector<PSVar::PSVar>& los
   //   even <=> cosTheta [-1,   +1]
   //   odd  <=> phi      [-PI, +PI]
   size_t count_extra{0};
+  pair<double, double> phi_edges;
+  double y[2] = { obs_mets[0]->p4().Px(), obs_mets[0]->p4().Py()} ;
 
   switch( fs ){
   case FinalState::LH:
+    phi_edges = get_support( y, TFType::MET, (edge?+0.95:-0.95),  debug_code ) ;
     lim[map_to_var[PSVar::E_q1]]      =  edge ?  1. :  0.;
     lim[map_to_var[PSVar::cos_qbar2]] =  edge ? +1  : -1.;
-    lim[map_to_var[PSVar::phi_qbar2]] =  edge ? +TMath::Pi() : -TMath::Pi();
+    lim[map_to_var[PSVar::phi_qbar2]] =  edge ? phi_edges.second : phi_edges.first;
     lim[map_to_var[PSVar::E_b]]       =  edge ?  1. :  0.;
     if( hypo==Hypothesis::TTBB ) 
       lim[map_to_var[PSVar::E_bbar]]  =  edge ?  1. :  0.;
@@ -932,7 +935,10 @@ int MEM::Integrand::create_PS_LH(MEM::PS& ps, const double* x, const vector<int>
     
   /////  PSPart::qbar2
   dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_qbar2)->second ]) );
-  dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_qbar2)->second ] );
+  double phi_n = x[ map_to_var.find(PSVar::phi_qbar2)->second ] + obs_mets[0]->p4().Phi();
+  if     ( phi_n>+PI ) phi_n -= 2*PI;
+  else if( phi_n<-PI ) phi_n += 2*PI;
+  dir.SetPhi  ( phi_n );
   E    = solve( ps.lv(PSPart::q2), DMW2, ML, dir, E_REC, accept );
   extend_PS( ps, PSPart::qbar2, E, 0., dir, -1, PSVar::cos_qbar2, PSVar::phi_qbar2, PSVar::E_qbar2, TFType::MET  ); 
 
@@ -1421,12 +1427,17 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm) const {
   // Dealing with the MET
   double y_MET[2] = { obs_mets[0]->p4().Px(), obs_mets[0]->p4().Py() };
   double x_Nu [2] = { nu_x-corr_nu_x, nu_y-corr_nu_y };
+  if( !(cfg.int_code&IntegrandType::Recoil) ){
+    x_Nu[0] += corr_nu_x;
+    x_Nu[1] += corr_nu_y;
+  }
   w *= transfer_function( y_MET, x_Nu, TFType::MET, debug_code );
 
   // Dealing with the recoil
   double y_rho[1] = { (extra_jets>0 ? TF_RECOIL_param[2]+1. : sqrt(rho_x*rho_x + rho_y*rho_y)) };
   double x_pT [1] = { sqrt(pT_x*pT_x + pT_y*pT_y)  };
-  w *= transfer_function( y_rho, x_pT, TFType::Recoil, debug_code );
+  if( cfg.int_code&IntegrandType::Sudakov ) 
+    w *= transfer_function( y_rho, x_pT, TFType::Recoil, debug_code );
 
   if( TMath::IsNaN(w) ){
     cout << "\tA NaN occurred while evaluation w..." << endl;
