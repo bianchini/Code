@@ -4,12 +4,12 @@ ROOT.gROOT.ProcessLine('AutoLibraryLoader::enable();')
 ROOT.gSystem.Load("libFWCoreFWLite")
 ROOT.gSystem.Load("libCintex")
 ROOT.gROOT.ProcessLine('ROOT::Cintex::Cintex::Enable();')
-ROOT.gSystem.Load("libTTHMEIntegratorStandalone2")
+ROOT.gSystem.Load("libTTHMEIntegratorStandalone")
 from ROOT import MEM
 from ROOT import TLorentzVector
 import math
 
-mem = MEM.Integrand(2+4+8)
+mem = MEM.Integrand(2+4+8, MEM.MEMConfig())
 print mem
 
 def add_obj(mem, typ, **kwargs):
@@ -85,5 +85,6 @@ mem.set_sqrts(13000.);
 
 CvectorPSVar = getattr(ROOT, "std::vector<MEM::PSVar::PSVar>")
 psvar_vec = CvectorPSVar()
-mem.run(MEM.FinalState.LL, MEM.Hypothesis.TTH, psvar_vec);
+r = mem.run(MEM.FinalState.LL, MEM.Hypothesis.TTH, psvar_vec);
+print r.p
 mem.next_event()
