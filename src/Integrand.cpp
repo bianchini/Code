@@ -13,7 +13,9 @@ MEM::Integrand::Integrand(int debug, const MEMConfig& config){
   hypo               = Hypothesis::Undefined;
   ig2                = nullptr;
   n_calls            = 0;
+  n_max_calls        = 0;
   n_skip             = 0;
+  this_perm          = 0;
   cfg                = config;
 
   // init PDF set
@@ -81,12 +83,12 @@ void MEM::Integrand::init( const MEM::FinalState::FinalState f, const MEM::Hypot
     double y[2] = { j->p4().E(), j->p4().Eta() };
     pair<double, double> edges;    
     if( !j->isSet(Observable::E_LOW_Q) || !j->isSet(Observable::E_HIGH_Q) ){
-      edges = get_support( y, TFType::qReco, 0.98,  debug_code ) ;
+      edges = get_support( y, TFType::qReco, cfg.j_range_CL,  debug_code ) ;
       j->addObs( Observable::E_LOW_Q,  edges.first  );
       j->addObs( Observable::E_HIGH_Q, edges.second );
     }
     if( !j->isSet(Observable::E_LOW_B) || !j->isSet(Observable::E_HIGH_B) ){
-      edges = get_support( y, TFType::bReco, 0.98 , debug_code) ;
+      edges = get_support( y, TFType::bReco, cfg.b_range_CL , debug_code) ;
       j->addObs( Observable::E_LOW_B,  edges.first  );
       j->addObs( Observable::E_HIGH_B, edges.second );    
     }
@@ -126,7 +128,8 @@ void MEM::Integrand::init( const MEM::FinalState::FinalState f, const MEM::Hypot
     // leptons
     -3*obs_leptons.size()               
     // jet directions
-    -2*( TMath::Min(obs_jets.size(), naive_jet_counting) ) 
+    //-2*( TMath::Min(obs_jets.size(), naive_jet_counting) ) 
+    -2*naive_jet_counting 
     // top/W mass
     -4*(unstable)               
     // H mass
@@ -135,7 +138,7 @@ void MEM::Integrand::init( const MEM::FinalState::FinalState f, const MEM::Hypot
     -2*(obs_mets.size()==0);
 
   if( debug_code&DebugVerbosity::init ){
-    cout << "\tTotal of " << num_of_vars << " unknowns" << endl;
+    cout << "\tTotal of " << num_of_vars << " unknowns (does not take into account lost jets)" << endl;
     cout << "\tIntegration code: " << cfg.int_code << endl;
   }
 
@@ -151,12 +154,13 @@ void MEM::Integrand::get_edges(double* lim, const std::vector<PSVar::PSVar>& los
   //   even <=> cosTheta [-1,   +1]
   //   odd  <=> phi      [-PI, +PI]
   size_t count_extra{0};
-  pair<double, double> phi_edges;
+  pair<double, double> phi_edges = {-TMath::Pi(),+TMath::Pi()};
   double y[2] = { obs_mets[0]->p4().Px(), obs_mets[0]->p4().Py()} ;
 
   switch( fs ){
   case FinalState::LH:
-    phi_edges = get_support( y, TFType::MET, (edge?+0.95:-0.95),  debug_code ) ;
+    if( cfg.m_range_CL<1. )
+      phi_edges = get_support( y, TFType::MET, (edge? +cfg.m_range_CL : -cfg.m_range_CL),  debug_code ) ;
     lim[map_to_var[PSVar::E_q1]]      =  edge ?  1. :  0.;
     lim[map_to_var[PSVar::cos_qbar2]] =  edge ? +1  : -1.;
     lim[map_to_var[PSVar::phi_qbar2]] =  edge ? phi_edges.second : phi_edges.first;
@@ -404,12 +408,12 @@ MEM::MEMOutput MEM::Integrand::run( const MEM::FinalState::FinalState f, const M
   init(f,h);
 
   // number of calls
-  int nmaxcalls = cfg.is_default ? 
+  n_max_calls = cfg.is_default ? 
     cfg.calls[static_cast<std::size_t>(fs)][static_cast<std::size_t>(h)][list.size()/2] : 
     cfg.n_max_calls;
 
   // create integrator
-  ig2 = new ROOT::Math::GSLMCIntegrator(ROOT::Math::IntegrationMultiDim::kVEGAS, cfg.abs, cfg.rel, nmaxcalls);
+  ig2 = new ROOT::Math::GSLMCIntegrator(ROOT::Math::IntegrationMultiDim::kVEGAS, cfg.abs, cfg.rel, n_max_calls);
 
   if( debug_code&DebugVerbosity::init ){
     ig2->Options().Print(std::cout);
@@ -420,20 +424,17 @@ MEM::MEMOutput MEM::Integrand::run( const MEM::FinalState::FinalState f, const M
   auto t1 = high_resolution_clock::now();
 
   // do the calculation
-  double prob = make_assumption( list ); 
+  make_assumption( list, out ); 
 
   // stop the clock!
   auto t2 = high_resolution_clock::now();
 
-  out.p             = prob;
-  out.p_err         = ig2->Error();
-  out.chi2          = ig2->ChiSqr();
   out.time          = static_cast<int>(duration_cast<milliseconds>(t2-t1).count());
   out.num_perm      = perm_indexes_assumption.size();
   out.final_state   = fs;
   out.hypothesis    = h;
   out.assumption    = list.size()/2;
-  out.num_max_calls = nmaxcalls;
+  out.num_max_calls = n_max_calls;
   out.num_calls     = n_calls;
   out.efficiency    = float(n_calls)/(n_calls+n_skip);
 
@@ -452,9 +453,6 @@ void MEM::Integrand::next_event(){
   if( debug_code&DebugVerbosity::init ){
     cout << "Integrand::next_event(): START" << endl;
   }
-  //for( auto j : obs_jets )     delete j;
-  //for( auto l : obs_leptons )  delete l;
-  //for( auto m : obs_mets )     delete m;
   obs_jets.clear();
   obs_leptons.clear();
   obs_mets.clear();  
@@ -503,18 +501,20 @@ bool MEM::Integrand::test_assumption( const size_t& lost){
   return true;
 }
 
-double MEM::Integrand::make_assumption( const std::vector<MEM::PSVar::PSVar>& lost){
+void MEM::Integrand::make_assumption( const std::vector<MEM::PSVar::PSVar>& lost, MEMOutput& out){
 
   if( debug_code&DebugVerbosity::init ){
     cout << "Integrand::make_assumption(): START" << endl;
   }
 
   double prob{0.};
+  double err2{0.};
+  double chi2{0.};
 
   // an assumption may not be consistent with the number of observed jets
   // E.g.: assume 1 lost quark but 2 jets missing wrt to expectation
   // N.B. extra_jets filled here!!!
-  if(!test_assumption(lost.size()/2)) return prob;
+  if(!test_assumption(lost.size()/2)) return;
 
   perm_indexes_assumption.clear();
 
@@ -564,7 +564,7 @@ double MEM::Integrand::make_assumption( const std::vector<MEM::PSVar::PSVar>& lo
     cout << "\tA total of " << perm_indexes_assumption.size() << " permutations have been considered for this assumption" << endl;
 
   // create integration ranges
-  size_t npar = num_of_vars+2*extra_jets;
+  size_t npar = num_of_vars + lost.size();
 
   double xL[npar], xU[npar];
   get_edges(xL, lost, npar, 0);
@@ -577,14 +577,40 @@ double MEM::Integrand::make_assumption( const std::vector<MEM::PSVar::PSVar>& lo
   ig2->SetFunction(toIntegrate);
   
   // do the integral
-  prob = ig2->Integral(xL,xU);
-  if(!cfg.int_code) prob /= volume;
+  if( cfg.perm_int ){
+    for( std::size_t n_perm = 0; n_perm < perm_indexes_assumption.size() ; ++n_perm ){
+      this_perm = n_perm;
+      // create integrator
+      delete ig2;
+      ig2 = new ROOT::Math::GSLMCIntegrator(ROOT::Math::IntegrationMultiDim::kVEGAS, cfg.abs, cfg.rel, n_max_calls);
+      ig2->SetFunction(toIntegrate);
+      double n_prob = ig2->Integral(xL,xU);
+      if( debug_code&DebugVerbosity::init ){
+	cout << "\tPermutation num. " << this_perm << " returned p=" << n_prob << endl;
+      }
+      prob += n_prob;
+      err2 += TMath::Power(ig2->Error(),2.);
+      chi2 += ig2->ChiSqr()/perm_indexes_assumption.size();
+    }
+  }
+
+  // do the integral
+  if( !cfg.perm_int ){
+    prob += ig2->Integral(xL,xU);
+    err2 += TMath::Power(ig2->Error(),2.);
+    chi2 += ig2->ChiSqr();
+  }
   
   if( debug_code&DebugVerbosity::init ){
     cout << "Integrand::make_assumption(): END" << endl;
   }
-  
-  return prob;
+
+  if(!cfg.int_code) prob /= volume;  
+  out.p     = prob;
+  out.p_err = sqrt(err2);
+  out.chi2  = chi2;
+
+  return;
 }
 
 bool MEM::Integrand::accept_perm( const vector<int>& perm, const std::vector<MEM::Permutations::Permutations>& strategies ) const {
@@ -801,8 +827,11 @@ double MEM::Integrand::Eval(const double* x) const{
 
   double p{0.};
 
-  for( size_t n_perm = 0; n_perm < perm_indexes_assumption.size() ; ++n_perm ){
-    double p0 = probability(x, perm_indexes_assumption[n_perm]);
+  for( std::size_t n_perm = 0; n_perm < perm_indexes_assumption.size() ; ++n_perm ){
+    if( cfg.perm_int ){
+      if(n_perm != this_perm) continue;
+    }
+    double p0 = probability(x, n_perm );
     double p1 = perm_const_assumption[n_perm];
 #ifdef DEBUG_MODE
     if( debug_code&DebugVerbosity::integration ){
@@ -1201,7 +1230,7 @@ int MEM::Integrand::create_PS_TTH(MEM::PS& ps, const double* x, const vector<int
 
 
 
-double MEM::Integrand::probability(const double* x, const vector<int>& perm ) const {
+double MEM::Integrand::probability(const double* x, const std::size_t& n_perm ) const {
 
 #ifdef DEBUG_MODE
   if( debug_code&DebugVerbosity::integration ){
@@ -1215,7 +1244,7 @@ double MEM::Integrand::probability(const double* x, const vector<int>& perm ) co
 
   // create phas-space point and test if it is physical
   PS ps(ps_dim);
-  int accept = create_PS(ps, x, perm);
+  int accept = create_PS(ps, x, perm_indexes_assumption[n_perm]);
 
 #ifdef DEBUG_MODE
   if( debug_code&DebugVerbosity::integration ) ps.print(cout);
@@ -1238,7 +1267,7 @@ double MEM::Integrand::probability(const double* x, const vector<int>& perm ) co
   else{
     p *= constants();
     p *= matrix(ps);
-    p *= transfer(ps, perm);
+    p *= transfer(ps, perm_indexes_assumption[n_perm]);
   }
 
 

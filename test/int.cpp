@@ -16,11 +16,12 @@ int main(){
 
   MEMConfig cfg;
   cfg.defaultCfg();
-
+  cfg.perm_int = 1;
+  
   Integrand* integrand = new Integrand(
 				       DebugVerbosity::init
 				       |DebugVerbosity::input
-				       |DebugVerbosity::init_more
+				       //|DebugVerbosity::init_more
 				       //|DebugVerbosity::input
 				       //|DebugVerbosity::integration
 				       , cfg);
@@ -37,23 +38,26 @@ int main(){
   j5.addObs( Observable::BTAG, 1. );
   Object j6( TLorentzVector(100,10, 20, sqrt(100*100+10*10+20*20)), ObjectType::Jet );
   j6.addObs( Observable::BTAG, 1. );
+  Object j7( TLorentzVector(100,30, 50, sqrt(100*100+30*30+50*50)), ObjectType::Jet );
+  j7.addObs( Observable::BTAG, 0. );
   Object l1( TLorentzVector(70,10, 20, sqrt(70*70+10*10+20*20)), ObjectType::Lepton );
   l1.addObs( Observable::CHARGE, +1. );
   Object l2( TLorentzVector(70,-10, -20, sqrt(70*70+10*10+20*20)), ObjectType::Lepton );
   l2.addObs( Observable::CHARGE, -1. );
-  Object met( TLorentzVector(30,0,0,30), ObjectType::MET );
+  Object met( TLorentzVector(10,50,0,100), ObjectType::MET );
 
-  //integrand->push_back_object( &j1 );
+  integrand->push_back_object( &j1 );
   integrand->push_back_object( &j2 );
-  //integrand->push_back_object( &j3 );
+  integrand->push_back_object( &j3 );
   integrand->push_back_object( &j4 );
   integrand->push_back_object( &j5 );
   integrand->push_back_object( &j6 );
+  integrand->push_back_object( &j7 );
   integrand->push_back_object( &l1 );
-  integrand->push_back_object( &l2 );
+  //integrand->push_back_object( &l2 );
   integrand->push_back_object( &met );
 
-  /*
+  
   integrand->set_permutation_strategy
     (  {Permutations::BTagged, Permutations::QUntagged, 
 	Permutations::QQbarSymmetry, Permutations::BBbarSymmetry} );
@@ -64,17 +68,17 @@ int main(){
 			   |IntegrandType::Jacobian
 			   |IntegrandType::PDF
 			   |IntegrandType::Transfer
+			   //|IntegrandType::Sudakov
+			   //|IntegrandType::Recoil
 			   );
-  integrand->set_ncalls(4000);
-  integrand->set_sqrts (13000.);
-  */
-  //integrand->set_ncalls(1000);
+  //integrand->set_ncalls(4000);
+  //integrand->set_sqrts (13000.);  
 
   MEMOutput res;
 			   
-  //integrand->run( FinalState::LH, Hypothesis::TTH,  {} );
-  res = integrand->run( FinalState::LL, Hypothesis::TTH,  {} );
-  //integrand->run( FinalState::LH, Hypothesis::TTH,  {PSVar::cos_qbar1, PSVar::phi_qbar1} );
+  //res = integrand->run( FinalState::LH, Hypothesis::TTH,  {} );
+  //res = integrand->run( FinalState::LL, Hypothesis::TTH,  {} );
+  res = integrand->run( FinalState::LH, Hypothesis::TTBB,  {PSVar::cos_qbar1, PSVar::phi_qbar1} );
   //integrand->run( FinalState::LH, Hypothesis::TTBB, {} );
   //integrand->run( FinalState::TTH, Hypothesis::TTH,  {} );
   integrand->next_event();

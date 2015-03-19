@@ -85,7 +85,7 @@ namespace MEM {
     void fill_map( const std::vector<PSVar::PSVar>& );
 
     // make assumption
-    double make_assumption( const std::vector<PSVar::PSVar>& );
+    void make_assumption( const std::vector<PSVar::PSVar>&, MEMOutput& );
 
     // clear containers before new hypothesis
     void next_hypo();
@@ -112,7 +112,7 @@ namespace MEM {
     void extend_PS(PS&, const PSPart::PSPart&, const double& , const double& , const TVector3&, const int&, const PSVar::PSVar&,const PSVar::PSVar&,const PSVar::PSVar&,const TFType::TFType&, const int =0) const;
     void extend_PS_nodebug(PS&, const PSPart::PSPart&, const double& , const double& , const TVector3&) const;
 
-    double probability(const double*, const vector<int>&) const;
+    double probability(const double*, const std::size_t&) const;
 
     double constants() const;
 
@@ -149,6 +149,9 @@ namespace MEM {
     // count function calls
     int n_calls;
 
+    // count maximum function calls
+    int n_max_calls;
+
     // count number of invalid phase space points
     int n_skip;
 
@@ -182,7 +185,8 @@ namespace MEM {
     // contain indexes of obs_jets that need permutations
     std::vector<std::vector<int> > perm_indexes;
     std::vector<std::vector<int> > perm_indexes_assumption;
-    std::vector< double >      perm_const_assumption;
+    std::size_t this_perm;
+    std::vector< double >          perm_const_assumption;
 
     // map between parameter names (physical) and positions in
     // VEGAS space

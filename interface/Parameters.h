@@ -271,7 +271,19 @@ namespace MEM {
 
   
   struct MEMConfig{
-    MEMConfig( int =4000, double =1.e-12, double =1.e-5, int =0, double =13000., double =8000., string ="cteq65.LHgrid");
+    MEMConfig( int    =4000,             // num of int points
+	       double =1.e-12,           // absolute tol.
+	       double =1.e-5,            // relative tol.
+	       int    =0,                // int_code
+	       int    =0,                // =0 <=> Int{ Perm }; =1 <=> Perm{ Int }
+	       double =13000.,           // c.o.m. energy
+	       double =8000.,            // max energy for integration over momenta
+	       string ="cteq65.LHgrid",  // PDF set
+	       double =0.98,             // light quark energy CL
+	       double =0.98,             // heavy quark energy CL
+	       double =0.95              // nu phi CL
+	       );
+
     void defaultCfg();
 
     // optionally this can be called instead of the built-in array
@@ -300,20 +312,28 @@ namespace MEM {
 
     // if true, use n_max_calls instead of the built-in array
     bool is_default;    
+    
+    // CL of jet and met range
+    double j_range_CL;
+    double b_range_CL;
+    double m_range_CL;
+   
+    // do sum over permutations inside or outside integral
+    int perm_int;
   };
 
   struct MEMOutput{
     double p;
     double p_err;
     double chi2;
-    int time;	
-    int num_max_calls;	
-    int num_calls;
-    float efficiency;
+    int    time;	
+    int    num_max_calls;	
+    int    num_calls;
+    float  efficiency;
     std::size_t num_perm;    
+    std::size_t assumption;
     FinalState::FinalState final_state;
     Hypothesis::Hypothesis hypothesis;
-    std::size_t assumption;
     void print(std::ostream& os){
       os.precision(3);
       os << "\tProbability             = (" << p << " +/- " << p_err << ")" << endl;

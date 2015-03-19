@@ -385,15 +385,24 @@ void MEM::Object::print(ostream& os) const {
      << ")" << endl;
 }
 
-MEM::MEMConfig::MEMConfig(int nmc, double ab, double re, int ic, double s, double e, std::string pdf){
+MEM::MEMConfig::MEMConfig(int nmc, 
+			  double ab, double re, 
+			  int ic, int pi, 
+			  double s, double e, 
+			  std::string pdf, 
+			  double jCL, double bCL, double mCL){
   n_max_calls = nmc;
   abs         = ab;
   rel         = re;
   int_code    = ic;
+  perm_int    = pi;
   sqrts       = s;
   emax        = e;
   pdfset      = pdf;
   is_default  = true;
+  j_range_CL  = jCL;
+  b_range_CL  = bCL;
+  m_range_CL  = mCL;
   for( int i = 0; i < 4 ; ++i){
     for( int j = 0; j < 2 ; ++j){
       for( int k = 0; k < 2 ; ++k){
