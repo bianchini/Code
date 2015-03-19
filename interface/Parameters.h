@@ -326,6 +326,7 @@ namespace MEM {
     double p;
     double p_err;
     double chi2;
+    int    error_code;
     int    time;	
     int    num_max_calls;	
     int    num_calls;
@@ -336,6 +337,7 @@ namespace MEM {
     Hypothesis::Hypothesis hypothesis;
     void print(std::ostream& os){
       os.precision(3);
+      os << "\t**************** MEM output ****************" << endl;
       os << "\tProbability             = (" << p << " +/- " << p_err << ")" << endl;
       os.precision(2);
       os << "\tRelative precision      = " << (p_err/p)*100 << "%" << endl;
@@ -348,7 +350,9 @@ namespace MEM {
       os << "\tTotal number of calls   = " << num_calls << endl;
       os << "\tMaximum number of calls = " << num_max_calls << endl;
       os << "\tPhase-space efficiency  = " << efficiency*100 << "%" << endl;
-      os << "\tJobe done in " << time*0.001 << " seconds" << endl;
+      os << "\tError code              = " << error_code << endl;
+      os << "\tJobe done in.............." << time*0.001 << " seconds" << endl;
+      os << "\t********************************************" << endl;
       os.precision(8);
     }
   };

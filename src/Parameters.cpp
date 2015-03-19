@@ -415,6 +415,7 @@ MEM::MEMConfig::MEMConfig(int nmc,
 
 void MEM::MEMConfig::defaultCfg(){
   
+  // FinalState::LH
   calls
     [ static_cast<std::size_t>(FinalState::FinalState::LH) ]
     [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTH)]
@@ -431,6 +432,8 @@ void MEM::MEMConfig::defaultCfg(){
     [ static_cast<std::size_t>(FinalState::FinalState::LH) ]
     [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTBB)]
     [ static_cast<std::size_t>(Assumption::Assumption::OneQuarkLost)] = 4000;
+
+  // FinalState::LL
   calls
     [ static_cast<std::size_t>(FinalState::FinalState::LL) ]
     [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTH)]
@@ -439,6 +442,32 @@ void MEM::MEMConfig::defaultCfg(){
     [ static_cast<std::size_t>(FinalState::FinalState::LL) ]
     [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTBB)]
     [ static_cast<std::size_t>(Assumption::Assumption::ZeroQuarkLost)] = 10000;      
+  calls
+    [ static_cast<std::size_t>(FinalState::FinalState::LL) ]
+    [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTH)]
+    [ static_cast<std::size_t>(Assumption::Assumption::OneQuarkLost)]  = 20000;     
+  calls
+    [ static_cast<std::size_t>(FinalState::FinalState::LL) ]
+    [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTBB)]
+    [ static_cast<std::size_t>(Assumption::Assumption::OneQuarkLost)]  = 20000;      
+
+  // FinalState::HH
+  calls
+    [ static_cast<std::size_t>(FinalState::FinalState::HH) ]
+    [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTH)]
+    [ static_cast<std::size_t>(Assumption::Assumption::ZeroQuarkLost)] = 1000;     
+  calls
+    [ static_cast<std::size_t>(FinalState::FinalState::HH) ]
+    [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTBB)]
+    [ static_cast<std::size_t>(Assumption::Assumption::ZeroQuarkLost)] = 1000;
+  calls
+    [ static_cast<std::size_t>(FinalState::FinalState::HH) ]
+    [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTH)]
+    [ static_cast<std::size_t>(Assumption::Assumption::OneQuarkLost)] = 4000;     
+  calls
+    [ static_cast<std::size_t>(FinalState::FinalState::HH) ]
+    [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTBB)]
+    [ static_cast<std::size_t>(Assumption::Assumption::OneQuarkLost)] = 4000;
   
   int_code = 
     IntegrandType::IntegrandType::Constant
