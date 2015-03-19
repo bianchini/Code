@@ -292,7 +292,9 @@ namespace MEM {
 	       int    =1                 // use highest pT jets for E_q/E_b
 	       );
 
-    void defaultCfg();
+    void defaultCfg(float nCallsMultiplier=1.0);
+    void setNCalls(FinalState::FinalState, Hypothesis::Hypothesis, Assumption::Assumption, int);
+    int getNCalls(FinalState::FinalState, Hypothesis::Hypothesis, Assumption::Assumption);
 
     // optionally this can be called instead of the built-in array
     int n_max_calls;
@@ -362,7 +364,7 @@ namespace MEM {
       os << "\tMaximum number of calls = " << num_max_calls << endl;
       os << "\tPhase-space efficiency  = " << efficiency*100 << "%" << endl;
       os << "\tError code              = " << error_code << endl;
-      os << "\tJobe done in.............." << time*0.001 << " seconds" << endl;
+      os << "\tJob done in..............." << time*0.001 << " seconds" << endl;
       os << "\t********************************************" << endl;
       os.precision(8);
     }

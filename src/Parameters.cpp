@@ -415,7 +415,7 @@ MEM::MEMConfig::MEMConfig(int nmc,
   perm_pruning = {};
 }
 
-void MEM::MEMConfig::defaultCfg(){
+void MEM::MEMConfig::defaultCfg(float nCallsMultiplier){
   
   // FinalState::LH
   calls
@@ -471,6 +471,16 @@ void MEM::MEMConfig::defaultCfg(){
     [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTBB)]
     [ static_cast<std::size_t>(Assumption::Assumption::OneQuarkLost)] = 4000;
   
+  if (nCallsMultiplier != 1.0) {
+    for (int i=0; i<4; i++) {
+      for (int j=0; j<2; j++) {
+        for (int k=0; k<2; k++) {
+          calls[i][j][k] = nCallsMultiplier * calls[i][j][k];
+        }
+      }
+    }
+  }
+  
   int_code = 
     IntegrandType::IntegrandType::Constant
     |IntegrandType::IntegrandType::ScattAmpl
@@ -483,4 +493,19 @@ void MEM::MEMConfig::defaultCfg(){
   
   perm_pruning = {Permutations::BTagged, Permutations::QUntagged,
 		  Permutations::QQbarSymmetry, Permutations::BBbarSymmetry};
+}
+
+
+void MEM::MEMConfig::setNCalls(FinalState::FinalState f, Hypothesis::Hypothesis h, Assumption::Assumption a, int n) {
+  calls
+    [ static_cast<std::size_t>(f) ]
+    [ static_cast<std::size_t>(h)]
+    [ static_cast<std::size_t>(a)] = n;
+}
+
+int MEM::MEMConfig::getNCalls(FinalState::FinalState f, Hypothesis::Hypothesis h, Assumption::Assumption a) {
+  return calls
+    [ static_cast<std::size_t>(f) ]
+    [ static_cast<std::size_t>(h)]
+    [ static_cast<std::size_t>(a)];
 }
