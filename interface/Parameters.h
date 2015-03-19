@@ -108,7 +108,7 @@ namespace MEM {
        {0.30, 0.70}
      };
 
-  enum DebugVerbosity { silent=1, input=2, init=4, init_more=8, event=16, integration=32};
+  enum DebugVerbosity { output=1, input=2, init=4, init_more=8, event=16, integration=32};
  
   namespace TFType {
     enum TFType {bReco=0, qReco=1, bLost=2, qLost=3, muReco=4, elReco=5, MET=6, Recoil=7, Unknown=8};
@@ -264,9 +264,16 @@ namespace MEM {
   }
   
   struct CompPerm {
-    bool operator()(int a, int b){
-      return a>b;
+    CompPerm(const int& order){
+      highpt_first = order;
     }
+    bool operator()(int a, int b){
+      if(highpt_first)
+	return a<b;
+      else
+	return a>b;
+    }
+    int highpt_first;
   };
 
   
@@ -281,7 +288,8 @@ namespace MEM {
 	       string ="cteq65.LHgrid",  // PDF set
 	       double =0.98,             // light quark energy CL
 	       double =0.98,             // heavy quark energy CL
-	       double =0.95              // nu phi CL
+	       double =0.95,             // nu phi CL
+	       int    =1                 // use highest pT jets for E_q/E_b
 	       );
 
     void defaultCfg();
@@ -320,6 +328,9 @@ namespace MEM {
    
     // do sum over permutations inside or outside integral
     int perm_int;
+
+    // use high pT jets first
+    int highpt_first;
   };
 
   struct MEMOutput{

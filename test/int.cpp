@@ -17,16 +17,17 @@ int main(){
   MEMConfig cfg;
   cfg.defaultCfg();
   //cfg.perm_int = 1;
-  cfg.j_range_CL = 0.98;
-  cfg.b_range_CL = 0.95;
+  //cfg.j_range_CL = 0.98;
+  //cfg.b_range_CL = 0.95;
+  //cfg.highpt_first = 0;
 
-  Integrand* integrand = new Integrand(
-				       DebugVerbosity::init
-				       |DebugVerbosity::input
-				       //|DebugVerbosity::init_more
-				       //|DebugVerbosity::input
-				       //|DebugVerbosity::integration
-				       , cfg);
+  Integrand* integrand = new Integrand(  DebugVerbosity::output
+					 //|DebugVerbosity::init
+					 //|DebugVerbosity::input
+					 //|DebugVerbosity::init_more
+					 //|DebugVerbosity::input
+					 //|DebugVerbosity::integration				        
+					 ,cfg);
 
   Object j1( TLorentzVector(50,0, 10, sqrt(50*50+10*10)), ObjectType::Jet );
   j1.addObs( Observable::BTAG, 0. );  

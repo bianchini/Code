@@ -390,23 +390,25 @@ MEM::MEMConfig::MEMConfig(int nmc,
 			  int ic, int pi, 
 			  double s, double e, 
 			  std::string pdf, 
-			  double jCL, double bCL, double mCL){
-  n_max_calls = nmc;
-  abs         = ab;
-  rel         = re;
-  int_code    = ic;
-  perm_int    = pi;
-  sqrts       = s;
-  emax        = e;
-  pdfset      = pdf;
-  is_default  = true;
-  j_range_CL  = jCL;
-  b_range_CL  = bCL;
-  m_range_CL  = mCL;
+			  double jCL, double bCL, double mCL,
+			  int hpf){
+  n_max_calls  = nmc;
+  abs          = ab;
+  rel          = re;
+  int_code     = ic;
+  perm_int     = pi;
+  sqrts        = s;
+  emax         = e;
+  pdfset       = pdf;
+  is_default   = true;
+  j_range_CL   = jCL;
+  b_range_CL   = bCL;
+  m_range_CL   = mCL;
+  highpt_first = hpf;
   for( int i = 0; i < 4 ; ++i){
     for( int j = 0; j < 2 ; ++j){
       for( int k = 0; k < 2 ; ++k){
-	calls[i][j][k] = 4000;
+	calls[i][j][k] = 2000;
       }
     }
   }

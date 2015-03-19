@@ -94,15 +94,14 @@ void MEM::Integrand::init( const MEM::FinalState::FinalState f, const MEM::Hypot
     }
   }
   
+  size_t n_perm{0};
+  CompPerm comparator(cfg.highpt_first);
+  sort( perm_index.begin(), perm_index.end(), comparator );  
   if( debug_code&DebugVerbosity::init ){
     cout << "\tIndexes to be permuted: [ " ;
     for( auto ind : perm_index ) cout << ind << " ";
     cout << "]" << endl;
   }
-
-  CompPerm comparator;
-  sort( perm_index.begin(), perm_index.end(), comparator);
-  size_t n_perm{0};
   do{
     perm_indexes.push_back( perm_index );
     if( debug_code&DebugVerbosity::init_more ) {
@@ -111,7 +110,7 @@ void MEM::Integrand::init( const MEM::FinalState::FinalState f, const MEM::Hypot
       cout << "]" << endl;
     }
     ++n_perm;
-  } while( next_permutation( perm_index.begin(), perm_index.end(), comparator ) );
+  } while( next_permutation( perm_index.begin(), perm_index.end(), comparator) );
 
   if( debug_code&DebugVerbosity::init ){
     cout << "\tTotal of " << n_perm << " permutation(s) created" << endl;
@@ -470,8 +469,11 @@ MEM::MEMOutput MEM::Integrand::run( const MEM::FinalState::FinalState f, const M
   out.efficiency    = float(n_calls)/(n_calls+n_skip);
   out.error_code    = error_code;
 
-  if( debug_code&DebugVerbosity::init ){
+  if( debug_code&DebugVerbosity::output ){
     out.print(cout);
+  }
+
+  if( debug_code&DebugVerbosity::init ){
     cout << "Integrand::run(): DONE in " << static_cast<int>(duration_cast<milliseconds>(t2-t0).count())*0.001 << " sec" << endl;
   }
 
@@ -1567,6 +1569,7 @@ double MEM::Integrand::matrix_nodecay(const PS& ps) const {
 }
 
 double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm) const {
+
   double w{1.};
   if( !(cfg.int_code&IntegrandType::Transfer) ) return w;
 
@@ -1592,6 +1595,7 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm) const {
       // subtract from recoil
       rho_x -= obj->p4().Px();
       rho_y -= obj->p4().Py();
+
       // subtract from total pT
       pT_x  -= p->second.lv.Px();
       pT_y  -= p->second.lv.Py();
@@ -1608,6 +1612,7 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm) const {
       // add up to neutrino
       nu_x += p->second.lv.Px();
       nu_y += p->second.lv.Py();
+
       // subtract from total pT
       pT_x -= p->second.lv.Px();
       pT_y -= p->second.lv.Py();
@@ -1683,6 +1688,7 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm) const {
   if( TMath::IsNaN(w) ){
     cout << "\tA NaN occurred while evaluation w..." << endl;
     w = 0.;
+    const_cast<Integrand*>(this)->error_code = 1;
     return w;
   }
 
