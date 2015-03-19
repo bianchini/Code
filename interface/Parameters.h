@@ -91,7 +91,7 @@ namespace MEM {
     { { -3.60e+00, 1.00e+00, 0.00e+00, 0.99e+00, 5.70e+00,-3.30e+00, 0.94e+00, 0.16e+00, 1.70e+00, 6.60e+00, 0.65e+00 },
       { -4.30e+00, 0.98e+00, 0.00e+00, 1.90e+00, 6.00e+00, 0.91e+01, 0.87e+00, 0.23e+00, 1.10e+00, 0.00e+00, 0.65e+00 },
     };
-  const double TF_MET_param   [3] = {20.,  20., 0.};
+  const double TF_MET_param   [3] = {30.,  30., 0.};
   const double TF_RECOIL_param[3] = {4.1,  1.35,  30.};
   const double TF_ACC_param   [3] = {2.5, 30.};
 
@@ -286,8 +286,8 @@ namespace MEM {
 	       double =13000.,           // c.o.m. energy
 	       double =8000.,            // max energy for integration over momenta
 	       string ="cteq65.LHgrid",  // PDF set
-	       double =0.98,             // light quark energy CL
-	       double =0.98,             // heavy quark energy CL
+	       double =0.95,             // light quark energy CL
+	       double =0.95,             // heavy quark energy CL
 	       double =0.95,             // nu phi CL
 	       int    =1                 // use highest pT jets for E_q/E_b
 	       );
