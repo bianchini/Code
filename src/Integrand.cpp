@@ -618,7 +618,7 @@ void MEM::Integrand::make_assumption( const std::vector<MEM::PSVar::PSVar>& lost
       ig2 = new ROOT::Math::GSLMCIntegrator(ROOT::Math::IntegrationMultiDim::kVEGAS, cfg.abs, cfg.rel, n_max_calls);
       ig2->SetFunction(toIntegrate);
       double n_prob = ig2->Integral(xL,xU);
-      if( debug_code&DebugVerbosity::init ){
+      if( debug_code&DebugVerbosity::output ){
 	cout << "\tPermutation num. " << this_perm << " returned p=" << n_prob << endl;
       }
       prob += n_prob;
@@ -1474,15 +1474,17 @@ double MEM::Integrand::probability(const double* x, const std::size_t& n_perm ) 
     return 0.;
   }
 
-  if( fs==FinalState::TTH ){
-    p *= constants();
-    p *= matrix_nodecay(ps);
+  p *= constants();
+  p *= transfer(ps, perm_indexes_assumption[n_perm], accept);
+  if(cfg.tf_suppress && accept>=cfg.tf_suppress){
+#ifdef DEBUG_MODE
+    if( debug_code&DebugVerbosity::integration ){
+      cout << "\tTransfer functions out-of-range " << accept << " times: return from this PS before calculatin matrix()" << endl;
+    }
+#endif
+    return 0.;
   }
-  else{
-    p *= constants();
-    p *= matrix(ps);
-    p *= transfer(ps, perm_indexes_assumption[n_perm]);
-  }
+  p *= matrix(ps);
 
 
 #ifdef DEBUG_MODE
@@ -1495,6 +1497,9 @@ double MEM::Integrand::probability(const double* x, const std::size_t& n_perm ) 
 }
 
 double MEM::Integrand::matrix(const PS& ps) const {
+
+  if( fs==FinalState::TTH ){ return matrix_nodecay(ps); }
+
   double m{1.};
 
   double x1  {0.}; // x1 fraction
@@ -1568,10 +1573,11 @@ double MEM::Integrand::matrix_nodecay(const PS& ps) const {
   return m;
 }
 
-double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm) const {
+double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm, int& accept) const {
 
   double w{1.};
   if( !(cfg.int_code&IntegrandType::Transfer) ) return w;
+  if( fs==FinalState::TTH ) return w;
 
   double nu_x {0.}; // total nu's px
   double nu_y {0.}; // total nu's py
@@ -1642,8 +1648,8 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm) const {
       e_rec =  obj->p4().E();
       rho_x -= obj->p4().Px();
       rho_y -= obj->p4().Py();
-      corr_nu_x += (e_rec-e_gen)*obj->p4().Px()/obj->p4().P();
-      corr_nu_y += (e_rec-e_gen)*obj->p4().Py()/obj->p4().P();
+      corr_nu_x += (e_rec-e_gen)*obj->p4().Px()/obj->p4().Pt();
+      corr_nu_y += (e_rec-e_gen)*obj->p4().Py()/obj->p4().Pt();
 #ifdef DEBUG_MODE
       if( debug_code&DebugVerbosity::integration ){
 	cout << "\tDealing with a jet..." << endl;
@@ -1667,7 +1673,7 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm) const {
     // build x,y vectors 
     double y[1] = { e_rec };
     double x[2] = { e_gen, eta_gen };
-    w *= transfer_function( y, x, p->second.type, debug_code ); 
+    w *= transfer_function( y, x, p->second.type, accept, cfg.tf_offscale, debug_code ); 
   }
 
   // Dealing with the MET
@@ -1677,13 +1683,13 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm) const {
     x_Nu[0] += corr_nu_x;
     x_Nu[1] += corr_nu_y;
   }
-  w *= transfer_function( y_MET, x_Nu, TFType::MET, debug_code );
+  w *= transfer_function( y_MET, x_Nu, TFType::MET, accept, cfg.tf_offscale, debug_code );
 
   // Dealing with the recoil
   double y_rho[1] = { (extra_jets>0 ? TF_RECOIL_param[2]+1. : sqrt(rho_x*rho_x + rho_y*rho_y)) };
   double x_pT [1] = { sqrt(pT_x*pT_x + pT_y*pT_y)  };
   if( cfg.int_code&IntegrandType::Sudakov ) 
-    w *= transfer_function( y_rho, x_pT, TFType::Recoil, debug_code );
+    w *= transfer_function( y_rho, x_pT, TFType::Recoil, accept, cfg.tf_offscale, debug_code );
 
   if( TMath::IsNaN(w) ){
     cout << "\tA NaN occurred while evaluation w..." << endl;
@@ -1691,6 +1697,13 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm) const {
     const_cast<Integrand*>(this)->error_code = 1;
     return w;
   }
+
+#ifdef DEBUG_MODE
+  if( debug_code&DebugVerbosity::integration){
+    cout << "\tTotal transfer function: " << w 
+	 << " (" << accept << " functions are out-of-range by more than " << cfg.tf_offscale << " sigmas" << endl;
+  }
+#endif
 
   return w;
 }

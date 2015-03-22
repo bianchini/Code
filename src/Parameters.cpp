@@ -15,8 +15,12 @@ bool MEM::isLepton(const MEM::TFType::TFType& t)  {
   return (t==TFType::elReco || t==TFType::muReco);
 }
 
-double MEM::Chi2Corr(const double& x, const double& y, const double& Vx, const double& Vy, const double& rho){
-  return  1./(1-rho*rho)*( x*x/Vx + y*y/Vy - 2*rho*x*y/TMath::Sqrt(Vx*Vy) ) ;
+double MEM::Chi2(const double& x, const double& m, const double& s){
+  return s>0. ? (x-m)*(x-m)/s/s : 99.;
+}
+
+double MEM::Chi2Corr(const double& x, const double& y, const double& sx, const double& sy, const double& rho){
+  return  1./(1-rho*rho)*( Chi2(x,0.,sx) +  Chi2(y,0.,sy) - 2*rho*x*y/sx/sy ) ;
 }
 
 /////////////////////////////////
@@ -24,7 +28,7 @@ double MEM::Chi2Corr(const double& x, const double& y, const double& Vx, const d
 //   x    := gen level quantities
 //   type := decides the TF
 /////////////////////////////////
-double MEM::transfer_function(double* y, double* x, const TFType::TFType& type, const int& debug){
+double MEM::transfer_function(double* y, double* x, const TFType::TFType& type, int& out_of_range, const double& cutoff, const int& debug){
 
   // return value
   double w{1.};
@@ -51,7 +55,10 @@ double MEM::transfer_function(double* y, double* x, const TFType::TFType& type, 
     m2 = par[5] + par[6]*E;
     s1 = E*TMath::Sqrt(par[2]*par[2] + par[3]*par[3]/E + par[4]*par[4]/E/E);
     s2 = E*TMath::Sqrt(par[7]*par[7] + par[8]*par[8]/E + par[9]*par[9]/E/E);
-    w *= f*TMath::Gaus(y[0], m1, s1, 1) + (1-f)*TMath::Gaus(y[0], m2, s2, 1);
+    c1 = Chi2(y[0], m1, s1);
+    c2 = Chi2(y[0], m2, s2);
+    if( c1>cutoff && c2>cutoff ) ++out_of_range;
+    w *= (1./sqrt(2*PI) * (f/s1*TMath::Exp(-0.5*c1) + (1-f)/s2*TMath::Exp(-0.5*c2) ));
 #ifdef DEBUG_MODE
     if( debug&DebugVerbosity::integration) 
       cout << "\t\ttransfer_function: Evaluate W(" << y[0] << " | E=" << E << ", y=" << H << ", TFType::bReco) = " << w << endl;
@@ -67,7 +74,10 @@ double MEM::transfer_function(double* y, double* x, const TFType::TFType& type, 
     par = TF_Q_param[ eta_to_bin(H) ];
     m1  = par[0] + par[1]*E;
     s1  = E*TMath::Sqrt(par[2]*par[2] + par[3]*par[3]/E + par[4]*par[4]/E/E);
-    w  *= TMath::Gaus(y[0], m1, s1, 1);
+    c1  = Chi2(y[0], m1, s1);
+    if( c1>cutoff ) ++out_of_range;
+
+    w *= (1./sqrt(2*PI)/s1*TMath::Exp(-0.5*c1));
 #ifdef DEBUG_MODE
     if( debug&DebugVerbosity::integration) 
       cout << "\t\ttransfer_function: Evaluate W(" << y[0] << " | E=" << E << ", y=" << H << ", TFType::qReco) = " << w << endl;
@@ -82,10 +92,11 @@ double MEM::transfer_function(double* y, double* x, const TFType::TFType& type, 
     s1  = par[0];
     s2  = par[1];
     rho = par[2];
-    c1  = (y[0]-x[0])*(y[0]-x[0])/s1/s1;
-    c2  = (y[1]-x[1])*(y[1]-x[1])/s2/s2;
-    w *= 1./(2*PI)/s1/s2/sqrt(1.-rho*rho)*TMath::Exp( -0.5/(1.-rho*rho)*( c1*c1 + c2*c2 - 2*rho*c1*c2 ) );
+    c1  = Chi2Corr(y[0]-x[0], y[1]-x[1], s1, s2, rho);
 
+    if( c1>cutoff ) ++out_of_range;
+
+    w *= 1./(2*PI)/s1/s2/sqrt(1.-rho*rho)*TMath::Exp( -0.5*c1 );
 #ifdef DEBUG_MODE
     if( debug&DebugVerbosity::integration) 
       cout << "\t\ttransfer_function: Evaluate W(" << y[0] << "-" << x[0] << " , " << y[1] << "-" << x[1] << ", TFType::MET) = " << w << endl;
@@ -133,7 +144,10 @@ double MEM::transfer_function(double* y, double* x, const TFType::TFType& type, 
       par = TF_Q_param[ eta_to_bin(H) ];
       double mean_pt  = (par[0] + par[1]*E)/TMath::CosH(H);
       double sigma_pt = E*TMath::Sqrt(par[2]*par[2] + par[3]*par[3]/E + par[4]*par[4]/E/E)/TMath::CosH(H);
-      w *= 0.5*(TMath::Erf( (TF_ACC_param[1] - mean_pt)/sigma_pt ) + 1 ) ;    
+      c1 = Chi2( TF_ACC_param[1], mean_pt, sigma_pt);
+      if( c1>cutoff ) ++out_of_range;
+
+      w *= 0.5*(TMath::Erf( sqrt(c1) ) + 1 ) ;    
 #ifdef DEBUG_MODE
       if( debug&DebugVerbosity::integration) 
 	cout << "\t\ttransfer_function: Evaluate W(" <<  TF_ACC_param[1] << " | " << E << ", " << H << ", TFType::qLost) = " << w << endl;
@@ -181,15 +195,8 @@ pair<double, double> MEM::get_support(double* y, const TFType::TFType& type, con
     // chi2 cut to find the CL
     double chi2Cut   = TMath::ChisquareQuantile(alpha_n ,2);    
 
-    // boundaries of the box
-    //double PxMax     = Px + TMath::Sqrt(Vx*TMath::ChisquareQuantile(alpha_n ,1));
-    //double PxMin     = Px - TMath::Sqrt(Vx*TMath::ChisquareQuantile(alpha_n ,1));
-    //double PyMax     = Py + TMath::Sqrt(Vy*TMath::ChisquareQuantile(alpha_n ,1));
-    //double PyMin     = Py - TMath::Sqrt(Vy*TMath::ChisquareQuantile(alpha_n ,1));
-    //if( debug&DebugVerbosity::init_more) cout << "BOX: [" <<  PxMin << "," << PxMax << "] x [" <<  PyMin << "," << PyMax << "]"  << endl;
-
     // MET TF at zero
-    double tfAtZero = Chi2Corr(Px,Py,Vx,Vy,rho);
+    double tfAtZero = Chi2Corr(Px,Py,sqrt(Vx),sqrt(Vy),rho);
 
     // nothing to do...
     if( tfAtZero <= chi2Cut ){
@@ -234,7 +241,7 @@ pair<double, double> MEM::get_support(double* y, const TFType::TFType& type, con
 	      //continue;
 	    //}
 	    
-	    if( Chi2Corr(Px_P-Px, Py_P-Py, Vx, Vy, rho) < chi2Cut ) {
+	    if( Chi2Corr(Px_P-Px, Py_P-Py, sqrt(Vx), sqrt(Vy), rho) < chi2Cut ) {
 	      crossing = true;	 
 	      if( debug&DebugVerbosity::init_more) 
 		cout << "\tWas not in the box, and found crossing at (" << Px_P << "," << Py_P << ")" << endl;
@@ -271,12 +278,14 @@ pair<double, double> MEM::get_support(double* y, const TFType::TFType& type, con
   double step_size{2.5};
 
   double tot{1.};
+  int accept{0};
+  double cutoff{99.};
   while( tot>(1-alpha)/2 && e_L>0. ){
     tot = 0.;
     for(size_t i = 0; i < 500.; ++i){
       double gen[2] = {e_L, eta_rec};
       double rec[1] = {e_rec+i*step_size};
-      tot += transfer_function(rec,gen,type, debug)*step_size;
+      tot += transfer_function(rec,gen,type,accept,cutoff,debug)*step_size;
       if(  tot>(1-alpha)/2 ) break;
     }
     e_L -= step_size;
@@ -290,7 +299,7 @@ pair<double, double> MEM::get_support(double* y, const TFType::TFType& type, con
       double gen[2] = {e_H, eta_rec};
       double rec[1] = {e_rec-i*step_size};
       if(rec[0]<0.) continue;
-      tot += transfer_function(rec,gen,type,debug)*step_size;
+      tot += transfer_function(rec,gen,type,accept,cutoff,debug)*step_size;
       if(  tot>(1-alpha)/2 ) break;
     }
     e_H += step_size;
@@ -391,6 +400,7 @@ MEM::MEMConfig::MEMConfig(int nmc,
 			  double s, double e, 
 			  std::string pdf, 
 			  double jCL, double bCL, double mCL,
+			  int tfsupp, double tfoff,
 			  int hpf){
   n_max_calls  = nmc;
   abs          = ab;
@@ -404,6 +414,8 @@ MEM::MEMConfig::MEMConfig(int nmc,
   j_range_CL   = jCL;
   b_range_CL   = bCL;
   m_range_CL   = mCL;
+  tf_suppress  = tfsupp;
+  tf_offscale  = tfoff;
   highpt_first = hpf;
   for( int i = 0; i < 4 ; ++i){
     for( int j = 0; j < 2 ; ++j){
@@ -477,9 +489,9 @@ void MEM::MEMConfig::defaultCfg(){
     |IntegrandType::IntegrandType::DecayAmpl
     |IntegrandType::IntegrandType::Jacobian
     |IntegrandType::IntegrandType::PDF
-    |IntegrandType::IntegrandType::Transfer
-    |IntegrandType::IntegrandType::Sudakov
-    |IntegrandType::IntegrandType::Recoil;
+    |IntegrandType::IntegrandType::Transfer;
+    //|IntegrandType::IntegrandType::Sudakov
+    //|IntegrandType::IntegrandType::Recoil;
   
   perm_pruning = {Permutations::BTagged, Permutations::QUntagged,
 		  Permutations::QQbarSymmetry, Permutations::BBbarSymmetry};

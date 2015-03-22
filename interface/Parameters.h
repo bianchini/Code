@@ -118,8 +118,9 @@ namespace MEM {
   bool isNeutrino(const TFType::TFType&);
   bool isLepton  (const TFType::TFType&);
   double Chi2Corr(const double&, const double&, const double&, const double&, const double&);
+  double Chi2(const double&, const double&, const double&);
 
-  double transfer_function( double*,  double*, const TFType::TFType&, const int&);
+  double transfer_function( double*,  double*, const TFType::TFType&, int&, const double&, const int&);
 
   pair<double, double> get_support( double*, const TFType::TFType&, const double&, const int&);
 
@@ -289,6 +290,8 @@ namespace MEM {
 	       double =0.95,             // light quark energy CL
 	       double =0.95,             // heavy quark energy CL
 	       double =0.95,             // nu phi CL
+	       int    =0,                // skip matrix evaluation if some TF are out-of-range by more than....
+	       double =4.,               // ... sigmas
 	       int    =1                 // use highest pT jets for E_q/E_b
 	       );
 
@@ -328,6 +331,10 @@ namespace MEM {
    
     // do sum over permutations inside or outside integral
     int perm_int;
+
+    // when a TF is considered off-scale
+    int    tf_suppress;
+    double tf_offscale;
 
     // use high pT jets first
     int highpt_first;

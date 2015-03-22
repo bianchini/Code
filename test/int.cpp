@@ -16,7 +16,9 @@ int main(){
 
   MEMConfig cfg;
   cfg.defaultCfg();
-  //cfg.perm_int = 1;
+  cfg.perm_int = 1;
+  cfg.tf_suppress = 0;
+  cfg.tf_offscale = 5.;
   //cfg.j_range_CL = 0.98;
   //cfg.b_range_CL = 0.95;
   //cfg.highpt_first = 0;

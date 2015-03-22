@@ -126,7 +126,7 @@ namespace MEM {
 		      double&, double&) const;
 
     // evaluate TF
-    double transfer(const PS&, const vector<int>&) const;
+    double transfer(const PS&, const vector<int>&, int&) const;
 
     // evaluate ME
     double matrix  (const PS&) const;
