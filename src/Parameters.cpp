@@ -94,7 +94,7 @@ double MEM::transfer_function(double* y, double* x, const TFType::TFType& type, 
     rho = par[2];
     c1  = Chi2Corr(y[0]-x[0], y[1]-x[1], s1, s2, rho);
 
-    if( c1>cutoff ) ++out_of_range;
+    if( c1/2>cutoff ) ++out_of_range;
 
     w *= 1./(2*PI)/s1/s2/sqrt(1.-rho*rho)*TMath::Exp( -0.5*c1 );
 #ifdef DEBUG_MODE

@@ -290,8 +290,8 @@ namespace MEM {
 	       double =0.95,             // light quark energy CL
 	       double =0.95,             // heavy quark energy CL
 	       double =0.95,             // nu phi CL
-	       int    =0,                // skip matrix evaluation if some TF are out-of-range by more than....
-	       double =4.,               // ... sigmas
+	       int    =0,                // skip matrix evaluation if some TF are evaluated art chi2>...
+	       double =6.6,              // ... ( <=> TMath::ChisquareQuantile(0.99, 1)=6.6 )
 	       int    =1                 // use highest pT jets for E_q/E_b
 	       );
 
