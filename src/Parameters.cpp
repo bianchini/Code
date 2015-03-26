@@ -154,6 +154,7 @@ double MEM::transfer_function(double* y, double* x, const TFType::TFType& type, 
 #endif
     }
     break;
+
   default:
     break;
   }

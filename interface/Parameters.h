@@ -265,8 +265,12 @@ namespace MEM {
   }
   
   struct CompPerm {
-    CompPerm(const int& order){
+    CompPerm(int order=0){
       highpt_first = order;
+    }
+    CompPerm& operator=(const CompPerm& cmp){
+      highpt_first = cmp.highpt_first;
+      return *this;
     }
     bool operator()(int a, int b){
       if(highpt_first)

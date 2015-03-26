@@ -143,6 +143,9 @@ namespace MEM {
     // get widths
     double get_width(const double*, const double*, const std::size_t);
 
+    // get permutation number n
+    vector<int> get_permutation(const size_t&);
+
     // report an error
     int error_code;
 
@@ -182,8 +185,12 @@ namespace MEM {
     // final state
     FinalState::FinalState fs;
 
+    // the comparateor between permutations
+    CompPerm comparator;
+
     // contain indexes of obs_jets that need permutations
-    std::vector<std::vector<int> > perm_indexes;
+    std::vector<int> perm_index;
+    std::size_t n_perm_max;
     std::vector<std::vector<int> > perm_indexes_assumption;
     std::size_t this_perm;
     std::vector< double >          perm_const_assumption;

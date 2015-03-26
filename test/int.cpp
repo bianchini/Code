@@ -17,14 +17,14 @@ int main(){
   MEMConfig cfg;
   cfg.defaultCfg();
   cfg.perm_int = 1;
-  cfg.tf_suppress = 0;
-  cfg.tf_offscale = 5.;
+  //cfg.tf_suppress = 0;
+  //cfg.tf_offscale = 5.;
   //cfg.j_range_CL = 0.98;
   //cfg.b_range_CL = 0.95;
   //cfg.highpt_first = 0;
 
   Integrand* integrand = new Integrand(  DebugVerbosity::output
-					 //|DebugVerbosity::init
+					 |DebugVerbosity::init
 					 //|DebugVerbosity::input
 					 //|DebugVerbosity::init_more
 					 //|DebugVerbosity::input
@@ -89,8 +89,8 @@ int main(){
   res = integrand->run( FinalState::LH, Hypothesis::TTH,  {} );
   //res = integrand->run( FinalState::HH, Hypothesis::TTH,  {} );
   //res = integrand->run( FinalState::LL, Hypothesis::TTH,  {} );
-  //res = integrand->run( FinalState::LH, Hypothesis::TTBB,  {PSVar::cos_qbar1, PSVar::phi_qbar1} );
-  //integrand->run( FinalState::LH, Hypothesis::TTBB, {} );
+  res = integrand->run( FinalState::LH, Hypothesis::TTH,  {PSVar::cos_qbar1, PSVar::phi_qbar1} );
+  integrand->run( FinalState::LH, Hypothesis::TTBB, {} );
   //integrand->run( FinalState::TTH, Hypothesis::TTH,  {} );
   integrand->next_event();
 

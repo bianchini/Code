@@ -16,7 +16,9 @@ MEM::Integrand::Integrand(int debug, const MEMConfig& config){
   n_max_calls        = 0;
   n_skip             = 0;
   this_perm          = 0;
+  n_perm_max         = 0;
   cfg                = config;
+  comparator         = CompPerm();
 
   // init PDF set
   LHAPDF::initPDFSet(1, cfg.pdfset);
@@ -31,7 +33,7 @@ MEM::Integrand::~Integrand(){
   obs_jets.clear();
   obs_leptons.clear();
   obs_mets.clear();
-  perm_indexes.clear();
+  perm_index.clear();
   perm_indexes_assumption.clear();
   perm_const_assumption.clear();
   map_to_var.clear();
@@ -71,12 +73,11 @@ void MEM::Integrand::init( const MEM::FinalState::FinalState f, const MEM::Hypot
   // if less jets are recorded than the naive_jet_counting,
   // fill in perm_index with -1;  
   size_t n_jets = obs_jets.size();
-  vector<int> perm_index{};
-  for(size_t id = 0; id < n_jets ; ++id) 
-    perm_index.push_back( id );
 
-  while( perm_index.size() < naive_jet_counting)
-    perm_index.push_back( -1 );
+  // fill the permutation word
+  perm_index.clear();
+  for(size_t id = 0; id < n_jets ; ++id) perm_index.push_back( id );
+  while( perm_index.size() < naive_jet_counting) perm_index.push_back( -1 );
 
   // calculate upper / lower edges
   for( auto j : obs_jets ){
@@ -93,29 +94,19 @@ void MEM::Integrand::init( const MEM::FinalState::FinalState f, const MEM::Hypot
       j->addObs( Observable::E_HIGH_B, edges.second );    
     }
   }
-  
-  size_t n_perm{0};
-  CompPerm comparator(cfg.highpt_first);
+
+  // sort permutations and compute maximum number of permutations
+  comparator = CompPerm(cfg.highpt_first);
   sort( perm_index.begin(), perm_index.end(), comparator );  
-  if( debug_code&DebugVerbosity::init ){
-    cout << "\tIndexes to be permuted: [ " ;
-    for( auto ind : perm_index ) cout << ind << " ";
-    cout << "]" << endl;
-  }
-  do{
-    perm_indexes.push_back( perm_index );
-    if( debug_code&DebugVerbosity::init_more ) {
-      cout << "\tperm. " << n_perm << ": [ ";
-      for( auto ind : perm_index ) cout << ind << " ";
-      cout << "]" << endl;
-    }
-    ++n_perm;
-  } while( next_permutation( perm_index.begin(), perm_index.end(), comparator) );
+  vector<int> perm_index_copy = perm_index;
+  n_perm_max = 0;
+  do{ ++n_perm_max; } 
+  while( next_permutation( perm_index_copy.begin(), perm_index_copy.end(), comparator) );
 
   if( debug_code&DebugVerbosity::init ){
-    cout << "\tTotal of " << n_perm << " permutation(s) created" << endl;
+    cout << "\tMaximum of " << n_perm_max << " permutation(s) considered" << endl;
   }
-  
+
   // Formula to get the number of unknowns
   // The number of variables is equal to npar - 2*extra_jets
   int unstable = (fs==FinalState::LH || fs==FinalState::LL || fs==FinalState::HH);
@@ -146,6 +137,25 @@ void MEM::Integrand::init( const MEM::FinalState::FinalState f, const MEM::Hypot
   }
   return;
 }
+
+vector<int> MEM::Integrand::get_permutation(const std::size_t& n){
+  vector<int> perm_index_copy = perm_index;
+  std::size_t n_perm{0};
+  do{
+    if( n==n_perm ){
+      if( debug_code&DebugVerbosity::init_more ) {
+	cout << "\tperm. " << n_perm << ": [ ";
+	for( auto ind : perm_index_copy ) cout << ind << " ";
+	cout << "]" << endl;
+      }
+      return perm_index_copy;    
+    }
+    ++n_perm;
+  } while( next_permutation( perm_index_copy.begin(), perm_index_copy.end(), comparator) );
+
+  return vector<int>{};
+} 
+
 
 void MEM::Integrand::get_edges(double* lim, const std::vector<PSVar::PSVar>& lost, const size_t& nvar, const size_t& edge){
 
@@ -497,7 +507,8 @@ void MEM::Integrand::next_event(){
   n_calls            = 0;
   n_skip             = 0;
   cfg.is_default     = true;
-  perm_indexes.clear();
+  n_perm_max         = 0;
+  perm_index.clear();
   perm_indexes_assumption.clear();
   perm_const_assumption.clear();
   map_to_var.clear();
@@ -512,13 +523,14 @@ void MEM::Integrand::next_hypo(){
     cout << "Integrand::next_hypo(): START" << endl;
   }
   if(ig2!=nullptr) delete ig2;
-  perm_indexes.clear();
+  perm_index.clear();
   perm_indexes_assumption.clear();
   perm_const_assumption.clear();
   map_to_var.clear();
   map_to_part.clear();
-  n_calls = 0;
-  n_skip  = 0;
+  n_calls    = 0;
+  n_skip     = 0;
+  n_perm_max = 0;
   if( debug_code&DebugVerbosity::init ){
     cout << "Integrand::next_hypo(): END" << endl;
   }
@@ -557,9 +569,10 @@ void MEM::Integrand::make_assumption( const std::vector<MEM::PSVar::PSVar>& lost
   // Remove unwanted permutations:
   //    CASE (1) ==> perm contains already -1: then -1 must be aligned with the lost quark
   //    CASE (2) ==> perm does not contain -1: then set the correct index to -1
-  for( auto perm : perm_indexes ){    
+  for( std::size_t n_perm = 0 ; n_perm < n_perm_max ; ++n_perm ){    
     
-    auto good_perm = perm;
+    auto perm = get_permutation(n_perm);
+    if(perm.size()==0) continue;
 
     // - *it gives the integ. var. position in PSVar
     // - provide first cosTheta: then *it-1 gives the position of E
@@ -579,6 +592,11 @@ void MEM::Integrand::make_assumption( const std::vector<MEM::PSVar::PSVar>& lost
     if(count!=(lost.size()/2))  continue;
     if( !accept_perm( perm, cfg.perm_pruning )) continue;
     
+    if( debug_code&DebugVerbosity::init ) {
+      cout << "\tAdd permutation [ ";
+      for( auto ind : perm ) cout << ind << " ";
+      cout << "]" << endl;
+    }
     perm_indexes_assumption.push_back( perm ); 
     perm_const_assumption.push_back( get_permutation_constants(perm) );
   }  
