@@ -257,7 +257,7 @@ namespace MEM {
   }
   
   namespace Permutations {
-    enum Permutations { BTagged=0, QUntagged, QQbarSymmetry, BBbarSymmetry};
+    enum Permutations { BTagged=0, QUntagged, QQbarSymmetry, BBbarSymmetry, QQbarBBbarSymmetry};
   }
   
   namespace IntegrandType {
@@ -296,6 +296,7 @@ namespace MEM {
 	       double =0.95,             // nu phi CL
 	       int    =0,                // skip matrix evaluation if some TF are evaluated art chi2>...
 	       double =6.6,              // ... ( <=> TMath::ChisquareQuantile(0.99, 1)=6.6 )
+	       bool   =false,            // restrict tf to same range used for quark energy integration
 	       int    =1                 // use highest pT jets for E_q/E_b
 	       );
 
@@ -338,9 +339,18 @@ namespace MEM {
     // do sum over permutations inside or outside integral
     int perm_int;
 
-    // when a TF is considered off-scale
+    // the number of jets for which the tf,
+    // being evaluated at a too unlikely value,
+    // triggers the return of a 0.
     int    tf_suppress;
+
+    // the maximum value of a chi2 in a tf evaluation
+    // such that the tf is truncated
     double tf_offscale;
+
+    // restrict the tf to be in the same range
+    // used for integration over the quark energy
+    bool tf_in_range;    
 
     // use high pT jets first
     int highpt_first;

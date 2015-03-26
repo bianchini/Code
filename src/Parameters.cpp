@@ -310,6 +310,7 @@ pair<double, double> MEM::get_support(double* y, const TFType::TFType& type, con
     cout << "MEM::get_support: E(reco) = " << e_rec << " ==> range at " << alpha 
 	 << " CL is [" << e_L << ", " << e_H << "] (stepping every " << step_size << " GeV)" << endl;
 #endif
+  e_L = TMath::Max(e_L, type==TFType::bReco ? MB : MQ);
   return make_pair(e_L, e_H);
 }
 
@@ -402,6 +403,7 @@ MEM::MEMConfig::MEMConfig(int nmc,
 			  std::string pdf, 
 			  double jCL, double bCL, double mCL,
 			  int tfsupp, double tfoff,
+			  bool tfrange,
 			  int hpf){
   n_max_calls  = nmc;
   abs          = ab;
@@ -417,6 +419,7 @@ MEM::MEMConfig::MEMConfig(int nmc,
   m_range_CL   = mCL;
   tf_suppress  = tfsupp;
   tf_offscale  = tfoff;
+  tf_in_range  = tfrange;
   highpt_first = hpf;
   for( int i = 0; i < 4 ; ++i){
     for( int j = 0; j < 2 ; ++j){
@@ -505,7 +508,8 @@ void MEM::MEMConfig::defaultCfg(float nCallsMultiplier){
     //|IntegrandType::IntegrandType::Recoil;
   
   perm_pruning = {Permutations::BTagged, Permutations::QUntagged,
-		  Permutations::QQbarSymmetry, Permutations::BBbarSymmetry};
+		  //Permutations::QQbarSymmetry,Permutations::BBbarSymmetry
+		  Permutations::QQbarBBbarSymmetry};
 }
 
 

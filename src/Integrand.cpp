@@ -726,30 +726,25 @@ bool MEM::Integrand::accept_perm( const vector<int>& perm, const std::vector<MEM
       // require that no other permutations has been already considered
       // differing from perm by swapping the W quarks
     case Permutations::QQbarSymmetry:
-    case Permutations::BBbarSymmetry:
       indexes1.clear();
       indexes2.clear();
       if( fs==FinalState::LH ){
 	// the  symmetric part
 	indexes1 = vector<size_t>{ map_to_part.find(PSPart::q1)->second, 
 				   map_to_part.find(PSPart::qbar1)->second};
-	if( (*s)==Permutations::BBbarSymmetry){
-	  indexes1.push_back(map_to_part.find(PSPart::b)->second);
-	  indexes1.push_back(map_to_part.find(PSPart::bbar)->second);
-	}
 	// the asymmetric part
 	indexes2 = vector<size_t>{ map_to_part.find(PSPart::b1)->second,
-				   map_to_part.find(PSPart::b2)->second, };  
+				   map_to_part.find(PSPart::b2)->second, 
+				   map_to_part.find(PSPart::b)->second,
+				   map_to_part.find(PSPart::bbar)->second};  
       }
       if( fs==FinalState::LL ){
 	// the  symmetric part                                                                                                                      
-	if( (*s)==Permutations::BBbarSymmetry){
-	  indexes1.push_back(map_to_part.find(PSPart::b)->second);
-	  indexes1.push_back(map_to_part.find(PSPart::bbar)->second);
-	}
         // the asymmetric part                                                                                                                      
         indexes2 = vector<size_t>{ map_to_part.find(PSPart::b1)->second,
-				   map_to_part.find(PSPart::b2)->second, };
+				   map_to_part.find(PSPart::b2)->second, 
+				   map_to_part.find(PSPart::b)->second,
+				   map_to_part.find(PSPart::bbar)->second};
       }
       if( fs==FinalState::HH ){
 	// the  symmetric part
@@ -757,13 +752,11 @@ bool MEM::Integrand::accept_perm( const vector<int>& perm, const std::vector<MEM
 				   map_to_part.find(PSPart::qbar1)->second, 
 				   map_to_part.find(PSPart::q2)->second,
 				   map_to_part.find(PSPart::qbar2)->second};
-	if( (*s)==Permutations::BBbarSymmetry){
-	  indexes1.push_back(map_to_part.find(PSPart::b)->second);
-	  indexes1.push_back(map_to_part.find(PSPart::bbar)->second);
-	}
 	// the asymmetric part
 	indexes2 = vector<size_t>{ map_to_part.find(PSPart::b1)->second,
-				   map_to_part.find(PSPart::b2)->second, };  
+				   map_to_part.find(PSPart::b2)->second,
+				   map_to_part.find(PSPart::b)->second,
+				   map_to_part.find(PSPart::bbar)->second};  
       }
 
       for( auto visited : perm_indexes_assumption ){ 	
@@ -783,12 +776,127 @@ bool MEM::Integrand::accept_perm( const vector<int>& perm, const std::vector<MEM
 
 	if( asymmetric_part && symmetric_part ){
 	  if( debug_code&DebugVerbosity::init_more ){
-	    cout << "\t\tDiscard permutation: a swap has been found" << endl;
+	    cout << "\t\tDiscard permutation: a (Q,QBAR) swap has been found" << endl;
 	  }
 	  return false;
 	}
       }
       break;
+
+    case Permutations::BBbarSymmetry:
+      indexes1.clear();
+      indexes2.clear();
+      if( fs==FinalState::LH ){
+	// the  symmetric part
+	indexes1 = vector<size_t>{ map_to_part.find(PSPart::b)->second, 
+				   map_to_part.find(PSPart::bbar)->second};
+	// the asymmetric part
+	indexes2 = vector<size_t>{ map_to_part.find(PSPart::b1)->second,
+				   map_to_part.find(PSPart::b2)->second,
+				   map_to_part.find(PSPart::q1)->second, 
+				   map_to_part.find(PSPart::qbar1)->second};  
+      }
+      if( fs==FinalState::LL ){
+	// the  symmetric part                                                                                                                      
+	indexes1 = vector<size_t>{ map_to_part.find(PSPart::b)->second, 
+				   map_to_part.find(PSPart::bbar)->second};
+        // the asymmetric part                                                                                                                      
+        indexes2 = vector<size_t>{ map_to_part.find(PSPart::b1)->second,
+				   map_to_part.find(PSPart::b2)->second}; 
+      }
+      if( fs==FinalState::HH ){
+	// the  symmetric part
+	indexes1 = vector<size_t>{ map_to_part.find(PSPart::b)->second, 
+				   map_to_part.find(PSPart::bbar)->second};
+	// the asymmetric part
+	indexes2 = vector<size_t>{ map_to_part.find(PSPart::b1)->second,
+				   map_to_part.find(PSPart::b2)->second, 
+				   map_to_part.find(PSPart::q1)->second, 
+				   map_to_part.find(PSPart::qbar1)->second};  
+      }
+
+      for( auto visited : perm_indexes_assumption ){ 	
+	bool asymmetric_part{true};
+	bool symmetric_part {true};
+	
+	// loop over quark positions that should be matched to same jet
+	for(auto same : indexes2 ) 
+	  if(visited[same]!=perm[same]) asymmetric_part = false;
+
+	// loop over quark position pairs searching for a swap
+	for(size_t i = 0 ; i < (indexes1.size()/2) ; ++i){
+	  bool same = (visited[ indexes1[2*i] ]==perm[indexes1[2*i]])   && (visited[ indexes1[2*i+1] ]==perm[indexes1[2*i+1]]);
+	  bool swap = (visited[ indexes1[2*i] ]==perm[indexes1[2*i+1]]) && (visited[ indexes1[2*i+1] ]==perm[indexes1[2*i]]);
+	  if( !(same || swap) ) symmetric_part = false;
+	}
+
+	if( asymmetric_part && symmetric_part ){
+	  if( debug_code&DebugVerbosity::init_more ){
+	    cout << "\t\tDiscard permutation: a (B,BBAR) swap has been found" << endl;
+	  }
+	  return false;
+	}
+      }
+      break;
+
+    case Permutations::QQbarBBbarSymmetry:
+      indexes1.clear();
+      indexes2.clear();
+      if( fs==FinalState::LH ){
+	// the  symmetric part
+	indexes1 = vector<size_t>{ map_to_part.find(PSPart::q1)->second, 
+				   map_to_part.find(PSPart::qbar1)->second,
+				   map_to_part.find(PSPart::b)->second,
+				   map_to_part.find(PSPart::bbar)->second};
+	// the asymmetric part
+	indexes2 = vector<size_t>{ map_to_part.find(PSPart::b1)->second,
+				   map_to_part.find(PSPart::b2)->second};  
+      }
+      if( fs==FinalState::LL ){
+	// the  symmetric part                                                                                                                      
+	indexes1 = vector<size_t>{ map_to_part.find(PSPart::b)->second,
+				   map_to_part.find(PSPart::bbar)->second};
+        // the asymmetric part                                                                                                                      
+        indexes2 = vector<size_t>{ map_to_part.find(PSPart::b1)->second,
+				   map_to_part.find(PSPart::b2)->second};
+      }
+      if( fs==FinalState::HH ){
+	// the  symmetric part
+	indexes1 = vector<size_t>{ map_to_part.find(PSPart::q1)->second, 
+				   map_to_part.find(PSPart::qbar1)->second, 
+				   map_to_part.find(PSPart::q2)->second,
+				   map_to_part.find(PSPart::qbar2)->second,
+				   map_to_part.find(PSPart::b)->second,
+				   map_to_part.find(PSPart::bbar)->second};
+	// the asymmetric part
+	indexes2 = vector<size_t>{ map_to_part.find(PSPart::b1)->second,
+				   map_to_part.find(PSPart::b2)->second};
+      }
+
+      for( auto visited : perm_indexes_assumption ){ 	
+	bool asymmetric_part{true};
+	bool symmetric_part {true};
+	
+	// loop over quark positions that should be matched to same jet
+	for(auto same : indexes2 ) 
+	  if(visited[same]!=perm[same]) asymmetric_part = false;
+
+	// loop over quark position pairs searching for a swap
+	for(size_t i = 0 ; i < (indexes1.size()/2) ; ++i){
+	  bool same = (visited[ indexes1[2*i] ]==perm[indexes1[2*i]])   && (visited[ indexes1[2*i+1] ]==perm[indexes1[2*i+1]]);
+	  bool swap = (visited[ indexes1[2*i] ]==perm[indexes1[2*i+1]]) && (visited[ indexes1[2*i+1] ]==perm[indexes1[2*i]]);
+	  if( !(same || swap) ) symmetric_part = false;
+	}
+
+	if( asymmetric_part && symmetric_part ){
+	  if( debug_code&DebugVerbosity::init_more ){
+	    cout << "\t\tDiscard permutation: a (Q,QBAR) swap has been found" << endl;
+	  }
+	  return false;
+	}
+      }
+      break;
+
     default:
       break;
     }
@@ -1632,6 +1740,7 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm, int& acce
 #endif
       continue;
     }
+
     if( isNeutrino( p->second.type ) ){
       // add up to neutrino
       nu_x += p->second.lv.Px();
@@ -1668,6 +1777,31 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm, int& acce
       rho_y -= obj->p4().Py();
       corr_nu_x += (e_rec-e_gen)*obj->p4().Px()/obj->p4().Pt();
       corr_nu_y += (e_rec-e_gen)*obj->p4().Py()/obj->p4().Pt();
+
+      // if this flag is true, the TF are multiplied by the range step-functions
+      // N.B false by default
+      if(cfg.tf_in_range){
+	double e_gen_min, e_gen_max;
+	if( obj->isSet(Observable::BTAG) && 
+	    obj->getObs(Observable::BTAG)<0.5 ){
+	  e_gen_min = obj->getObs(Observable::E_LOW_Q); 
+	  e_gen_max = obj->getObs(Observable::E_HIGH_Q); 
+	}
+	else if(obj->isSet(Observable::BTAG) && 
+		obj->getObs(Observable::BTAG)>0.5){
+	  e_gen_min = obj->getObs(Observable::E_LOW_B); 
+	  e_gen_max = obj->getObs(Observable::E_HIGH_B); 	  
+	}
+	else{
+	  e_gen_min = 0.;
+	  e_gen_max = numeric_limits<double>::max();
+	}
+	if( !(e_gen>=e_gen_min && e_gen<=e_gen_max) ){
+	  w *= 0.;
+	  return w;
+	}
+      }
+
 #ifdef DEBUG_MODE
       if( debug_code&DebugVerbosity::integration ){
 	cout << "\tDealing with a jet..." << endl;
