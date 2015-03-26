@@ -144,7 +144,7 @@ namespace MEM {
     double get_width(const double*, const double*, const std::size_t);
 
     // get permutation number n
-    vector<int> get_permutation(const size_t&);
+    vector<int> get_permutation(const std::size_t&);
 
     // report an error
     int error_code;
