@@ -114,6 +114,10 @@ namespace MEM {
     enum TFType {bReco=0, qReco=1, bLost=2, qLost=3, muReco=4, elReco=5, MET=6, Recoil=7, Unknown=8};
   }
   
+  namespace TFMethod {
+    enum TFMethod {Builtin=0, External=1, Unknown=2};
+  }
+  
   bool isQuark   (const TFType::TFType&);
   bool isNeutrino(const TFType::TFType&);
   bool isLepton  (const TFType::TFType&);
@@ -121,7 +125,6 @@ namespace MEM {
   double Chi2(const double&, const double&, const double&);
 
   double transfer_function( double*,  double*, const TFType::TFType&, int&, const double&, const int&);
-
   pair<double, double> get_support( double*, const TFType::TFType&, const double&, const int&);
 
   namespace ObjectType {
@@ -146,6 +149,21 @@ namespace MEM {
       return static_cast<std::size_t>(a)==static_cast<std::size_t>(b);
     }
   };
+  
+  class TFTypeHash{
+  public:
+    std::size_t operator()(const TFType::TFType& s) const {
+      std::size_t h1 = boost::hash<std::size_t>()(static_cast<std::size_t>(s));
+      return h1;
+    }
+  };
+
+  class TFTypeEqual{
+  public:
+    bool operator()( const TFType::TFType& a, const TFType::TFType& b ) const {
+      return static_cast<std::size_t>(a)==static_cast<std::size_t>(b);
+    }
+  };
 
   class Object {       
   public:
@@ -155,13 +173,17 @@ namespace MEM {
     LV p4() const;
     ObjectType::ObjectType type() const;
     double getObs(const Observable::Observable&) const; 
+    TF1* getTransferFunction(const TFType::TFType&); 
+    std::size_t getNumTransferFunctions() const; 
     bool isSet(const Observable::Observable&) const;
     void addObs(const Observable::Observable&, const double&);
+    void addTransferFunction(const TFType::TFType&, TF1*);
     void print(ostream& os) const;
   private:
     LV p;
     ObjectType::ObjectType t;
     boost::unordered_map<const Observable::Observable, double, ObsHash, ObsEqual> obs; 
+    boost::unordered_map<const TFType::TFType, TF1*, TFTypeHash, TFTypeEqual> transfer_funcs; 
   };  
  
   namespace PSVar {
@@ -291,13 +313,14 @@ namespace MEM {
 	       double =13000.,           // c.o.m. energy
 	       double =8000.,            // max energy for integration over momenta
 	       string ="cteq65.LHgrid",  // PDF set
-	       double =0.95,             // light quark energy CL
-	       double =0.95,             // heavy quark energy CL
-	       double =0.95,             // nu phi CL
+	       double =0.98,             // light quark energy CL
+	       double =0.98,             // heavy quark energy CL
+	       double =0.98,             // nu phi CL
 	       int    =0,                // skip matrix evaluation if some TF are evaluated art chi2>...
 	       double =6.6,              // ... ( <=> TMath::ChisquareQuantile(0.99, 1)=6.6 )
 	       bool   =false,            // restrict tf to same range used for quark energy integration
-	       int    =1                 // use highest pT jets for E_q/E_b
+	       int    =1,                // use highest pT jets for E_q/E_b,
+               TFMethod::TFMethod =TFMethod::Builtin
 	       );
 
     void defaultCfg(float nCallsMultiplier=1.0);
@@ -354,6 +377,8 @@ namespace MEM {
 
     // use high pT jets first
     int highpt_first;
+    
+    TFMethod::TFMethod transfer_function_method;
   };
 
   struct MEMOutput{
@@ -390,6 +415,8 @@ namespace MEM {
       os.precision(8);
     }
   };
+  
+  double transfer_function2(Object*, const double*, const TFType::TFType&, int&, const double&, const int&);
   
 }
 
