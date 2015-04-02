@@ -4,6 +4,8 @@
 	<enum name="MEM::PSVar::PSVar"/>
 	<enum name="MEM::PSPart::PSPart"/>
 	<enum name="MEM::ObjectType::ObjectType"/>
+	<enum name="MEM::TFType::TFType"/>
+	<enum name="MEM::TFMethod::TFMethod"/>
 	<enum name="MEM::Observable::Observable"/>
 	<enum name="MEM::Hypothesis::Hypothesis"/>
 	<enum name="MEM::FinalState::FinalState"/>

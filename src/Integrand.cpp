@@ -1722,8 +1722,9 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm, int& acce
   PSMap::const_iterator p;
   for( p = ps.begin() ; p != ps.end() ; ++p ){    
 
+    MEM::Object* obj = nullptr;
     if( isLepton  ( p->second.type ) ){
-      MEM::Object* obj = obs_leptons[ map_to_part.find(p->first)->second ];
+      obj = obs_leptons[ map_to_part.find(p->first)->second ];
       // subtract from recoil
       rho_x -= obj->p4().Px();
       rho_y -= obj->p4().Py();
@@ -1771,7 +1772,7 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm, int& acce
     int jet_indx  = perm[ map_to_part.find(p->first)->second ];
     double e_rec{0.};
     if( jet_indx>=0 ){
-      MEM::Object* obj = obs_jets[ jet_indx ];
+      obj = obs_jets[ jet_indx ];
       e_rec =  obj->p4().E();
       rho_x -= obj->p4().Px();
       rho_y -= obj->p4().Py();
@@ -1825,7 +1826,14 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm, int& acce
     // build x,y vectors 
     double y[1] = { e_rec };
     double x[2] = { e_gen, eta_gen };
-    w *= transfer_function( y, x, p->second.type, accept, cfg.tf_offscale, debug_code ); 
+    
+    //Try to calculate using externally supplied transfer functions
+    if (cfg.transfer_function_method == TFMethod::External && obj!=nullptr && obj->getNumTransferFunctions()>0) {
+      w *= transfer_function2( obj, x, p->second.type, accept, cfg.tf_offscale, debug_code );
+    //Calculate using internal transfer functions
+    } else {
+      w *= transfer_function( y, x, p->second.type, accept, cfg.tf_offscale, debug_code );
+    }
   }
 
   // Dealing with the MET

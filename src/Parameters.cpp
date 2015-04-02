@@ -162,6 +162,46 @@ double MEM::transfer_function(double* y, double* x, const TFType::TFType& type, 
   return w;
 }
 
+// Evaluates a transfer function attached to an object
+// the tf is a TF1* in a TFType->TF1* map in the object
+// the tf is a function of the reconstructed Energy (pt) through tf->Eval(Erec)
+// The generator energy is set via tf->Setparameter(0, Egen)
+// type - the hypothesis for the object to be tested, e.g. qReco (reconstructed light quark)
+double MEM::transfer_function2(MEM::Object* obj, const double *x, const TFType::TFType& type, int& out_of_range, const double& cutoff, const int& debug){
+  
+  double w = 1.0;
+  
+  assert(obj != nullptr);
+  TF1* tf = obj->getTransferFunction(type);
+  assert(tf != nullptr && type==type);
+  
+  //x[0] -> Egen
+  switch( type ){
+          
+    //W(Erec | Egen) = TF1(Erec, par0:Egen)
+    //FIXME pt to be implemented
+    case TFType::bReco:
+    case TFType::qReco:
+        tf->SetParameter(0, x[0]);
+        w *= tf->Eval(obj->p4().E());
+    break;
+
+    //In case jets have a cut E > Emin
+    //W_loss(Egen) = \int_0^Emin W(Erec | Egen) dErec
+    //In case jets have a cut pt > ptmin
+    //W_loss(ptgen) = \int_0^ptmin W(ptrec | ptgen) dptrec
+    //FIXME pt to be implemented
+    case TFType::bLost:
+    case TFType::qLost:
+      w *= tf->Eval(x[0]);
+      break;
+      
+    default:
+      break;
+  }
+  return w;
+}
+
 /////////////////////////////////                                                                                                                      
 //   y     := observables                                                                                                                               
 //   type  := decides the TF  
@@ -382,6 +422,10 @@ double MEM::Object::getObs(const MEM::Observable::Observable& name) const {
   return (obs.find(name)!=obs.end() ? obs.find(name)->second : 0.);
 }
 
+TF1* MEM::Object::getTransferFunction(const MEM::TFType::TFType& name) { 
+  return (transfer_funcs.find(name)!=transfer_funcs.end() ? transfer_funcs.find(name)->second : (TF1*)nullptr);
+}
+
 bool MEM::Object::isSet(const MEM::Observable::Observable& name) const { 
   return obs.find(name)!=obs.end();
 }
@@ -389,6 +433,15 @@ bool MEM::Object::isSet(const MEM::Observable::Observable& name) const {
 void MEM::Object::addObs(const MEM::Observable::Observable& name, const double& val){ 
   obs.insert( make_pair(name, val) ); 
 }
+
+void MEM::Object::addTransferFunction(const MEM::TFType::TFType& name, TF1* val){ 
+  transfer_funcs.insert( make_pair(name, val) ); 
+}
+
+std::size_t MEM::Object::getNumTransferFunctions() const { 
+  return transfer_funcs.size();
+}
+
 
 void MEM::Object::print(ostream& os) const {
   os << "\tType: " << static_cast<int>(t) << ", p=(Pt, Eta, Phi, M)=("
@@ -404,7 +457,8 @@ MEM::MEMConfig::MEMConfig(int nmc,
 			  double jCL, double bCL, double mCL,
 			  int tfsupp, double tfoff,
 			  bool tfrange,
-			  int hpf){
+			  int hpf,
+                          MEM::TFMethod::TFMethod method){
   n_max_calls  = nmc;
   abs          = ab;
   rel          = re;
@@ -429,6 +483,7 @@ MEM::MEMConfig::MEMConfig(int nmc,
     }
   }
   perm_pruning = {};
+  transfer_function_method = method;
 }
 
 void MEM::MEMConfig::defaultCfg(float nCallsMultiplier){
