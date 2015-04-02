@@ -87,6 +87,9 @@ namespace MEM {
     // make assumption
     void make_assumption( const std::vector<PSVar::PSVar>&, MEMOutput& );
 
+    void do_integration (const std::size_t&, double*, double*, double&, double&, double&);
+    void do_minimization(const std::size_t&, double*, double*, double&, double&, double&);
+
     // clear containers before new hypothesis
     void next_hypo();
 

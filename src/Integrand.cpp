@@ -624,13 +624,32 @@ void MEM::Integrand::make_assumption( const std::vector<MEM::PSVar::PSVar>& lost
   get_edges(xU, lost, npar, 1);      
 
   double volume = get_width(xL,xU,npar);
+
+  if(!cfg.do_minimize)
+    do_integration ( npar, xL, xU, prob, err2, chi2);
+  else
+    do_minimization( npar, xL, xU, prob, err2, chi2);
   
+  if( debug_code&DebugVerbosity::init ){
+    cout << "Integrand::make_assumption(): END" << endl;
+  }
+
+  if(!cfg.int_code) prob /= volume;  
+  out.p     = prob;
+  out.p_err = sqrt(err2);
+  out.chi2  = chi2;
+
+  return;
+}
+
+void  MEM::Integrand::do_integration(const std::size_t& npar, double* xL, double* xU, double& prob, double& err2, double& chi2){
+
   // function
   ROOT::Math::Functor toIntegrate(this, &MEM::Integrand::Eval, npar);  
   ig2->SetFunction(toIntegrate);
   
-  // do the integral
-  if( cfg.perm_int && !cfg.do_minimize){
+  // do the integral permutation by permutation
+  if( cfg.perm_int ){
     for( std::size_t n_perm = 0; n_perm < perm_indexes_assumption.size() ; ++n_perm ){
       this_perm = n_perm;
       // create integrator
@@ -646,32 +665,39 @@ void MEM::Integrand::make_assumption( const std::vector<MEM::PSVar::PSVar>& lost
       chi2 += ig2->ChiSqr()/perm_indexes_assumption.size();
     }
   }
-  else if( !cfg.perm_int && !cfg.do_minimize){
+
+  // do the integral over the sum of permutations
+  else{
     prob += ig2->Integral(xL,xU);
     err2 += TMath::Power(ig2->Error(),2.);
     chi2 += ig2->ChiSqr();
   }
-  else if( cfg.do_minimize ){
-    if(debug_code&DebugVerbosity::init )
-      cout << "\tTrying to minimize the integrand:" << endl;
 
+  return;
+}
+
+void  MEM::Integrand::do_minimization(const std::size_t& npar, double* xL, double* xU, double& prob, double& err2, double& chi2){
+
+  ROOT::Math::Functor toIntegrate(this, &MEM::Integrand::Eval, npar);  
+  ig2->SetFunction(toIntegrate);
+  
+  if( !cfg.perm_int ){
+    
     // setup the minimzer
     minimizer = ROOT::Math::Factory::CreateMinimizer("Minuit2", "");
     setup_minimizer();
-
     // init variables
     for(size_t np = 0; np < npar ; ++np){
       string var_name = "par_"+std::to_string(np);
       minimizer->SetLimitedVariable(np, var_name.c_str() , (xU[np]+xL[np])/2 , 5e-02 , xL[np] , xU[np] );
       if(debug_code&DebugVerbosity::init ){
-	printf("\tParam[%lu] = %s set to %.0f. Range: [%.2f,%.2f]\n", np, var_name.c_str(),  (xU[np]+xL[np])/2 , xL[np], xU[np] ); 
+	printf("\tParam[%lu] = %s set to %.2f. Range: [%.2f,%.2f]\n", np, var_name.c_str(),  (xU[np]+xL[np])/2 , xL[np], xU[np] ); 
       }
     }
 
     // run!
     minimizer->SetFunction(toIntegrate);
     minimizer->Minimize();
-
     double nll = minimizer->MinValue();
     if(debug_code&DebugVerbosity::init ){
       const double *xs = minimizer->X();
@@ -686,20 +712,52 @@ void MEM::Integrand::make_assumption( const std::vector<MEM::PSVar::PSVar>& lost
     prob      += nll;
     error_code = minimizer->Status();
   }
-  else{ /*...*/ }
 
-  
-  if( debug_code&DebugVerbosity::init ){
-    cout << "Integrand::make_assumption(): END" << endl;
+  // do a global minimization of the integrand
+  else{
+
+    double nll_min{ numeric_limits<double>::max() };
+    for( std::size_t n_perm = 0; n_perm < perm_indexes_assumption.size() ; ++n_perm ){
+      this_perm = n_perm;
+
+      // setup the minimzer
+      if(n_perm!=0) delete minimizer;
+      minimizer = ROOT::Math::Factory::CreateMinimizer("Minuit2", "");
+      setup_minimizer();
+
+      // init variables
+      for(size_t np = 0; np < npar ; ++np){
+	string var_name = "par_"+std::to_string(np);
+	minimizer->SetLimitedVariable(np, var_name.c_str() , (xU[np]+xL[np])/2 , 5e-02 , xL[np] , xU[np] );
+	if(debug_code&DebugVerbosity::init ){
+	  printf("\tParam[%lu] = %s set to %.2f. Range: [%.2f,%.2f]\n", np, var_name.c_str(),  (xU[np]+xL[np])/2 , xL[np], xU[np] ); 
+	}
+      }
+
+      // run!
+      minimizer->SetFunction(toIntegrate);
+      minimizer->Minimize();
+      double nll = minimizer->MinValue();
+      if(debug_code&DebugVerbosity::init ){
+	const double *xs = minimizer->X();
+	cout << "\tPermutation num. " << this_perm << " returned "
+	     << "Status = " << minimizer->Status() 
+	     << ", Minimum nll = " <<  nll 
+	     << " (p = " << TMath::Exp(-nll)  << ")" << endl;
+	if(debug_code&DebugVerbosity::init_more ){
+	  for( size_t var = 0 ; var < npar ; ++var)
+	    cout << "\tVar[" << var << "] = " << xs[var] << endl;
+	}
+      }
+      
+      error_code += minimizer->Status();
+      if(nll < nll_min) prob = nll;
+    }
   }
-
-  if(!cfg.int_code) prob /= volume;  
-  out.p     = prob;
-  out.p_err = sqrt(err2);
-  out.chi2  = chi2;
-
+  
   return;
 }
+
 
 bool MEM::Integrand::accept_perm( const vector<int>& perm, const std::vector<MEM::Permutations::Permutations>& strategies ) const {
 

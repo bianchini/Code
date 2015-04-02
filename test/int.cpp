@@ -16,8 +16,8 @@ int main(){
 
   MEMConfig cfg;
   cfg.do_minimize = 1;
+  cfg.perm_int    = 0;
   //cfg.defaultCfg(2.0);
-  //cfg.perm_int = 0;
   //cfg.tf_suppress = 0;
   //cfg.tf_offscale = 5.;
   //cfg.tf_in_range = true;
@@ -98,7 +98,7 @@ int main(){
   res = integrand->run( FinalState::LH, Hypothesis::TTH,  {} );
   //res = integrand->run( FinalState::HH, Hypothesis::TTH,  {} );
   //res = integrand->run( FinalState::LL, Hypothesis::TTH,  {} );
-  res = integrand->run( FinalState::LH, Hypothesis::TTH,  {PSVar::cos_qbar1, PSVar::phi_qbar1} );
+  //res = integrand->run( FinalState::LH, Hypothesis::TTH,  {PSVar::cos_qbar1, PSVar::phi_qbar1} );
   //res = integrand->run( FinalState::LH, Hypothesis::TTBB, {} );
   //integrand->run( FinalState::TTH, Hypothesis::TTH,  {} );
   integrand->next_event();
