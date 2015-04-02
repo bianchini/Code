@@ -12,6 +12,7 @@ MEM::Integrand::Integrand(int debug, const MEMConfig& config){
   fs                 = FinalState::Undefined;
   hypo               = Hypothesis::Undefined;
   ig2                = nullptr;
+  minimizer          = nullptr;
   n_calls            = 0;
   n_max_calls        = 0;
   n_skip             = 0;
@@ -522,7 +523,8 @@ void MEM::Integrand::next_hypo(){
   if( debug_code&DebugVerbosity::init ){
     cout << "Integrand::next_hypo(): START" << endl;
   }
-  if(ig2!=nullptr) delete ig2;
+  if(ig2!=nullptr)       delete ig2;
+  if(minimizer!=nullptr) delete minimizer;
   perm_index.clear();
   perm_indexes_assumption.clear();
   perm_const_assumption.clear();
@@ -628,7 +630,7 @@ void MEM::Integrand::make_assumption( const std::vector<MEM::PSVar::PSVar>& lost
   ig2->SetFunction(toIntegrate);
   
   // do the integral
-  if( cfg.perm_int ){
+  if( cfg.perm_int && !cfg.do_minimize){
     for( std::size_t n_perm = 0; n_perm < perm_indexes_assumption.size() ; ++n_perm ){
       this_perm = n_perm;
       // create integrator
@@ -644,13 +646,48 @@ void MEM::Integrand::make_assumption( const std::vector<MEM::PSVar::PSVar>& lost
       chi2 += ig2->ChiSqr()/perm_indexes_assumption.size();
     }
   }
-
-  // do the integral
-  if( !cfg.perm_int ){
+  else if( !cfg.perm_int && !cfg.do_minimize){
     prob += ig2->Integral(xL,xU);
     err2 += TMath::Power(ig2->Error(),2.);
     chi2 += ig2->ChiSqr();
   }
+  else if( cfg.do_minimize ){
+    if(debug_code&DebugVerbosity::init )
+      cout << "\tTrying to minimize the integrand:" << endl;
+
+    // setup the minimzer
+    minimizer = ROOT::Math::Factory::CreateMinimizer("Minuit2", "");
+    setup_minimizer();
+
+    // init variables
+    for(size_t np = 0; np < npar ; ++np){
+      string var_name = "par_"+std::to_string(np);
+      minimizer->SetLimitedVariable(np, var_name.c_str() , (xU[np]+xL[np])/2 , 5e-02 , xL[np] , xU[np] );
+      if(debug_code&DebugVerbosity::init ){
+	printf("\tParam[%lu] = %s set to %.0f. Range: [%.2f,%.2f]\n", np, var_name.c_str(),  (xU[np]+xL[np])/2 , xL[np], xU[np] ); 
+      }
+    }
+
+    // run!
+    minimizer->SetFunction(toIntegrate);
+    minimizer->Minimize();
+
+    double nll = minimizer->MinValue();
+    if(debug_code&DebugVerbosity::init ){
+      const double *xs = minimizer->X();
+      cout << "\tStatus = " << minimizer->Status() 
+	   << ", Minimum nll = " <<  nll 
+	   << " (p = " << TMath::Exp(-nll)  << ")" << endl;
+      for( size_t var = 0 ; var < npar ; ++var)
+	cout << "\tVar[" << var << "] = " << xs[var] << endl;
+    }
+    
+    // fill variables
+    prob      += nll;
+    error_code = minimizer->Status();
+  }
+  else{ /*...*/ }
+
   
   if( debug_code&DebugVerbosity::init ){
     cout << "Integrand::make_assumption(): END" << endl;
@@ -1034,6 +1071,11 @@ double MEM::Integrand::Eval(const double* x) const{
     p += (p0*p1);
   }
   
+  if( cfg.do_minimize ){
+    if( p>0. ) p = -TMath::Log(p);
+    else p = numeric_limits<double>::max();
+  } 
+
   ++(const_cast<Integrand*>(this)->n_calls);
 
 #ifdef DEBUG_MODE
@@ -2194,4 +2236,12 @@ double MEM::Integrand::solve(const LV& p4_w, const double& DM2, const double& M,
 
   accept = -1;
   return numeric_limits<double>::max();
+}
+
+void MEM::Integrand::setup_minimizer(){
+  minimizer->SetMaxFunctionCalls(1000000);
+  minimizer->SetMaxIterations(10000);
+  minimizer->SetTolerance(0.001);
+  minimizer->SetPrintLevel(0);
+  return;
 }

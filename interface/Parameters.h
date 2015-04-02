@@ -37,6 +37,7 @@
 #include "TVector3.h"
 #include "TMath.h"
 #include "TF1.h"
+#include "Math/Minimizer.h"
 #include "Math/Factory.h"
 #include "Math/Functor.h"
 #include "Math/GSLMCIntegrator.h"
@@ -320,7 +321,8 @@ namespace MEM {
 	       double =6.6,              // ... ( <=> TMath::ChisquareQuantile(0.99, 1)=6.6 )
 	       bool   =false,            // restrict tf to same range used for quark energy integration
 	       int    =1,                // use highest pT jets for E_q/E_b,
-               TFMethod::TFMethod =TFMethod::Builtin
+               TFMethod::TFMethod =TFMethod::Builtin,
+	       int    =0                 // do minimisation instead of integration
 	       );
 
     void defaultCfg(float nCallsMultiplier=1.0);
@@ -379,6 +381,9 @@ namespace MEM {
     int highpt_first;
     
     TFMethod::TFMethod transfer_function_method;
+
+    // do minimzation, not integration
+    int do_minimize;
   };
 
   struct MEMOutput{

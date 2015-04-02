@@ -458,7 +458,8 @@ MEM::MEMConfig::MEMConfig(int nmc,
 			  int tfsupp, double tfoff,
 			  bool tfrange,
 			  int hpf,
-                          MEM::TFMethod::TFMethod method){
+                          MEM::TFMethod::TFMethod method,
+			  int minim){
   n_max_calls  = nmc;
   abs          = ab;
   rel          = re;
@@ -484,6 +485,7 @@ MEM::MEMConfig::MEMConfig(int nmc,
   }
   perm_pruning = {};
   transfer_function_method = method;
+  do_minimize  = minim;
 }
 
 void MEM::MEMConfig::defaultCfg(float nCallsMultiplier){

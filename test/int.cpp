@@ -15,14 +15,15 @@ using namespace MEM;
 int main(){
 
   MEMConfig cfg;
-  cfg.defaultCfg(2.0);
+  cfg.do_minimize = 1;
+  //cfg.defaultCfg(2.0);
   //cfg.perm_int = 0;
   //cfg.tf_suppress = 0;
   //cfg.tf_offscale = 5.;
-  cfg.tf_in_range = true;
-  cfg.j_range_CL = 0.98;
-  cfg.b_range_CL = 0.99;
-  cfg.highpt_first = 0;
+  //cfg.tf_in_range = true;
+  //cfg.j_range_CL = 0.98;
+  //cfg.b_range_CL = 0.99;
+  //cfg.highpt_first = 0;
 
 
 
@@ -30,7 +31,7 @@ int main(){
   Integrand* integrand = new Integrand(  DebugVerbosity::output
 					 |DebugVerbosity::init
 					 //|DebugVerbosity::input
-					 |DebugVerbosity::init_more
+					 //|DebugVerbosity::init_more
 					 //|DebugVerbosity::input
 					 //|DebugVerbosity::integration				        
 					 ,cfg);
@@ -93,12 +94,11 @@ int main(){
   //integrand->set_ncalls(4000);
   //integrand->set_sqrts (13000.);  
 
-  MEMOutput res;
-			   
+  MEMOutput res;			   
   res = integrand->run( FinalState::LH, Hypothesis::TTH,  {} );
   //res = integrand->run( FinalState::HH, Hypothesis::TTH,  {} );
   //res = integrand->run( FinalState::LL, Hypothesis::TTH,  {} );
-  //res = integrand->run( FinalState::LH, Hypothesis::TTH,  {PSVar::cos_qbar1, PSVar::phi_qbar1} );
+  res = integrand->run( FinalState::LH, Hypothesis::TTH,  {PSVar::cos_qbar1, PSVar::phi_qbar1} );
   //res = integrand->run( FinalState::LH, Hypothesis::TTBB, {} );
   //integrand->run( FinalState::TTH, Hypothesis::TTH,  {} );
   integrand->next_event();

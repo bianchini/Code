@@ -146,6 +146,9 @@ namespace MEM {
     // get permutation number n
     vector<int> get_permutation(const std::size_t&);
 
+    // setup the minimzer
+    void setup_minimizer();
+
     // report an error
     int error_code;
 
@@ -205,6 +208,10 @@ namespace MEM {
 
     // VEGAS integrator
     ROOT::Math::GSLMCIntegrator* ig2;
+
+    // MINUIT2 minimizer
+    ROOT::Math::Minimizer* minimizer;
+    
 
   };
 
