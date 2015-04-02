@@ -1776,8 +1776,11 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm, int& acce
       e_rec =  obj->p4().E();
       rho_x -= obj->p4().Px();
       rho_y -= obj->p4().Py();
-      corr_nu_x += (e_rec-e_gen)*obj->p4().Px()/obj->p4().Pt();
-      corr_nu_y += (e_rec-e_gen)*obj->p4().Py()/obj->p4().Pt();
+      
+      //Enux = Etot * sin(theta) * cos(phi)
+      //Px = |P| * sin(theta) * cos(phi) -> Px/P = sin(theta) * cos(phi)
+      corr_nu_x += (e_rec-e_gen)*obj->p4().Px()/obj->p4().P();
+      corr_nu_y += (e_rec-e_gen)*obj->p4().Py()/obj->p4().P();
 
       // if this flag is true, the TF are multiplied by the range step-functions
       // N.B false by default
