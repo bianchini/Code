@@ -165,9 +165,16 @@ double MEM::transfer_function(double* y, double* x, const TFType::TFType& type, 
 // Evaluates a transfer function attached to an object
 // the tf is a TF1* in a TFType->TF1* map in the object
 // the tf is a function of the reconstructed Energy (pt) through tf->Eval(Erec)
-// The generator energy is set via tf->Setparameter(0, Egen)
+// The generator energy is set via tf->SetParameter(0, Egen)
 // type - the hypothesis for the object to be tested, e.g. qReco (reconstructed light quark)
-double MEM::transfer_function2(MEM::Object* obj, const double *x, const TFType::TFType& type, int& out_of_range, const double& cutoff, const int& debug){
+double MEM::transfer_function2(
+        MEM::Object* obj,
+        const double *x,
+        const TFType::TFType& type,
+        int& out_of_range,
+        const double& cutoff,
+        const int& debug
+  ){
   
   double w = 1.0;
   
@@ -182,8 +189,14 @@ double MEM::transfer_function2(MEM::Object* obj, const double *x, const TFType::
     //FIXME pt to be implemented
     case TFType::bReco:
     case TFType::qReco:
+        //set gen
         tf->SetParameter(0, x[0]);
-        w *= tf->Eval(obj->p4().E());
+        //eval with x - reco
+        w *= tf->Eval(obj->p4().Pt());
+        #ifdef DEBUG_MODE
+              if( debug&DebugVerbosity::integration) 
+                cout << "\t\ttransfer_function2: Evaluate W(" << x[0] << " | " << obj->p4().Pt() << ", TFType::qReco) = " << w << endl;
+        #endif
     break;
 
     //In case jets have a cut E > Emin
@@ -193,7 +206,12 @@ double MEM::transfer_function2(MEM::Object* obj, const double *x, const TFType::
     //FIXME pt to be implemented
     case TFType::bLost:
     case TFType::qLost:
-      w *= tf->Eval(x[0]);
+        //eval at x - gen
+        w *= tf->Eval(x[0]);
+        #ifdef DEBUG_MODE
+              if( debug&DebugVerbosity::integration) 
+        	cout << "\t\ttransfer_function2: Evaluate W(" << x[0] << ", TFType::qLost) = " << w << endl;
+        #endif
       break;
       
     default:
@@ -206,8 +224,15 @@ double MEM::transfer_function2(MEM::Object* obj, const double *x, const TFType::
 //   y     := observables                                                                                                                               
 //   type  := decides the TF  
 //   alpha := CL (e.g. 0.95, 0.98, ...)
+//   obj   := optionally supply the particle, needed for external TF (obj==null -> internal TF)
 ///////////////////////////////// 
-pair<double, double> MEM::get_support(double* y, const TFType::TFType& type, const double& alpha, const int& debug){
+pair<double, double> MEM::get_support(
+  double* y,
+  const TFType::TFType& type,
+  const double& alpha,
+  const int& debug,
+  MEM::Object* obj
+  ){
 
   if( type==TFType::TFType::MET ){
 
@@ -305,7 +330,7 @@ pair<double, double> MEM::get_support(double* y, const TFType::TFType& type, con
     }
     
     return make_pair(xLowPhi,xHighPhi);
-  } 
+  } //TFType == MET 
 
   // the reconstructed values
   double e_rec   = y[0];
@@ -326,7 +351,11 @@ pair<double, double> MEM::get_support(double* y, const TFType::TFType& type, con
     for(size_t i = 0; i < 500.; ++i){
       double gen[2] = {e_L, eta_rec};
       double rec[1] = {e_rec+i*step_size};
-      tot += transfer_function(rec,gen,type,accept,cutoff,debug)*step_size;
+      if (obj == nullptr) {
+        tot += transfer_function(rec,gen,type,accept,cutoff,debug)*step_size;
+      } else { // use external TF
+        tot += transfer_function2(obj,gen,type,accept,cutoff,debug)*step_size;
+      }
       if(  tot>(1-alpha)/2 ) break;
     }
     e_L -= step_size;
@@ -340,7 +369,11 @@ pair<double, double> MEM::get_support(double* y, const TFType::TFType& type, con
       double gen[2] = {e_H, eta_rec};
       double rec[1] = {e_rec-i*step_size};
       if(rec[0]<0.) continue;
-      tot += transfer_function(rec,gen,type,accept,cutoff,debug)*step_size;
+      if (obj == nullptr) {
+        tot += transfer_function(rec,gen,type,accept,cutoff,debug)*step_size;
+      } else { // use external TF
+        tot += transfer_function2(obj,gen,type,accept,cutoff,debug)*step_size;
+      }
       if(  tot>(1-alpha)/2 ) break;
     }
     e_H += step_size;

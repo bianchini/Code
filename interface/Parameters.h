@@ -126,7 +126,6 @@ namespace MEM {
   double Chi2(const double&, const double&, const double&);
 
   double transfer_function( double*,  double*, const TFType::TFType&, int&, const double&, const int&);
-  pair<double, double> get_support( double*, const TFType::TFType&, const double&, const int&);
 
   namespace ObjectType {
     enum ObjectType { Jet=0, Lepton=1, MET=2, Recoil=3, Unknown=4};
@@ -186,7 +185,8 @@ namespace MEM {
     boost::unordered_map<const Observable::Observable, double, ObsHash, ObsEqual> obs; 
     boost::unordered_map<const TFType::TFType, TF1*, TFTypeHash, TFTypeEqual> transfer_funcs; 
   };  
- 
+  pair<double, double> get_support( double*, const TFType::TFType&, const double&, const int&, Object* = nullptr);
+
   namespace PSVar {
   enum PSVar { E_q1=0,     cos_q1=1,     phi_q1=2,  
       E_qbar1=3,  cos_qbar1=4,  phi_qbar1=5,  

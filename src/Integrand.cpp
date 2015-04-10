@@ -82,15 +82,26 @@ void MEM::Integrand::init( const MEM::FinalState::FinalState f, const MEM::Hypot
 
   // calculate upper / lower edges
   for( auto j : obs_jets ){
+    const bool external_tf = (
+      cfg.transfer_function_method == TFMethod::External &&
+      j->getNumTransferFunctions()>0
+    );
+    Object* obj = nullptr;
     double y[2] = { j->p4().E(), j->p4().Eta() };
+    
+    //In case using external TF, use Pt (FIXME: unify with internal TF).
+    if (external_tf) {
+      y[0] = j->p4().Pt();
+      obj = j;
+    }
     pair<double, double> edges;    
     if( !j->isSet(Observable::E_LOW_Q) || !j->isSet(Observable::E_HIGH_Q) ){
-      edges = get_support( y, TFType::qReco, cfg.j_range_CL,  debug_code ) ;
+      edges = get_support( y, TFType::qReco, cfg.j_range_CL,  debug_code, obj) ;
       j->addObs( Observable::E_LOW_Q,  edges.first  );
       j->addObs( Observable::E_HIGH_Q, edges.second );
     }
     if( !j->isSet(Observable::E_LOW_B) || !j->isSet(Observable::E_HIGH_B) ){
-      edges = get_support( y, TFType::bReco, cfg.b_range_CL , debug_code) ;
+      edges = get_support( y, TFType::bReco, cfg.b_range_CL , debug_code, obj) ;
       j->addObs( Observable::E_LOW_B,  edges.first  );
       j->addObs( Observable::E_HIGH_B, edges.second );    
     }
@@ -1867,13 +1878,16 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm, int& acce
     pT_x  -= p->second.lv.Px();
     pT_y  -= p->second.lv.Py();    
 
-    double e_gen  {p->second.lv.E()}; 
-    double eta_gen{p->second.lv.Eta()};     
+    const double e_gen  {p->second.lv.E()}; 
+    const double pt_gen  {p->second.lv.Pt()}; 
+    const double eta_gen{p->second.lv.Eta()};     
     int jet_indx  = perm[ map_to_part.find(p->first)->second ];
     double e_rec{0.};
+    double pt_rec{0.};
     if( jet_indx>=0 ){
       obj = obs_jets[ jet_indx ];
       e_rec =  obj->p4().E();
+      pt_rec =  obj->p4().Pt();
       rho_x -= obj->p4().Px();
       rho_y -= obj->p4().Py();
       
@@ -1932,10 +1946,15 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm, int& acce
     
     //Try to calculate using externally supplied transfer functions
     if (cfg.transfer_function_method == TFMethod::External && obj!=nullptr && obj->getNumTransferFunctions()>0) {
-      w *= transfer_function2( obj, x, p->second.type, accept, cfg.tf_offscale, debug_code );
+      //new transfer functions are functions of jet pt
+      y[0] = pt_rec;
+      x[0] = pt_gen;
+      double _w = transfer_function2( obj, x, p->second.type, accept, cfg.tf_offscale, debug_code );
+      w *= _w;
     //Calculate using internal transfer functions
     } else {
-      w *= transfer_function( y, x, p->second.type, accept, cfg.tf_offscale, debug_code );
+      double _w = transfer_function( y, x, p->second.type, accept, cfg.tf_offscale, debug_code );
+      w *= _w;
     }
   }
 
