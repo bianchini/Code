@@ -93,7 +93,7 @@ namespace MEM {
       { -4.30e+00, 0.98e+00, 0.00e+00, 1.90e+00, 6.00e+00, 0.91e+01, 0.87e+00, 0.23e+00, 1.10e+00, 0.00e+00, 0.65e+00 },
     };
   const double TF_MET_param   [3] = {30.,  30., 0.};
-  const double TF_RECOIL_param[3] = {4.1,  1.35,  30.};
+  const double TF_RECOIL_param[3] = {4.1,  1.35,  9999.0};
   const double TF_ACC_param   [3] = {2.5, 30.};
 
   const double BTAG_Q_param[2][2] = 
