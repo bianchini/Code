@@ -93,7 +93,7 @@ namespace MEM {
       { -4.30e+00, 0.98e+00, 0.00e+00, 1.90e+00, 6.00e+00, 0.91e+01, 0.87e+00, 0.23e+00, 1.10e+00, 0.00e+00, 0.65e+00 },
     };
   const double TF_MET_param   [3] = {30.,  30., 0.};
-  const double TF_RECOIL_param[3] = {4.1,  1.35,  30.};
+  const double TF_RECOIL_param[3] = {4.1,  1.35,  9999.0};
   const double TF_ACC_param   [3] = {2.5, 30.};
 
   const double BTAG_Q_param[2][2] = 
@@ -126,7 +126,6 @@ namespace MEM {
   double Chi2(const double&, const double&, const double&);
 
   double transfer_function( double*,  double*, const TFType::TFType&, int&, const double&, const int&);
-  pair<double, double> get_support( double*, const TFType::TFType&, const double&, const int&);
 
   namespace ObjectType {
     enum ObjectType { Jet=0, Lepton=1, MET=2, Recoil=3, Unknown=4};
@@ -186,7 +185,8 @@ namespace MEM {
     boost::unordered_map<const Observable::Observable, double, ObsHash, ObsEqual> obs; 
     boost::unordered_map<const TFType::TFType, TF1*, TFTypeHash, TFTypeEqual> transfer_funcs; 
   };  
- 
+  pair<double, double> get_support( double*, const TFType::TFType&, const double&, const int&, Object* = nullptr);
+
   namespace PSVar {
   enum PSVar { E_q1=0,     cos_q1=1,     phi_q1=2,  
       E_qbar1=3,  cos_qbar1=4,  phi_qbar1=5,  
