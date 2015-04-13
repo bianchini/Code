@@ -534,8 +534,14 @@ void MEM::Integrand::next_hypo(){
   if( debug_code&DebugVerbosity::init ){
     cout << "Integrand::next_hypo(): START" << endl;
   }
-  if(ig2!=nullptr)       delete ig2;
-  if(minimizer!=nullptr) delete minimizer;
+  if(ig2!=nullptr) {
+    delete ig2;
+    ig2 = nullptr;
+  }
+  if(minimizer!=nullptr) {
+    delete minimizer;
+    minimizer = nullptr;
+  }
   perm_index.clear();
   perm_indexes_assumption.clear();
   perm_const_assumption.clear();
