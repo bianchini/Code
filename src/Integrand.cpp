@@ -2292,6 +2292,19 @@ double MEM::Integrand::solve(const LV& p4_w, const double& DM2, const double& M,
 #ifdef DEBUG_MODE
       if( debug_code&DebugVerbosity::integration ){
 	cout << "\t\tb>0 AND discr<0: return root closest to target" << endl;
+	LV p4_b(e_b*(sqrt(g_p*g_p-1)*M), g_p*M);
+	cout << "\t\tTwo solutions: " << endl;
+	cout << "\t\tEb+ = " <<  g_p*M << endl;
+	cout << "\t\t\tp4_w = (" <<  p4_w.Px() << ", " << p4_w.Py() << ", " << p4_w.Pz() << ", " << p4_w.E() << "), M=" << p4_w.M() << endl;
+	cout << "\t\t\tp4_b = (" <<  p4_b.Px() << ", " << p4_b.Py() << ", " << p4_b.Pz() << ", " << p4_b.E() << "), M=" << p4_b.M() << endl;
+	cout << "\t\t\tp4_t = (" <<  (p4_w+p4_b).Px() << ", " << (p4_w+p4_b).Py() << ", " << (p4_w+p4_b).Pz() << ", " << (p4_w+p4_b).E() << "), M=" << (p4_w+p4_b).M() << endl;
+	cout << "\t\t\tAngle=" << p4_w.Vect().Angle(p4_b.Vect()) << endl;
+	p4_b = LV(e_b*(sqrt(g_m*g_m-1)*M), g_m*M);
+	cout << "\t\tEb- = " <<  g_m*M << endl;
+	cout << "\t\t\tp4_w = (" <<  p4_w.Px() << ", " << p4_w.Py() << ", " << p4_w.Pz() << ", " << p4_w.E() << "), M=" << p4_w.M() << endl;
+	cout << "\t\t\tp4_b = (" <<  p4_b.Px() << ", " << p4_b.Py() << ", " << p4_b.Pz() << ", " << p4_b.E() << "), M=" << p4_b.M() << endl;
+	cout << "\t\t\tp4_t = (" <<  (p4_w+p4_b).Px() << ", " << (p4_w+p4_b).Py() << ", " << (p4_w+p4_b).Pz() << ", " << (p4_w+p4_b).E() << "), M=" << (p4_w+p4_b).M() << endl;
+	cout << "\t\t\tAngle=" << p4_w.Vect().Angle(p4_b.Vect()) << endl;
       }
 #endif
       return ( TMath::Abs(target-g_p)<TMath::Abs(target-g_m) ? g_p*M : g_m*M );
