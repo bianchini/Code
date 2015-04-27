@@ -108,6 +108,9 @@ namespace MEM {
      { {0.30, 0.70},
        {0.30, 0.70}
      };
+     
+     
+  int getEtaBin(double);
 
   enum DebugVerbosity { output=1, input=2, init=4, init_more=8, event=16, integration=32};
  
@@ -328,6 +331,7 @@ namespace MEM {
     void defaultCfg(float nCallsMultiplier=1.0);
     void setNCalls(FinalState::FinalState, Hypothesis::Hypothesis, Assumption::Assumption, int);
     int getNCalls(FinalState::FinalState, Hypothesis::Hypothesis, Assumption::Assumption);
+    void set_tf_global(TFType::TFType type, int etabin, TF1 tf);
 
     // optionally this can be called instead of the built-in array
     int n_max_calls;
@@ -384,6 +388,8 @@ namespace MEM {
 
     // do minimzation, not integration
     int do_minimize;
+    
+    std::map<std::pair<TFType::TFType, int>, TF1> tf_map;
   };
 
   struct MEMOutput{
@@ -421,7 +427,7 @@ namespace MEM {
     }
   };
   
-  double transfer_function2(Object*, const double*, const TFType::TFType&, int&, const double&, const int&);
+  double transfer_function2(void*, const double*, const TFType::TFType&, int&, const double&, const int&);
   
 }
 

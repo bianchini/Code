@@ -168,7 +168,7 @@ double MEM::transfer_function(double* y, double* x, const TFType::TFType& type, 
 // The generator energy is set via tf->SetParameter(0, Egen)
 // type - the hypothesis for the object to be tested, e.g. qReco (reconstructed light quark)
 double MEM::transfer_function2(
-        MEM::Object* obj,
+        void* obj, //either MEM::Object or TF1
         const double *x,
         const TFType::TFType& type,
         int& out_of_range,
@@ -178,24 +178,25 @@ double MEM::transfer_function2(
   
   double w = 1.0;
   
-  assert(obj != nullptr);
-  TF1* tf = obj->getTransferFunction(type);
-  assert(tf != nullptr && type==type);
+  TF1* tf = nullptr;
+  MEM::Object* _obj = nullptr;
   
   //x[0] -> Egen
   switch( type ){
-          
+
     //W(Erec | Egen) = TF1(Erec, par0:Egen)
-    //FIXME pt to be implemented
     case TFType::bReco:
     case TFType::qReco:
+        _obj = (MEM::Object*)obj;
+        tf = _obj->getTransferFunction(type);
+
         //set gen
         tf->SetParameter(0, x[0]);
         //eval with x - reco
-        w *= tf->Eval(obj->p4().Pt());
+        w *= tf->Eval(_obj->p4().Pt());
         #ifdef DEBUG_MODE
               if( debug&DebugVerbosity::integration) 
-                cout << "\t\ttransfer_function2: Evaluate W(" << x[0] << " | " << obj->p4().Pt() << ", TFType::qReco) = " << w << endl;
+                cout << "\t\ttransfer_function2: Evaluate W(" << x[0] << " | " << _obj->p4().Pt() << ", TFType::qReco) = " << w << endl;
         #endif
     break;
 
@@ -206,6 +207,9 @@ double MEM::transfer_function2(
     //FIXME pt to be implemented
     case TFType::bLost:
     case TFType::qLost:
+    
+        tf = (TF1*)obj;
+    
         //eval at x - gen
         w *= tf->Eval(x[0]);
         #ifdef DEBUG_MODE
@@ -615,4 +619,20 @@ int MEM::MEMConfig::getNCalls(FinalState::FinalState f, Hypothesis::Hypothesis h
     [ static_cast<std::size_t>(f) ]
     [ static_cast<std::size_t>(h)]
     [ static_cast<std::size_t>(a)];
+}
+
+
+int MEM::getEtaBin(double eta) {
+   double ae = std::abs(eta);
+   if (ae < 1.0) {
+       return 0;
+   } else if (ae < 2.5) {
+       return 1;
+   } else {
+       return 0;
+   }
+}
+
+void MEM::MEMConfig::set_tf_global(TFType::TFType type, int etabin, TF1 tf) {
+    tf_map[std::make_pair(type, etabin)] = tf;
 }

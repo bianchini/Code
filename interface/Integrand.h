@@ -72,6 +72,8 @@ namespace MEM {
 
     // clear containers and counters after each event
     void next_event();
+    
+    const TF1* get_tf_global(TFType::TFType type, int etabin) const;
 
     /* Used internally */
   private:
@@ -214,7 +216,9 @@ namespace MEM {
 
     // MINUIT2 minimizer
     ROOT::Math::Minimizer* minimizer;
-    
+        
+    //Stores the global cumulative transfer functions for jet reconstruction efficiency
+    const std::map<std::pair<TFType::TFType, int>, TF1> tf_map;
 
   };
 

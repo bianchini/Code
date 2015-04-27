@@ -1,6 +1,7 @@
 #include "interface/Integrand.h"
 
-MEM::Integrand::Integrand(int debug, const MEMConfig& config){
+MEM::Integrand::Integrand(int debug, const MEMConfig& config) :
+tf_map(config.tf_map) {
 
   // establish invariants
   debug_code         = debug;
@@ -1890,7 +1891,7 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm, int& acce
     int jet_indx  = perm[ map_to_part.find(p->first)->second ];
     double e_rec{0.};
     double pt_rec{0.};
-    if( jet_indx>=0 ){
+    if( jet_indx>=0 ) {
       obj = obs_jets[ jet_indx ];
       e_rec =  obj->p4().E();
       pt_rec =  obj->p4().Pt();
@@ -1935,7 +1936,7 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm, int& acce
 	cout << "\t\tdE_y   = " << (e_rec-e_gen)*obj->p4().Py()/obj->p4().P() << endl;
       }
 #endif
-    }
+    } //jet index >= 0
     else{
 #ifdef DEBUG_MODE
       if( debug_code&DebugVerbosity::integration ){
@@ -1957,8 +1958,18 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm, int& acce
       x[0] = pt_gen;
       double _w = transfer_function2( obj, x, p->second.type, accept, cfg.tf_offscale, debug_code );
       w *= _w;
-    //Calculate using internal transfer functions
+    } else if (cfg.transfer_function_method == TFMethod::External && obj==nullptr) {
+      //Calculate using reco efficiency
+      y[0] = pt_rec;
+      x[0] = pt_gen;
+      
+      //pass the efficienty function as a pointer, need to remove const modifier as TF1::Eval does not specify const
+      const TF1* tf = get_tf_global(p->second.type, getEtaBin(eta_gen));
+      assert(tf != nullptr);
+      double _w = transfer_function2( const_cast<TF1*>(tf), x, p->second.type, accept, cfg.tf_offscale, debug_code );
+      w *= _w;
     } else {
+      //Calculate using internal transfer functions
       double _w = transfer_function( y, x, p->second.type, accept, cfg.tf_offscale, debug_code );
       w *= _w;
     }
@@ -2343,4 +2354,14 @@ void MEM::Integrand::setup_minimizer(){
   minimizer->SetTolerance(0.001);
   minimizer->SetPrintLevel(0);
   return;
+}
+
+const TF1* MEM::Integrand::get_tf_global(TFType::TFType type, int etabin) const {
+    std::pair<TFType::TFType, int> p = std::make_pair(type, etabin);
+    if (tf_map.find(p) != tf_map.end()) {
+        return &(tf_map.at(p));
+    } else {
+        std::cerr << "could not find tf for " << type << " " << etabin << std::endl;
+        return nullptr;
+    }
 }
