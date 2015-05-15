@@ -15,7 +15,7 @@ mem = MEM.Integrand(MEM.output, cfg)
 print mem
 
 def add_obj(mem, typ, **kwargs):
-    
+
     if kwargs.has_key("p4s"):
         pt, eta, phi, mass = kwargs.pop("p4c")
         v = TLorentzVector()
@@ -23,18 +23,18 @@ def add_obj(mem, typ, **kwargs):
     elif kwargs.has_key("p4c"):
         v = TLorentzVector(*kwargs.pop("p4c"))
     obsdict = kwargs.pop("obsdict", {})
-    
+
     o = MEM.Object(v, typ)
-    
+
     t1 = kwargs.get("tf", None)
 
     if t1 != None:
         o.addTransferFunction(MEM.TFType.qReco, t1)
         o.addTransferFunction(MEM.TFType.bReco, t1)
-        
+
         o.addTransferFunction(MEM.TFType.qLost, t1)
         o.addTransferFunction(MEM.TFType.bLost, t1)
-        
+
     for k, v in obsdict.items():
         o.addObs(k, v)
     mem.push_back_object(o)
