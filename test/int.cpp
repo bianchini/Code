@@ -15,7 +15,7 @@ using namespace MEM;
 int main(){
 
   MEMConfig cfg;
-  cfg.transfer_function_method = TFMethod::External;
+  //cfg.transfer_function_method = TFMethod::External;
   //cfg.do_minimize = 1;
   //cfg.perm_int    = 0;
   //cfg.defaultCfg(2.0);
@@ -37,20 +37,28 @@ int main(){
 
   Object j1( TLorentzVector(50,0, 10, sqrt(50*50+10*10)), ObjectType::Jet );
   j1.addObs( Observable::BTAG, 0. );  
+  j1.addObs( Observable::PDGID, 1 );  
   Object j2( TLorentzVector(0,50, 20, sqrt(50*50+20*20)), ObjectType::Jet );
   j2.addObs( Observable::BTAG, 1. );
+  j2.addObs( Observable::PDGID, 5 );  
   Object j3( TLorentzVector(30,30, 40, sqrt(30*30+30*30+40*40)), ObjectType::Jet );
   j3.addObs( Observable::BTAG, 0. );
+  j3.addObs( Observable::PDGID, 1 );  
   Object j4( TLorentzVector(70,20, 10, sqrt(70*70+20*20+10*10)), ObjectType::Jet );
   j4.addObs( Observable::BTAG, 1. );
+  j4.addObs( Observable::PDGID, 22 );  
   Object j5( TLorentzVector(20,50, 10, sqrt(20*20+50*50+10*10)), ObjectType::Jet );
   j5.addObs( Observable::BTAG, 1. );
+  j5.addObs( Observable::PDGID, 22 );   
   Object j6( TLorentzVector(100,10, 20, sqrt(100*100+10*10+20*20)), ObjectType::Jet );
   j6.addObs( Observable::BTAG, 1. );
+  j6.addObs( Observable::PDGID, -5 );
   Object j7( TLorentzVector(100,30, 50, sqrt(100*100+30*30+50*50)), ObjectType::Jet );
   j7.addObs( Observable::BTAG, 0. );
+  j7.addObs( Observable::PDGID, -1 );
   Object j8( TLorentzVector(100,-30, -50, sqrt(100*100+30*30+50*50)), ObjectType::Jet );
   j8.addObs( Observable::BTAG, 0. );
+  j8.addObs( Observable::PDGID, -1 );
 
   Object l1( TLorentzVector(70,10, 20, sqrt(70*70+10*10+20*20)), ObjectType::Lepton );
   l1.addObs( Observable::CHARGE, +1. );
@@ -75,9 +83,9 @@ int main(){
   integrand->set_permutation_strategy
     (  {Permutations::BTagged
 	,Permutations::QUntagged 
-	//,Permutations::QQbarSymmetry
-	//,Permutations::BBbarSymmetry
 	,Permutations::QQbarBBbarSymmetry
+	,Permutations::HEPTopTagged
+	,Permutations::HiggsTagged
 	} 
       );
 
@@ -87,7 +95,7 @@ int main(){
 			   |IntegrandType::Jacobian
 			   |IntegrandType::PDF
 			   |IntegrandType::Transfer
-			   |IntegrandType::Smear
+			   //|IntegrandType::Smear
 			   //|IntegrandType::Sudakov
 			   //|IntegrandType::Recoil
 			   );

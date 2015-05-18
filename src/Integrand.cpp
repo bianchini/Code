@@ -1090,6 +1090,66 @@ bool MEM::Integrand::accept_perm( const vector<int>& perm, const std::vector<MEM
       }
       break;
 
+      // assume one can match quarks to HEPTopTag subjets 
+    case Permutations::HEPTopTagged:
+      // deal with the first top
+      if(!(fs==FinalState::HH || fs==FinalState::LH)) continue;
+      indexes1 =  vector<size_t>{map_to_part.find(PSPart::q1)->second, 
+				 map_to_part.find(PSPart::qbar1)->second, 
+				 map_to_part.find(PSPart::b1)->second};
+      for(size_t idx_hep = 0 ; idx_hep<3; ++idx_hep ){
+	int idx = indexes1[idx_hep];
+	if( perm[idx]>=0 && obs_jets[perm[idx]]->isSet(Observable::PDGID) &&
+	    obs_jets[perm[idx]]->getObs(Observable::PDGID)!=((idx_hep<2 ? +1 : +5) ) ){
+	  if( debug_code&DebugVerbosity::init_more ){
+	    cout << "\t\tDiscard permutation because jet[" << perm[idx] 
+		 << "] should be associated with a pdgid=" <<(idx_hep<2 ? +1 : +5)  
+		 << " quark from top, but its pdgid from HEPTopTagging is " 
+		 <<  obs_jets[perm[idx]]->getObs(Observable::PDGID) << endl;
+	  }	
+	  return false;
+	}
+      }
+
+      // deal with the second top (if any)
+      if(!(fs==FinalState::HH)) continue;
+      indexes2 =  vector<size_t>{map_to_part.find(PSPart::q2)->second, 
+				 map_to_part.find(PSPart::qbar2)->second, 
+				 map_to_part.find(PSPart::b2)->second};
+      for(size_t idx_hep = 0 ; idx_hep<3; ++idx_hep ){
+	int idx = indexes2[idx_hep];
+	if( perm[idx]>=0 && obs_jets[perm[idx]]->isSet(Observable::PDGID) &&
+	    obs_jets[perm[idx]]->getObs(Observable::PDGID)!=(idx_hep<2 ? -1 : -5) ){
+	  if( debug_code&DebugVerbosity::init_more ){
+	    cout << "\t\tDiscard permutation because jet[" << perm[idx] 
+		 << "] should be associated with a pdgid=" <<  (idx_hep<2 ? -1 : -5) 
+		 << " quark from anti-top, but its pdgid from HEPTopTagging is " 
+		 <<  obs_jets[perm[idx]]->getObs(Observable::PDGID) << endl;
+	  }	
+	  return false;
+	}
+      }
+      break;
+
+      // assume one can match quarks to HiggsTagger subjets 
+    case Permutations::HiggsTagged:
+      indexes1 =  vector<size_t>{map_to_part.find(PSPart::b)->second, 
+				 map_to_part.find(PSPart::bbar)->second};
+      for(size_t idx_hep = 0 ; idx_hep<2; ++idx_hep ){
+	int idx = indexes1[idx_hep];
+	if( perm[idx]>=0 && obs_jets[perm[idx]]->isSet(Observable::PDGID) &&
+	    obs_jets[perm[idx]]->getObs(Observable::PDGID)!=22 ){
+	  if( debug_code&DebugVerbosity::init_more ){
+	    cout << "\t\tDiscard permutation because jet[" << perm[idx] 
+		 << "] should be associated with a pdgid=22" 
+		 << " quark from Higgs, but its pdgid from HiggsTagging is " 
+		 <<  obs_jets[perm[idx]]->getObs(Observable::PDGID) << endl;
+	  }	
+	  return false;
+	}
+      }
+      break;      
+
     default:
       break;
     }

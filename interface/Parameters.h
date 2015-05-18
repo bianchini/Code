@@ -139,7 +139,7 @@ namespace MEM {
   } 
   
   namespace Observable {
-    enum Observable { E_LOW_Q=0, E_HIGH_Q=1, E_LOW_B=2, E_HIGH_B=3, BTAG=4, CHARGE=5};
+    enum Observable { E_LOW_Q=0, E_HIGH_Q=1, E_LOW_B=2, E_HIGH_B=3, BTAG=4, CHARGE=5, PDGID=6};
   }
   
   class ObsHash{
@@ -288,7 +288,7 @@ namespace MEM {
   }
   
   namespace Permutations {
-    enum Permutations { BTagged=0, QUntagged, QQbarSymmetry, BBbarSymmetry, QQbarBBbarSymmetry};
+    enum Permutations { BTagged=0, QUntagged, QQbarSymmetry, BBbarSymmetry, QQbarBBbarSymmetry, HEPTopTagged, HiggsTagged};
   }
   
   namespace IntegrandType {
