@@ -81,20 +81,100 @@ void MEM::Integrand::init( const MEM::FinalState::FinalState f, const MEM::Hypot
   for(size_t id = 0; id < n_jets ; ++id) perm_index.push_back( id );
   while( perm_index.size() < naive_jet_counting) perm_index.push_back( -1 );
 
+  // smear Sum Nu's by TF
+  if(cfg.int_code&IntegrandType::Smear){ 
+    // needed to get a fresh seed every time
+    gRandom->SetSeed(0);
+
+    if( debug_code&DebugVerbosity::init ){
+      cout << "\tInput MET vector will be smeared using MEM::transfer_function_smear:" << endl;
+    }
+
+    TF2 tf2("met_tf", MEM::transfer_function_smear, -150, 150, -150, 150, 3);
+    tf2.SetNpx(700); tf2.SetNpy(700);
+    tf2.SetParameter(0, obs_mets[0]->p4().Px() );
+    tf2.SetParameter(1, obs_mets[0]->p4().Py() );
+    tf2.SetParameter(2, static_cast<int>(TFType::MET) );
+    double met_x{0.};
+    double met_y{0.};
+    tf2.GetRandom2(met_x, met_y);    
+
+    if( debug_code&DebugVerbosity::init ){
+      cout << "\t\t MET (Px,Py,Pz,E): (" << obs_mets[0]->p4().Px() << ", "
+	   << obs_mets[0]->p4().Py() << ", " << obs_mets[0]->p4().Pz() << ", "
+	   << obs_mets[0]->p4().E() << ") --> " ;
+    }
+    obs_mets[0]->setp4( LV(met_x, met_y, 0., sqrt(met_x*met_x + met_y*met_y)) );
+    if( debug_code&DebugVerbosity::init ){
+      cout << "(" << obs_mets[0]->p4().Px() << ", " << obs_mets[0]->p4().Py() << ", " 
+	   << obs_mets[0]->p4().Pz() << ", " << obs_mets[0]->p4().E() << ")" << endl;
+    }
+  }
+  
+
   // calculate upper / lower edges
   for( auto j : obs_jets ){
+
     const bool external_tf = (
       cfg.transfer_function_method == TFMethod::External &&
       j->getNumTransferFunctions()>0
     );
+
+    // smear gen jets by TF
+    if(cfg.int_code&IntegrandType::Smear){
+
+      TFType::TFType jet_type = (j->isSet(Observable::BTAG) && j->getObs(Observable::BTAG)>0.5) ? TFType::bReco : TFType::qReco;
+      int jet_type_int = static_cast<int>(jet_type);
+
+      if( debug_code&DebugVerbosity::init ){
+	cout << "\tInput jet of type (" << jet_type_int << ") will be smeared using " <<
+	  (external_tf? "MEM::transfer_function2" : "MEM::transfer_function_smear") << endl;
+	cout << "\t\t Jet (Px,Py,Pz,E): (" << j->p4().Px() << ", " << j->p4().Py() 
+	     << ", " << j->p4().Pz() << ", " << j->p4().E() << ") --> " ;	
+      }
+      
+      // if using builtin method, wrap the transfer_function inside a TF1/TF2 
+      if( !external_tf || cfg.transfer_function_method==TFMethod::Builtin){
+	TF1 tf1("jet_tf", MEM::transfer_function_smear, j->p4().E()/5., j->p4().E()*5., 3);
+	tf1.SetNpx(1000);
+	tf1.SetParameter(0, j->p4().E()   );
+	tf1.SetParameter(1, j->p4().Eta() );
+	tf1.SetParameter(2, jet_type_int );
+	double e_ran = tf1.GetRandom();
+	if( debug_code&DebugVerbosity::init )
+	  cout << " (x " << (e_ran/j->p4().E()) << ") --> ";
+	// smear p4...
+	j->setp4( (e_ran/j->p4().E())*j->p4() );
+      }
+
+      // if using external TFs, call directly transfer_function2 asking for the RND value (not the density)
+      else if( external_tf ){
+	double x[2] = {j->p4().Pt(), j->p4().Eta()};
+	int accept{0};
+	// calling with 'true' returns the randomised pT 
+	double pt_ran = transfer_function2( j, x, jet_type , accept, cfg.tf_offscale, true, debug_code );
+	if( debug_code&DebugVerbosity::init )
+	  cout << " (x " << (pt_ran/j->p4().Pt()) << ") --> ";
+	// smear p4...
+	j->setp4( (pt_ran/j->p4().Pt())*j->p4() ); 
+      }
+      else{ /*...*/ }
+
+      if( debug_code&DebugVerbosity::init ){
+	cout << "(" << j->p4().Px() << ", " << j->p4().Py() << ", " 
+	     << j->p4().Pz() << ", " << j->p4().E() << ")" << endl;
+      }
+    }
+
     Object* obj = nullptr;
     double y[2] = { j->p4().E(), j->p4().Eta() };
     
     //In case using external TF, use Pt (FIXME: unify with internal TF).
     if (external_tf) {
       y[0] = j->p4().Pt();
-      obj = j;
+      obj  = j;
     }
+
     pair<double, double> edges;    
     if( !j->isSet(Observable::E_LOW_Q) || !j->isSet(Observable::E_HIGH_Q) ){
       edges = get_support( y, TFType::qReco, cfg.j_range_CL,  debug_code, obj) ;
@@ -1886,15 +1966,14 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm, int& acce
     pT_y  -= p->second.lv.Py();    
 
     const double e_gen  {p->second.lv.E()}; 
-    const double pt_gen  {p->second.lv.Pt()}; 
+    const double pt_gen {p->second.lv.Pt()}; 
     const double eta_gen{p->second.lv.Eta()};     
     int jet_indx  = perm[ map_to_part.find(p->first)->second ];
     double e_rec{0.};
-    double pt_rec{0.};
+
     if( jet_indx>=0 ) {
-      obj = obs_jets[ jet_indx ];
-      e_rec =  obj->p4().E();
-      pt_rec =  obj->p4().Pt();
+      obj    = obs_jets[ jet_indx ];
+      e_rec  = obj->p4().E();
       rho_x -= obj->p4().Px();
       rho_y -= obj->p4().Py();
       
@@ -1952,24 +2031,37 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm, int& acce
     double x[2] = { e_gen, eta_gen };
     
     //Try to calculate using externally supplied transfer functions
-    if (cfg.transfer_function_method == TFMethod::External && obj!=nullptr && obj->getNumTransferFunctions()>0) {
-      //new transfer functions are functions of jet pt
-      y[0] = pt_rec;
+    //N.B.: new transfer functions are functions of jet pt
+    if (cfg.transfer_function_method == TFMethod::External && 
+	obj!=nullptr && obj->getNumTransferFunctions()>0) {
       x[0] = pt_gen;
-      double _w = transfer_function2( obj, x, p->second.type, accept, cfg.tf_offscale, debug_code );
+      double _w = transfer_function2( obj, x, p->second.type, accept, cfg.tf_offscale, false, debug_code );
       w *= _w;
-    } else if (cfg.transfer_function_method == TFMethod::External && obj==nullptr) {
-      //Calculate using reco efficiency
-      y[0] = pt_rec;
-      x[0] = pt_gen;
-      
-      //pass the efficienty function as a pointer, need to remove const modifier as TF1::Eval does not specify const
-      const TF1* tf = get_tf_global(p->second.type, getEtaBin(eta_gen));
+    } 
+
+    //Calculate using reco efficiency
+    //N.B.: new transfer functions are functions of jet pt
+    else if (cfg.transfer_function_method == TFMethod::External && 
+	     obj==nullptr) {
+
+      int eta_bin = eta_to_bin(eta_gen, true);
+      // if outside acceptance, return 1.0
+      if( eta_bin<0 ){
+	w *= 1.0;
+	continue;
+      }
+
+      //pass the efficienty function as a pointer, 
+      //need to remove const modifier as TF1::Eval does not specify const
+      x[0] = pt_gen;      
+      const TF1* tf = get_tf_global(p->second.type, eta_bin);
       assert(tf != nullptr);
-      double _w = transfer_function2( const_cast<TF1*>(tf), x, p->second.type, accept, cfg.tf_offscale, debug_code );
+      double _w = transfer_function2( const_cast<TF1*>(tf), x, p->second.type, accept, cfg.tf_offscale, false, debug_code );
       w *= _w;
-    } else {
-      //Calculate using internal transfer functions
+    } 
+
+    //Calculate using internal transfer functions
+    else {
       double _w = transfer_function( y, x, p->second.type, accept, cfg.tf_offscale, debug_code );
       w *= _w;
     }

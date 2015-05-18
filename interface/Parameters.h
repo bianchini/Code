@@ -37,6 +37,8 @@
 #include "TVector3.h"
 #include "TMath.h"
 #include "TF1.h"
+#include "TF2.h"
+#include "TRandom3.h"
 #include "Math/Minimizer.h"
 #include "Math/Factory.h"
 #include "Math/Functor.h"
@@ -54,7 +56,7 @@ using namespace std::chrono;
 
 namespace MEM {
   
-  std::size_t eta_to_bin( const double& );
+  int eta_to_bin( const double&, bool =false );
 
   const double PI   = 3.14159265359;
   const double MTOP = 174.3;
@@ -110,7 +112,7 @@ namespace MEM {
      };
      
      
-  int getEtaBin(double);
+  //int getEtaBin(double);
 
   enum DebugVerbosity { output=1, input=2, init=4, init_more=8, event=16, integration=32};
  
@@ -130,6 +132,8 @@ namespace MEM {
 
   double transfer_function( double*,  double*, const TFType::TFType&, int&, const double&, const int&);
 
+  double transfer_function_smear(double*, double* );
+  
   namespace ObjectType {
     enum ObjectType { Jet=0, Lepton=1, MET=2, Recoil=3, Unknown=4};
   } 
@@ -174,6 +178,7 @@ namespace MEM {
     Object(); 
     ~Object(); 
     LV p4() const;
+    void setp4(const LV&);
     ObjectType::ObjectType type() const;
     double getObs(const Observable::Observable&) const; 
     TF1* getTransferFunction(const TFType::TFType&); 
@@ -287,7 +292,7 @@ namespace MEM {
   }
   
   namespace IntegrandType {
-    enum IntegrandType { Constant=1, Jacobian=2, Transfer=4, ScattAmpl=8, DecayAmpl=16, PDF=32, Sudakov=64, Recoil=128 };
+    enum IntegrandType { Constant=1, Jacobian=2, Transfer=4, ScattAmpl=8, DecayAmpl=16, PDF=32, Sudakov=64, Recoil=128, Smear=256 };
   }
   
   struct CompPerm {
@@ -427,7 +432,7 @@ namespace MEM {
     }
   };
   
-  double transfer_function2(void*, const double*, const TFType::TFType&, int&, const double&, const int&);
+  double transfer_function2(void*, const double*, const TFType::TFType&, int&, const double&, const bool&, const int&);
   
 }
 

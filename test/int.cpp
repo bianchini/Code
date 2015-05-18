@@ -15,8 +15,9 @@ using namespace MEM;
 int main(){
 
   MEMConfig cfg;
-  cfg.do_minimize = 1;
-  cfg.perm_int    = 0;
+  cfg.transfer_function_method = TFMethod::External;
+  //cfg.do_minimize = 1;
+  //cfg.perm_int    = 0;
   //cfg.defaultCfg(2.0);
   //cfg.tf_suppress = 0;
   //cfg.tf_offscale = 5.;
@@ -24,8 +25,6 @@ int main(){
   //cfg.j_range_CL = 0.98;
   //cfg.b_range_CL = 0.99;
   //cfg.highpt_first = 0;
-
-
 
 
   Integrand* integrand = new Integrand(  DebugVerbosity::output
@@ -58,7 +57,7 @@ int main(){
   Object l2( TLorentzVector(70,-10, -20, sqrt(70*70+10*10+20*20)), ObjectType::Lepton );
   l2.addObs( Observable::CHARGE, -1. );
 
-  Object met( TLorentzVector(40,20,0,10), ObjectType::MET );
+  Object met( TLorentzVector(40,20,0,sqrt(40*40+20*20)), ObjectType::MET );
 
   integrand->push_back_object( &j1 );
   integrand->push_back_object( &j2 );
@@ -88,6 +87,7 @@ int main(){
 			   |IntegrandType::Jacobian
 			   |IntegrandType::PDF
 			   |IntegrandType::Transfer
+			   |IntegrandType::Smear
 			   //|IntegrandType::Sudakov
 			   //|IntegrandType::Recoil
 			   );

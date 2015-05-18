@@ -1,10 +1,20 @@
 #include "interface/Parameters.h"
 
-size_t MEM::eta_to_bin( const double& eta ){
-  if( fabs(eta)<1.0 ) return 0;
-  if( fabs(eta)>1.0 ) return 1;
-  return -99;
+// matches a jet to the |eta| bin (jet outside acceptance are matched to highest |eta| bin or flagged as 'outside')
+int MEM::eta_to_bin( const double& eta, bool mark_acceptance ){
+  double ae = std::abs(eta);
+  if (ae < 1.0) {
+    return 0;
+  } else if (ae < 2.5) {
+    return 1;
+  } else {
+    if( mark_acceptance )
+      return -1;
+    else
+      return eta_to_bin( 2.49 );
+  }
 }
+
 bool MEM::isQuark(const MEM::TFType::TFType& t) {
   return (t==TFType::bReco || t==TFType::qReco || t==TFType::bLost || t==TFType::qLost);
 }
@@ -162,19 +172,47 @@ double MEM::transfer_function(double* y, double* x, const TFType::TFType& type, 
   return w;
 }
 
+
+
+double MEM::transfer_function_smear(double* x, double* par){
+
+  TFType::TFType type = static_cast<TFType::TFType>( static_cast<int>(par[2]) ); 
+
+  if(type==TFType::bReco || type==TFType::qReco){
+    double yy[1] = {x[0]};
+    double xx[2] = {par[0], par[1]};
+    int out_of_range{0};
+    double cutoff   {6.6};
+    int debug       {0};
+    return transfer_function(yy, xx, type, out_of_range, cutoff, debug);
+  }
+  else if(type==TFType::MET){
+    double yy[2] = {x[0], x[1]};
+    double xx[2] = {par[0], par[1]};
+    int out_of_range{0};
+    double cutoff   {6.6};
+    int debug       {0};
+    return transfer_function(yy, xx, type, out_of_range, cutoff, debug);    
+  }
+  else{ /* ... */ }
+  
+  return 1.0;
+}
+
+
+
 // Evaluates a transfer function attached to an object
 // the tf is a TF1* in a TFType->TF1* map in the object
 // the tf is a function of the reconstructed Energy (pt) through tf->Eval(Erec)
 // The generator energy is set via tf->SetParameter(0, Egen)
 // type - the hypothesis for the object to be tested, e.g. qReco (reconstructed light quark)
-double MEM::transfer_function2(
-        void* obj, //either MEM::Object or TF1
-        const double *x,
-        const TFType::TFType& type,
-        int& out_of_range,
-        const double& cutoff,
-        const int& debug
-  ){
+double MEM::transfer_function2( void* obj, //either MEM::Object or TF1
+				const double *x,
+				const TFType::TFType& type,
+				int& out_of_range,
+				const double& cutoff,
+				const bool& smear,
+				const int& debug){
   
   double w = 1.0;
   
@@ -183,46 +221,51 @@ double MEM::transfer_function2(
   
   //x[0] -> Egen
   switch( type ){
-
+    
     //W(Erec | Egen) = TF1(Erec, par0:Egen)
-    case TFType::bReco:
-    case TFType::qReco:
-        _obj = (MEM::Object*)obj;
-        tf = _obj->getTransferFunction(type);
+  case TFType::bReco:
+  case TFType::qReco:
+    _obj = (MEM::Object*)obj;
+    tf = _obj->getTransferFunction(type);
+    
+    //set gen
+    tf->SetParameter(0, x[0]);
+    //eval with x - reco
+    w *= tf->Eval(_obj->p4().Pt());
+    if( smear )
+      w = tf->GetRandom();
 
-        //set gen
-        tf->SetParameter(0, x[0]);
-        //eval with x - reco
-        w *= tf->Eval(_obj->p4().Pt());
-        #ifdef DEBUG_MODE
-              if( debug&DebugVerbosity::integration) 
-                cout << "\t\ttransfer_function2: Evaluate W(" << x[0] << " | " << _obj->p4().Pt() << ", TFType::qReco) = " << w << endl;
-        #endif
+#ifdef DEBUG_MODE
+    if( debug&DebugVerbosity::integration) 
+      cout << "\t\ttransfer_function2: Evaluate W(" << x[0] << " | " << _obj->p4().Pt() << ", TFType::qReco) = " << w << endl;
+#endif
     break;
-
+    
     //In case jets have a cut E > Emin
     //W_loss(Egen) = \int_0^Emin W(Erec | Egen) dErec
     //In case jets have a cut pt > ptmin
     //W_loss(ptgen) = \int_0^ptmin W(ptrec | ptgen) dptrec
     //FIXME pt to be implemented
-    case TFType::bLost:
-    case TFType::qLost:
+  case TFType::bLost:
+  case TFType::qLost:
     
-        tf = (TF1*)obj;
+    tf = (TF1*)obj;
     
-        //eval at x - gen
-        w *= tf->Eval(x[0]);
-        #ifdef DEBUG_MODE
-              if( debug&DebugVerbosity::integration) 
-        	cout << "\t\ttransfer_function2: Evaluate W(" << x[0] << ", TFType::qLost) = " << w << endl;
-        #endif
-      break;
-      
-    default:
-      break;
+    //eval at x - gen
+    w *= tf->Eval(x[0]);
+#ifdef DEBUG_MODE
+    if( debug&DebugVerbosity::integration) 
+      cout << "\t\ttransfer_function2: Evaluate W(" << x[0] 
+	   << ", TFType::qLost) = " << w << endl;
+#endif
+    break;
+    
+  default:
+    break;
   }
   return w;
 }
+
 
 /////////////////////////////////                                                                                                                      
 //   y     := observables                                                                                                                               
@@ -358,7 +401,7 @@ pair<double, double> MEM::get_support(
       if (obj == nullptr) {
         tot += transfer_function(rec,gen,type,accept,cutoff,debug)*step_size;
       } else { // use external TF
-        tot += transfer_function2(obj,gen,type,accept,cutoff,debug)*step_size;
+        tot += transfer_function2(obj,gen,type,accept,cutoff,false,debug)*step_size;
       }
       if(  tot>(1-alpha)/2 ) break;
     }
@@ -376,7 +419,7 @@ pair<double, double> MEM::get_support(
       if (obj == nullptr) {
         tot += transfer_function(rec,gen,type,accept,cutoff,debug)*step_size;
       } else { // use external TF
-        tot += transfer_function2(obj,gen,type,accept,cutoff,debug)*step_size;
+        tot += transfer_function2(obj,gen,type,accept,cutoff,false,debug)*step_size;
       }
       if(  tot>(1-alpha)/2 ) break;
     }
@@ -452,6 +495,10 @@ MEM::Object::Object(){
 MEM::Object::~Object(){}    
 
 LV MEM::Object::p4() const { return p; }
+
+void  MEM::Object::setp4(const LV& lv) {
+  p = lv;
+}
 
 MEM::ObjectType::ObjectType MEM::Object::type() const { return t; }
 
@@ -622,6 +669,7 @@ int MEM::MEMConfig::getNCalls(FinalState::FinalState f, Hypothesis::Hypothesis h
 }
 
 
+/*
 int MEM::getEtaBin(double eta) {
    double ae = std::abs(eta);
    if (ae < 1.0) {
@@ -632,6 +680,7 @@ int MEM::getEtaBin(double eta) {
        return 0;
    }
 }
+*/
 
 void MEM::MEMConfig::set_tf_global(TFType::TFType type, int etabin, TF1 tf) {
     tf_map[std::make_pair(type, etabin)] = tf;
