@@ -6,7 +6,7 @@ fstate 1
 # integ { nointeg=0, oneqw=1 }
 integ 1
 # IntegrandType { Constant=1, Jacobian=2, Transfer=4, ScattAmpl=8, DecayAmpl=16, PDF=32, Sudakov=64, Recoil=128, Smear=256 };
-int_code 319
+int_code 63
     
 # TFMethod {Builtin=0, External=1, Unknown=2};
 tf_method 1

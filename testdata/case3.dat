@@ -6,10 +6,10 @@ fstate 1
 # integ { nointeg=0, oneqw=1 }
 integ 1
 # IntegrandType { Constant=1, Jacobian=2, Transfer=4, ScattAmpl=8, DecayAmpl=16, PDF=32, Sudakov=64, Recoil=128, Smear=256 };
-int_code 319
+int_code 63
     
 # TFMethod {Builtin=0, External=1, Unknown=2};
-tf_method 1
+tf_method 0
 
 bq 43.3139839172 0.626014471054 -0.443574398756 4.70000457764 1.0 tb
 bq 317.823364258 0.733085393906 2.48672819138 4.69972085953 1.0 tb
