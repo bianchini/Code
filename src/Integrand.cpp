@@ -663,7 +663,7 @@ void MEM::Integrand::make_assumption( const std::vector<MEM::PSVar::PSVar>& lost
     cout << "Integrand::make_assumption(): END" << endl;
   }
 
-  if(!cfg.int_code) prob /= volume;  
+  if(!cfg.int_code) prob /= (volume*perm_indexes_assumption.size());  
   out.p     = prob;
   out.p_err = sqrt(err2);
   out.chi2  = chi2;
@@ -1207,7 +1207,7 @@ double MEM::Integrand::Eval(const double* x) const{
       if(n_perm != this_perm) continue;
     }
     double p0 = probability(x, n_perm );
-    double p1 = perm_const_assumption[n_perm];
+    double p1 = cfg.int_code>0 ? perm_const_assumption[n_perm] : 1.0;
 #ifdef DEBUG_MODE
     if( debug_code&DebugVerbosity::integration ){
       cout << "\t\tPermutation #" << n_perm 
