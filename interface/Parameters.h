@@ -292,7 +292,7 @@ namespace MEM {
   }
   
   namespace IntegrandType {
-    enum IntegrandType { Constant=1, Jacobian=2, Transfer=4, ScattAmpl=8, DecayAmpl=16, PDF=32, Sudakov=64, Recoil=128, Smear=256 };
+    enum IntegrandType { Constant=1, Jacobian=2, Transfer=4, ScattAmpl=8, DecayAmpl=16, PDF=32, Sudakov=64, Recoil=128, SmearJets=256, SmearMET=512 };
   }
   
   struct CompPerm {

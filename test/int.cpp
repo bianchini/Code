@@ -35,7 +35,7 @@ int main(){
 					 //|DebugVerbosity::integration				        
 					 ,cfg);
 
-  Object j1( TLorentzVector(50,0, 10, sqrt(50*50+10*10)), ObjectType::Jet );
+  Object j1( TLorentzVector(20,0, 10, sqrt(20*20+10*10)), ObjectType::Jet );
   j1.addObs( Observable::BTAG, 0. );  
   j1.addObs( Observable::PDGID, 1 );  
   Object j2( TLorentzVector(0,50, 20, sqrt(50*50+20*20)), ObjectType::Jet );
@@ -95,7 +95,8 @@ int main(){
 			   |IntegrandType::Jacobian
 			   |IntegrandType::PDF
 			   |IntegrandType::Transfer
-			   //|IntegrandType::Smear
+			   |IntegrandType::SmearJets
+			   |IntegrandType::SmearMET
 			   //|IntegrandType::Sudakov
 			   //|IntegrandType::Recoil
 			   );

@@ -82,36 +82,9 @@ void MEM::Integrand::init( const MEM::FinalState::FinalState f, const MEM::Hypot
   while( perm_index.size() < naive_jet_counting) perm_index.push_back( -1 );
 
   // smear Sum Nu's by TF
-  if(cfg.int_code&IntegrandType::Smear){ 
-    // needed to get a fresh seed every time
-    gRandom->SetSeed(0);
-
-    if( debug_code&DebugVerbosity::init ){
-      cout << "\tInput MET vector will be smeared using MEM::transfer_function_smear:" << endl;
-    }
-
-    TF2 tf2("met_tf", MEM::transfer_function_smear, -150, 150, -150, 150, 3);
-    tf2.SetNpx(700); tf2.SetNpy(700);
-    tf2.SetParameter(0, obs_mets[0]->p4().Px() );
-    tf2.SetParameter(1, obs_mets[0]->p4().Py() );
-    tf2.SetParameter(2, static_cast<int>(TFType::MET) );
-    double met_x{0.};
-    double met_y{0.};
-    tf2.GetRandom2(met_x, met_y);    
-
-    if( debug_code&DebugVerbosity::init ){
-      cout << "\t\t MET (Px,Py,Pz,E): (" << obs_mets[0]->p4().Px() << ", "
-	   << obs_mets[0]->p4().Py() << ", " << obs_mets[0]->p4().Pz() << ", "
-	   << obs_mets[0]->p4().E() << ") --> " ;
-    }
-    obs_mets[0]->setp4( LV(met_x, met_y, 0., sqrt(met_x*met_x + met_y*met_y)) );
-    if( debug_code&DebugVerbosity::init ){
-      cout << "(" << obs_mets[0]->p4().Px() << ", " << obs_mets[0]->p4().Py() << ", " 
-	   << obs_mets[0]->p4().Pz() << ", " << obs_mets[0]->p4().E() << ")" << endl;
-    }
-  }
+  if(cfg.int_code&IntegrandType::SmearMET)
+    smear_met();
   
-
   // calculate upper / lower edges
   for( auto j : obs_jets ){
 
@@ -121,50 +94,8 @@ void MEM::Integrand::init( const MEM::FinalState::FinalState f, const MEM::Hypot
     );
 
     // smear gen jets by TF
-    if(cfg.int_code&IntegrandType::Smear){
-
-      TFType::TFType jet_type = (j->isSet(Observable::BTAG) && j->getObs(Observable::BTAG)>0.5) ? TFType::bReco : TFType::qReco;
-      int jet_type_int = static_cast<int>(jet_type);
-
-      if( debug_code&DebugVerbosity::init ){
-	cout << "\tInput jet of type (" << jet_type_int << ") will be smeared using " <<
-	  (external_tf? "MEM::transfer_function2" : "MEM::transfer_function_smear") << endl;
-	cout << "\t\t Jet (Px,Py,Pz,E): (" << j->p4().Px() << ", " << j->p4().Py() 
-	     << ", " << j->p4().Pz() << ", " << j->p4().E() << ") --> " ;	
-      }
-      
-      // if using builtin method, wrap the transfer_function inside a TF1/TF2 
-      if( !external_tf || cfg.transfer_function_method==TFMethod::Builtin){
-	TF1 tf1("jet_tf", MEM::transfer_function_smear, j->p4().E()/5., j->p4().E()*5., 3);
-	tf1.SetNpx(1000);
-	tf1.SetParameter(0, j->p4().E()   );
-	tf1.SetParameter(1, j->p4().Eta() );
-	tf1.SetParameter(2, jet_type_int );
-	double e_ran = tf1.GetRandom();
-	if( debug_code&DebugVerbosity::init )
-	  cout << " (x " << (e_ran/j->p4().E()) << ") --> ";
-	// smear p4...
-	j->setp4( (e_ran/j->p4().E())*j->p4() );
-      }
-
-      // if using external TFs, call directly transfer_function2 asking for the RND value (not the density)
-      else if( external_tf ){
-	double x[2] = {j->p4().Pt(), j->p4().Eta()};
-	int accept{0};
-	// calling with 'true' returns the randomised pT 
-	double pt_ran = transfer_function2( j, x, jet_type , accept, cfg.tf_offscale, true, debug_code );
-	if( debug_code&DebugVerbosity::init )
-	  cout << " (x " << (pt_ran/j->p4().Pt()) << ") --> ";
-	// smear p4...
-	j->setp4( (pt_ran/j->p4().Pt())*j->p4() ); 
-      }
-      else{ /*...*/ }
-
-      if( debug_code&DebugVerbosity::init ){
-	cout << "(" << j->p4().Px() << ", " << j->p4().Py() << ", " 
-	     << j->p4().Pz() << ", " << j->p4().E() << ")" << endl;
-      }
-    }
+    if(cfg.int_code&IntegrandType::SmearJets)
+      smear_jet(j, external_tf);    
 
     Object* obj = nullptr;
     double y[2] = { j->p4().E(), j->p4().Eta() };
@@ -2507,6 +2438,114 @@ void MEM::Integrand::setup_minimizer(){
   minimizer->SetPrintLevel(0);
   return;
 }
+
+void MEM::Integrand::smear_met(){
+  
+  if( debug_code&DebugVerbosity::init ){
+      cout << "\tInput MET vector will be smeared using MEM::transfer_function_smear:" << endl;
+  }
+
+  // needed to get a fresh seed every time
+  gRandom->SetSeed(0);
+  
+  TF2 tf2("met_tf", MEM::transfer_function_smear,  
+	  obs_mets[0]->p4().Px()-100,  obs_mets[0]->p4().Px()+100, 
+	  obs_mets[0]->p4().Py()-100,  obs_mets[0]->p4().Py()+100, 
+	  3);  
+  tf2.SetNpx(400); tf2.SetNpy(400);
+  tf2.SetParameter(0, obs_mets[0]->p4().Px() );
+  tf2.SetParameter(1, obs_mets[0]->p4().Py() );
+  tf2.SetParameter(2, static_cast<int>(TFType::MET) );
+
+  double met_x{0.};
+  double met_y{0.};
+  tf2.GetRandom2(met_x, met_y);    
+  
+  if( debug_code&DebugVerbosity::init ){
+    cout << "\t\t MET (Px,Py,Pz,E): (" << obs_mets[0]->p4().Px() << ", "
+	 << obs_mets[0]->p4().Py() << ", " << obs_mets[0]->p4().Pz() << ", "
+	 << obs_mets[0]->p4().E() << ") --> " ;
+  }
+
+  obs_mets[0]->setp4( LV(met_x, met_y, 0., sqrt(met_x*met_x + met_y*met_y)) );
+
+  if( debug_code&DebugVerbosity::init ){
+    cout << "(" << obs_mets[0]->p4().Px() << ", " << obs_mets[0]->p4().Py() << ", " 
+	 << obs_mets[0]->p4().Pz() << ", " << obs_mets[0]->p4().E() << ")" << endl;
+  }
+  return;
+}
+
+void MEM::Integrand::smear_jet(MEM::Object* j, const bool& external_tf){
+
+  // needed to get a fresh seed every time
+  gRandom->SetSeed(0);
+
+  TFType::TFType jet_type = (j->isSet(Observable::BTAG) && j->getObs(Observable::BTAG)>0.5) 
+    ? TFType::bReco : TFType::qReco;
+  
+  int jet_type_int = static_cast<int>(jet_type);
+  
+  if( debug_code&DebugVerbosity::init ){
+    cout << "\tInput jet of type (" << jet_type_int << ") will be smeared using " <<
+      (external_tf? "MEM::transfer_function2" : "MEM::transfer_function_smear") << endl;
+    cout << "\t\t Jet (Px,Py,Pz,E): (" << j->p4().Px() << ", " << j->p4().Py() 
+	 << ", " << j->p4().Pz() << ", " << j->p4().E() << ") --> " ;	
+  }
+  
+  // if using builtin method, wrap the transfer_function inside a TF1/TF2 
+  if( !external_tf || cfg.transfer_function_method==TFMethod::Builtin){
+
+    TF1 tf1("jet_tf", MEM::transfer_function_smear, j->p4().E()/5., j->p4().E()*5., 3);
+    tf1.SetNpx(1000);
+    tf1.SetParameter(0, j->p4().E()   );
+    tf1.SetParameter(1, j->p4().Eta() );
+    tf1.SetParameter(2, jet_type_int );
+
+    double e_ran = tf1.GetRandom();
+    int count{0};
+    while( count<100 && e_ran*TMath::Sin(j->p4().Theta()) < MEM::TF_ACC_param[1] ){
+      e_ran = tf1.GetRandom();
+      ++count;
+    }
+
+    if( debug_code&DebugVerbosity::init )
+      cout << " (x " << (e_ran/j->p4().E()) << " after " << count << " trials) --> ";
+
+    // smear p4...
+    j->setp4( (e_ran/j->p4().E())*j->p4() );
+  }
+  
+  // if using external TFs, call directly transfer_function2 asking for the RND value (not the density)
+  else if( external_tf ){
+
+    double x[2] = {j->p4().Pt(), j->p4().Eta()};
+    int accept{0};
+    // calling with 'true' returns the randomised pT 
+    double pt_ran = transfer_function2( j, x, jet_type , accept, cfg.tf_offscale, true, debug_code );
+
+    int count{0};
+    while( count<100 && pt_ran<MEM::TF_ACC_param[1] ){
+      pt_ran = transfer_function2( j, x, jet_type , accept, cfg.tf_offscale, true, debug_code );
+      ++count;
+    }
+
+    if( debug_code&DebugVerbosity::init )
+      cout << " (x " << (pt_ran/j->p4().Pt()) << ", after " << count << " trials) --> ";
+
+    // smear p4...
+    j->setp4( (pt_ran/j->p4().Pt())*j->p4() ); 
+  }
+  else{ /*...*/ }
+  
+  if( debug_code&DebugVerbosity::init ){
+    cout << "(" << j->p4().Px() << ", " << j->p4().Py() << ", " 
+	 << j->p4().Pz() << ", " << j->p4().E() << ")" << endl;
+  }
+  
+  return;
+}
+
 
 const TF1* MEM::Integrand::get_tf_global(TFType::TFType type, int etabin) const {
     std::pair<TFType::TFType, int> p = std::make_pair(type, etabin);

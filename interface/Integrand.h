@@ -154,6 +154,12 @@ namespace MEM {
     // setup the minimzer
     void setup_minimizer();
 
+    // smear MET
+    void smear_met();
+
+    // smear jets
+    void smear_jet(MEM::Object*, const bool&);
+
     // report an error
     int error_code;
 
