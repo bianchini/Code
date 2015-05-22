@@ -152,12 +152,13 @@ double MEM::transfer_function(double* y, double* x, const TFType::TFType& type, 
       E   = x[0];
       H   = x[1];
       par = TF_Q_param[ eta_to_bin(H) ];
-      double mean_pt  = (par[0] + par[1]*E)/TMath::CosH(H);
-      double sigma_pt = E*TMath::Sqrt(par[2]*par[2] + par[3]*par[3]/E + par[4]*par[4]/E/E)/TMath::CosH(H);
-      c1 = Chi2( TF_ACC_param[1], mean_pt, sigma_pt);
+      double mean_e  = (par[0] + par[1]*E);
+      double sigma_e = E*TMath::Sqrt(par[2]*par[2] + par[3]*par[3]/E + par[4]*par[4]/E/E);
+      double sign    = (TF_ACC_param[1]*TMath::CosH(H) >= mean_e) ? +1. : -1.;
+      c1 = Chi2( TF_ACC_param[1]*TMath::CosH(H), mean_e, sigma_e);
       if( c1>cutoff ) ++out_of_range;
 
-      w *= 0.5*(TMath::Erf( sqrt(c1) ) + 1 ) ;    
+      w *= 0.5*(TMath::Erf( sqrt(c1/2.)*sign ) + 1 ) ;    
 #ifdef DEBUG_MODE
       if( debug&DebugVerbosity::integration) 
 	cout << "\t\ttransfer_function: Evaluate W(" <<  TF_ACC_param[1] << " | " << E << ", " << H << ", TFType::qLost) = " << w << endl;
@@ -591,6 +592,14 @@ void MEM::MEMConfig::defaultCfg(float nCallsMultiplier){
     [ static_cast<std::size_t>(FinalState::FinalState::LH) ]
     [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTBB)]
     [ static_cast<std::size_t>(Assumption::Assumption::OneQuarkLost)] = 4000;
+  calls
+    [ static_cast<std::size_t>(FinalState::FinalState::LH) ]
+    [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTH)]
+    [ static_cast<std::size_t>(Assumption::Assumption::TwoQuarkLost)] = 15000;     
+  calls
+    [ static_cast<std::size_t>(FinalState::FinalState::LH) ]
+    [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTBB)]
+    [ static_cast<std::size_t>(Assumption::Assumption::TwoQuarkLost)] = 15000;
 
   // FinalState::LL
   calls
@@ -627,6 +636,14 @@ void MEM::MEMConfig::defaultCfg(float nCallsMultiplier){
     [ static_cast<std::size_t>(FinalState::FinalState::HH) ]
     [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTBB)]
     [ static_cast<std::size_t>(Assumption::Assumption::OneQuarkLost)] = 4000;
+  calls
+    [ static_cast<std::size_t>(FinalState::FinalState::HH) ]
+    [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTH)]
+    [ static_cast<std::size_t>(Assumption::Assumption::TwoQuarkLost)] = 15000;     
+  calls
+    [ static_cast<std::size_t>(FinalState::FinalState::HH) ]
+    [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTBB)]
+    [ static_cast<std::size_t>(Assumption::Assumption::TwoQuarkLost)] = 15000;
   
   if (nCallsMultiplier != 1.0) {
     for (int i=0; i<4; i++) {
@@ -650,7 +667,11 @@ void MEM::MEMConfig::defaultCfg(float nCallsMultiplier){
   
   perm_pruning = {Permutations::BTagged, Permutations::QUntagged,
 		  //Permutations::QQbarSymmetry,Permutations::BBbarSymmetry
-		  Permutations::QQbarBBbarSymmetry};
+		  Permutations::QQbarBBbarSymmetry
+		  //,Permutations::HEPTopTagged
+		  //,Permutations::HiggsTagged
+  };
+  
 }
 
 
