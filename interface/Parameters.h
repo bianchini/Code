@@ -57,6 +57,7 @@ using namespace std::chrono;
 namespace MEM {
   
   int eta_to_bin( const double&, bool =false );
+  double deltaR( const LV&, const LV&);
 
   const double PI   = 3.14159265359;
   const double MTOP = 174.3;
@@ -343,7 +344,7 @@ namespace MEM {
 
     // "map" between an integration type and the number of function calls
     // FinalState vs Hypothesis vs Assumption
-    int calls[4][2][2];
+    int calls[4][2][3];
 
     // the VEGAS options
     double rel;

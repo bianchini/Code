@@ -1451,6 +1451,22 @@ int MEM::Integrand::create_PS_LH(MEM::PS& ps, const double* x, const vector<int>
     solve( ps.lv(PSPart::b), DMH2, MB, dir, E_REC, accept);
   extend_PS( ps, PSPart::bbar, E, MB, dir, perm[nj_bbar], PSVar::cos_bbar, PSVar::phi_bbar, PSVar::E_bbar,  (perm[nj_bbar]>=0?TFType::bReco:TFType::bLost) ); 
 
+  // protect against collinear radiation for TTBB
+  if( hypo==Hypothesis::TTBB ){
+    LV lv_b     = ps.lv(PSPart::b);
+    LV lv_bbar  = ps.lv(PSPart::bbar);
+    if( lv_b.Pt()<0. || lv_bbar.Pt()<0. || deltaR(lv_b, lv_bbar)<0.3 ){
+      accept = -1;
+#ifdef DEBUG_MODE
+      if( debug_code&DebugVerbosity::integration ){
+	cout << "\tSkip this PS because of collinearity: [" 
+	     << lv_b.Pt() << ", " << lv_bbar.Pt() << ", " << deltaR(lv_b, lv_bbar) << "]" 
+	     << endl;
+      }
+#endif
+    }
+  }
+
 #ifdef DEBUG_MODE
   if( debug_code&DebugVerbosity::integration ){
     cout << "\tIntegrand::create_PS_LH(): END" << endl;
@@ -1607,9 +1623,26 @@ int MEM::Integrand::create_PS_LL(MEM::PS& ps, const double* x, const vector<int>
     solve( ps.lv(PSPart::b), DMH2, MB, dir, E_REC, accept);
   extend_PS( ps, PSPart::bbar, E, MB, dir, perm[nj_bbar], PSVar::cos_bbar, PSVar::phi_bbar, PSVar::E_bbar,  (perm[nj_bbar]>=0?TFType::bReco:TFType::bLost) ); 
 
+  // protect against collinear radiation for TTBB
+  if( hypo==Hypothesis::TTBB ){
+    LV lv_b     = ps.lv(PSPart::b);
+    LV lv_bbar  = ps.lv(PSPart::bbar);
+    if( lv_b.Pt()<0. || lv_bbar.Pt()<0. || deltaR(lv_b, lv_bbar)<0.3 ){
+      accept = -1;
+#ifdef DEBUG_MODE
+      if( debug_code&DebugVerbosity::integration ){
+	cout << "\tSkip this PS because of collinearity: [" 
+	     << lv_b.Pt() << ", " << lv_bbar.Pt() << ", " << deltaR(lv_b, lv_bbar) << "]" 
+	     << endl;
+      }
+#endif
+    }
+  }
+
+
 #ifdef DEBUG_MODE
   if( debug_code&DebugVerbosity::integration ){
-    cout << "\tIntegrand::create_PS_LH(): END" << endl;
+    cout << "\tIntegrand::create_PS_LHL(): END" << endl;
   }
 #endif
 
@@ -1759,6 +1792,22 @@ int MEM::Integrand::create_PS_HH(MEM::PS& ps, const double* x, const vector<int>
     solve( ps.lv(PSPart::b), DMH2, MB, dir, E_REC, accept);
   extend_PS( ps, PSPart::bbar, E, MB, dir, perm[nj_bbar], PSVar::cos_bbar, PSVar::phi_bbar, PSVar::E_bbar,  (perm[nj_bbar]>=0?TFType::bReco:TFType::bLost) ); 
 
+  // protect against collinear radiation for TTBB
+  if( hypo==Hypothesis::TTBB ){
+    LV lv_b     = ps.lv(PSPart::b);
+    LV lv_bbar  = ps.lv(PSPart::bbar);
+    if( lv_b.Pt()<0. || lv_bbar.Pt()<0. || deltaR(lv_b, lv_bbar)<0.3 ){
+      accept = -1;
+#ifdef DEBUG_MODE
+      if( debug_code&DebugVerbosity::integration ){
+	cout << "\tSkip this PS because of collinearity: [" 
+	     << lv_b.Pt() << ", " << lv_bbar.Pt() << ", " << deltaR(lv_b, lv_bbar) << "]" 
+	     << endl;
+      }
+#endif
+    }
+  }
+  
 #ifdef DEBUG_MODE
   if( debug_code&DebugVerbosity::integration ){
     cout << "\tIntegrand::create_PS_HH(): END" << endl;

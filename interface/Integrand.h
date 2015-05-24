@@ -10,6 +10,9 @@ extern "C" {
 extern "C" {
   void ppttxbbxcallme2born_( double*, double[24], double*, double* );
 }
+extern "C" {
+  void ppttxjcallme2born_( double*, double[20], double*, double* );
+}
 
 
 namespace LHAPDF {

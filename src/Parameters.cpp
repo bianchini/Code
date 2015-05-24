@@ -15,6 +15,10 @@ int MEM::eta_to_bin( const double& eta, bool mark_acceptance ){
   }
 }
 
+double MEM::deltaR( const LV& a, const LV& b ){
+  return sqrt( TMath::Power(a.Eta()-b.Eta(),2) + TMath::Power( TMath::ACos(TMath::Cos(a.Phi()-b.Phi())),2) );
+}
+
 bool MEM::isQuark(const MEM::TFType::TFType& t) {
   return (t==TFType::bReco || t==TFType::qReco || t==TFType::bLost || t==TFType::qLost);
 }
@@ -563,7 +567,7 @@ MEM::MEMConfig::MEMConfig(int nmc,
   highpt_first = hpf;
   for( int i = 0; i < 4 ; ++i){
     for( int j = 0; j < 2 ; ++j){
-      for( int k = 0; k < 2 ; ++k){
+      for( int k = 0; k < 3 ; ++k){
 	calls[i][j][k] = 2000;
       }
     }
@@ -648,7 +652,7 @@ void MEM::MEMConfig::defaultCfg(float nCallsMultiplier){
   if (nCallsMultiplier != 1.0) {
     for (int i=0; i<4; i++) {
       for (int j=0; j<2; j++) {
-        for (int k=0; k<2; k++) {
+        for (int k=0; k<3; k++) {
           calls[i][j][k] = nCallsMultiplier * calls[i][j][k];
         }
       }
