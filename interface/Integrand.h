@@ -211,6 +211,9 @@ namespace MEM {
     std::vector<std::vector<int> > perm_indexes_assumption;
     std::size_t this_perm;
     std::vector< double >          perm_const_assumption;
+    std::vector< double >          perm_tmpval_assumption;
+    std::vector< size_t >          perm_pruned;
+    
 
     // map between parameter names (physical) and positions in
     // VEGAS space

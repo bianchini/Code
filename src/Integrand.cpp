@@ -38,6 +38,8 @@ MEM::Integrand::~Integrand(){
   perm_index.clear();
   perm_indexes_assumption.clear();
   perm_const_assumption.clear();
+  perm_tmpval_assumption.clear();
+  perm_pruned.clear();
   map_to_var.clear();
   map_to_part.clear();
 }
@@ -541,6 +543,8 @@ void MEM::Integrand::next_event(){
   perm_index.clear();
   perm_indexes_assumption.clear();
   perm_const_assumption.clear();
+  perm_tmpval_assumption.clear();
+  perm_pruned.clear();
   map_to_var.clear();
   map_to_part.clear();
   if( debug_code&DebugVerbosity::init ){
@@ -563,6 +567,8 @@ void MEM::Integrand::next_hypo(){
   perm_index.clear();
   perm_indexes_assumption.clear();
   perm_const_assumption.clear();
+  perm_tmpval_assumption.clear();
+  perm_pruned.clear();
   map_to_var.clear();
   map_to_part.clear();
   n_calls    = 0;
@@ -637,6 +643,7 @@ void MEM::Integrand::make_assumption( const std::vector<MEM::PSVar::PSVar>& lost
     }
     perm_indexes_assumption.push_back( perm ); 
     perm_const_assumption.push_back( get_permutation_constants(perm) );
+    perm_tmpval_assumption.push_back( 0. );
   }  
 
   if( debug_code&DebugVerbosity::init_more ) {
@@ -715,11 +722,16 @@ void  MEM::Integrand::do_integration(const std::size_t& npar, double* xL, double
 void  MEM::Integrand::do_minimization(const std::size_t& npar, double* xL, double* xU, double& prob, double& err2, double& chi2){
 
   ROOT::Math::Functor toIntegrate(this, &MEM::Integrand::Eval, npar);  
-  ig2->SetFunction(toIntegrate);
-  
+  //ig2->SetFunction(toIntegrate);
+
+  // do a global minimization of the integrand  
   if( !cfg.perm_int ){
     
     // setup the minimzer
+    if(minimizer!=nullptr) {
+      delete minimizer;
+      minimizer = nullptr;
+    }
     minimizer = ROOT::Math::Factory::CreateMinimizer("Minuit2", "");
     setup_minimizer();
     // init variables
@@ -749,7 +761,7 @@ void  MEM::Integrand::do_minimization(const std::size_t& npar, double* xL, doubl
     error_code = minimizer->Status();
   }
 
-  // do a global minimization of the integrand
+  // do a permutation-by-permutation minimization of the integrand
   else{
 
     double nll_min{ numeric_limits<double>::max() };
@@ -1254,10 +1266,35 @@ double MEM::Integrand::Eval(const double* x) const{
 
   double p{0.};
 
+  // strategy to speed-up 
+  if( cfg.do_perm_filtering && n_calls==n_max_calls ){
+    (const_cast<Integrand*>(this))->perm_pruned = 
+      get_sorted_indexes(perm_tmpval_assumption, cfg.perm_filtering_rel);
+#ifdef DEBUG_MODE
+    if( debug_code&DebugVerbosity::init ){
+      cout << "\tPruning the " <<  perm_indexes_assumption.size() << " permutations at the " 
+	   << n_calls << "th function call. By decreasing value:" << endl;
+      sort( ((const_cast<Integrand*>(this))->perm_tmpval_assumption).begin(),
+	    ((const_cast<Integrand*>(this))->perm_tmpval_assumption).end(), MEM::descending );
+      for( size_t it = 0; it <  perm_tmpval_assumption.size() ; ++it ){
+	if( it==perm_pruned.size() ) 
+	  cout << "\t\t-------------- x " << cfg.perm_filtering_rel << endl;
+	cout << "\t\t" << perm_tmpval_assumption[it] << endl;    
+      }
+      cout << "\tTotal of " << perm_pruned.size() << " permutations filtered." << endl;
+    }
+#endif
+  }
+  
   for( std::size_t n_perm = 0; n_perm < perm_indexes_assumption.size() ; ++n_perm ){
+
     if( cfg.perm_int ){
       if(n_perm != this_perm) continue;
     }
+    if( cfg.do_perm_filtering ){
+      if( !is_in(perm_pruned,n_perm) ) continue;
+    }
+    
     double p0 = probability(x, n_perm );
     double p1 = cfg.int_code>0 ? perm_const_assumption[n_perm] : 1.0;
 #ifdef DEBUG_MODE
@@ -1267,6 +1304,11 @@ double MEM::Integrand::Eval(const double* x) const{
       cout << "\t\t\tP --> " << p << " + " << (p0*p1) << endl;
     }
 #endif
+    
+    // strategy to speed-up 
+    if( cfg.do_perm_filtering && n_calls<n_max_calls)
+      ((const_cast<Integrand*>(this))->perm_tmpval_assumption)[ n_perm ] += (p0*p1);
+
     p += (p0*p1);
   }
   

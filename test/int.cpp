@@ -16,6 +16,8 @@ int main(){
 
   MEMConfig cfg;
   cfg.defaultCfg();
+  cfg.do_perm_filtering  = 1;
+  cfg.perm_filtering_rel = 8e-03;
   //cfg.transfer_function_method = TFMethod::External;
   //cfg.do_minimize = 1;
   //cfg.perm_int    = 0;
@@ -83,7 +85,7 @@ int main(){
   
   integrand->set_permutation_strategy
     (  {Permutations::BTagged
-	//,Permutations::QUntagged 
+	,Permutations::QUntagged 
 	,Permutations::QQbarBBbarSymmetry
 	//,Permutations::HEPTopTagged
 	//,Permutations::HiggsTagged
@@ -107,12 +109,12 @@ int main(){
   //integrand->set_sqrts (13000.);  
 
   MEMOutput res;			   
-  res = integrand->run( FinalState::LH, Hypothesis::TTH,  {} );
-  //res = integrand->run( FinalState::LH, Hypothesis::TTBB, {} );
+  //res = integrand->run( FinalState::LH, Hypothesis::TTH,  {} );
+  res = integrand->run( FinalState::LH, Hypothesis::TTBB, {} );
   //res = integrand->run( FinalState::HH, Hypothesis::TTH,  {} );
   //res = integrand->run( FinalState::LL, Hypothesis::TTH,  {} );
 
-  //res = integrand->run( FinalState::LH, Hypothesis::TTH,  {PSVar::cos_q1, PSVar::phi_q1, PSVar::cos_qbar1, PSVar::phi_qbar1} );
+  //res = integrand->run( FinalState::LH, Hypothesis::TTH,  {PSVar::cos_qbar1, PSVar::phi_qbar1} );
   //res = integrand->run( FinalState::LH, Hypothesis::TTBB,  {PSVar::cos_q1, PSVar::phi_q1, PSVar::cos_qbar1, PSVar::phi_qbar1} );
 
   //res = integrand->run( FinalState::LH, Hypothesis::TTBB,  {PSVar::cos_bbar, PSVar::phi_bbar} );
