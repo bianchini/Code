@@ -23,21 +23,21 @@ bool MEM::descending (double a, double b){
   return (a >=b ); 
 }
 
-vector<size_t> MEM::get_sorted_indexes(const vector<double>& in, const double& cut){
-  vector<size_t> out;
+vector<std::size_t> MEM::get_sorted_indexes(const std::vector<double>& in, const double& cut){
+  std::vector<std::size_t> out;
   double max   {0.};
-  for(size_t id = 0 ; id < in.size() ; ++id){
+  for(std::size_t id = 0 ; id < in.size() ; ++id){
     double in_id = in[id];
     if( in_id >= max ) max = in_id;
   }
   if(max<=0.) return out;
-  for(size_t id = 0 ; id < in.size() ; ++id){
+  for(std::size_t id = 0 ; id < in.size() ; ++id){
     if( in[id]/max >= cut ) out.push_back( id );
   }
   return out;
 }
 
-bool MEM::is_in( const vector<size_t>& v, const size_t& id){
+bool MEM::is_in( const std::vector<std::size_t>& v, const std::size_t& id){
   if( v.size()<1 ) return true;
   for( auto idx : v ) if( idx==id ) return true;
   return false;
@@ -573,7 +573,8 @@ MEM::MEMConfig::MEMConfig(int nmc,
 			  int hpf,
                           MEM::TFMethod::TFMethod method,
 			  int minim,
-			  int permprun, double permrel){
+			  int permprun, double permrel,
+			  int prefit){
   n_max_calls  = nmc;
   abs          = ab;
   rel          = re;
@@ -602,6 +603,7 @@ MEM::MEMConfig::MEMConfig(int nmc,
   do_minimize  = minim;
   do_perm_filtering  = permprun;
   perm_filtering_rel = permrel;
+  do_prefit          = prefit;
 }
 
 void MEM::MEMConfig::defaultCfg(float nCallsMultiplier){

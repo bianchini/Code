@@ -61,8 +61,8 @@ namespace MEM {
 
   bool descending (double, double);
 
-  vector<size_t> get_sorted_indexes(const vector<double>&, const double&);
-  bool is_in( const vector<size_t>&, const size_t&);
+  std::vector<std::size_t> get_sorted_indexes(const std::vector<double>&, const double&);
+  bool is_in( const vector<std::size_t>&, const std::size_t&);
 
   const double PI   = 3.14159265359;
   const double MTOP = 174.3;
@@ -338,7 +338,8 @@ namespace MEM {
                TFMethod::TFMethod =TFMethod::Builtin,
 	       int    =0,                // do minimisation instead of integration
 	       int    =0,                // do runtime pruning of permutations
-	       double =1e-03             // pruning accuracy  
+	       double =1e-03,            // pruning accuracy  
+	       int    =0                 // prefit
 	       );
 
     void defaultCfg(float nCallsMultiplier=1.0);
@@ -407,6 +408,9 @@ namespace MEM {
 
     // pruning accuracy
     double perm_filtering_rel;
+
+    // do a pre-fit to filter permutations
+    int do_prefit;
 
     std::map<std::pair<TFType::TFType, int>, TF1> tf_map;
   };

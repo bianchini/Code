@@ -212,7 +212,7 @@ namespace MEM {
     std::size_t this_perm;
     std::vector< double >          perm_const_assumption;
     std::vector< double >          perm_tmpval_assumption;
-    std::vector< size_t >          perm_pruned;
+    std::vector< std::size_t >     perm_pruned;
     
 
     // map between parameter names (physical) and positions in
@@ -229,6 +229,9 @@ namespace MEM {
     // MINUIT2 minimizer
     ROOT::Math::Minimizer* minimizer;
         
+    // an intenal step to perform the pre-fit
+    std::size_t prefit_step;
+    
     //Stores the global cumulative transfer functions for jet reconstruction efficiency
     const std::map<std::pair<TFType::TFType, int>, TF1> tf_map;
 
