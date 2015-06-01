@@ -82,8 +82,12 @@ for inf in infiles:
             print "cfg.int_code", cfg.int_code
             int_code = int(line.split()[1])
             cfg.int_code = int_code
-        elif line.startswith("bq") or line.startswith("lq"):
-            jet_type, pt, eta, phi, m, btagflag, match = line.split()
+        elif line.startswith("do_minimize"):
+            print "cfg.", cfg.do_minimize
+            do_minimize = int(line.split()[1])
+            cfg.do_minimize = do_minimize
+        elif line.startswith("memBQuark") or line.startswith("lq"):
+            jet_type, pt, eta, phi, m, btagflag, match, match_index = line.split()
             pt, eta, phi, m, btagflag = tuple(map(float, [pt, eta, phi, m, btagflag]))
             v = TLorentzVector()
             v.SetPtEtaPhiM(pt, eta, phi, m)
@@ -92,7 +96,7 @@ for inf in infiles:
             add_tf(eta, o)
             mem.push_back_object(o)
             #print "jet", pt, eta, phi, m, btagflag
-        elif line.startswith("lp"):
+        elif line.startswith("memLepton"):
             lep_type, pt, eta, phi, m, charge = line.split()
             pt, eta, phi, m, charge = tuple(map(float, [pt, eta, phi, m, charge]))
             v = TLorentzVector()
@@ -102,7 +106,7 @@ for inf in infiles:
             add_tf(eta, o)
             mem.push_back_object(o)
             #print "lep", pt, eta, phi
-        elif line.startswith("mt"):
+        elif line.startswith("memMET"):
             met_type, pt, phi = line.split()
             pt, phi = tuple(map(float, [pt, phi]))
             v = TLorentzVector()
