@@ -16,6 +16,9 @@ int main(){
 
   MEMConfig cfg;
   cfg.defaultCfg();
+  //cfg.do_perm_filtering  = 1;
+  cfg.do_prefit = 1;
+  cfg.perm_filtering_rel = 1e-03;
   //cfg.transfer_function_method = TFMethod::External;
   //cfg.do_minimize = 1;
   //cfg.perm_int    = 0;
@@ -36,16 +39,16 @@ int main(){
 					 //|DebugVerbosity::integration				        
 					 ,cfg);
 
-  Object j1( TLorentzVector(30,0, 10, sqrt(30*30+10*10)), ObjectType::Jet );
+  Object j1( TLorentzVector(30,30, 10, sqrt(30*30+10*10)), ObjectType::Jet );
   j1.addObs( Observable::BTAG, 0. );  
   j1.addObs( Observable::PDGID, 1 );  
-  Object j2( TLorentzVector(0,50, 20, sqrt(50*50+20*20)), ObjectType::Jet );
+  Object j2( TLorentzVector(20,50, 20, sqrt(50*50+20*20)), ObjectType::Jet );
   j2.addObs( Observable::BTAG, 1. );
   j2.addObs( Observable::PDGID, 5 );  
-  Object j3( TLorentzVector(30,30, 40, sqrt(30*30+30*30+40*40)), ObjectType::Jet );
+  Object j3( TLorentzVector(20,30, 40, sqrt(30*30+30*30+40*40)), ObjectType::Jet );
   j3.addObs( Observable::BTAG, 0. );
   j3.addObs( Observable::PDGID, 1 );  
-  Object j4( TLorentzVector(70,20, 10, sqrt(70*70+20*20+10*10)), ObjectType::Jet );
+  Object j4( TLorentzVector(10,20, 10, sqrt(70*70+20*20+10*10)), ObjectType::Jet );
   j4.addObs( Observable::BTAG, 1. );
   j4.addObs( Observable::PDGID, 22 );  
   Object j5( TLorentzVector(20,50, 10, sqrt(20*20+50*50+10*10)), ObjectType::Jet );
@@ -82,7 +85,7 @@ int main(){
 
   
   integrand->set_permutation_strategy
-    (  {Permutations::BTagged
+    (  { Permutations::BTagged
 	//,Permutations::QUntagged 
 	,Permutations::QQbarBBbarSymmetry
 	//,Permutations::HEPTopTagged
@@ -107,15 +110,15 @@ int main(){
   //integrand->set_sqrts (13000.);  
 
   MEMOutput res;			   
-  res = integrand->run( FinalState::LH, Hypothesis::TTH,  {} );
+  //res = integrand->run( FinalState::LH, Hypothesis::TTH,  {} );
   //res = integrand->run( FinalState::LH, Hypothesis::TTBB, {} );
   //res = integrand->run( FinalState::HH, Hypothesis::TTH,  {} );
   //res = integrand->run( FinalState::LL, Hypothesis::TTH,  {} );
 
-  //res = integrand->run( FinalState::LH, Hypothesis::TTH,  {PSVar::cos_q1, PSVar::phi_q1, PSVar::cos_qbar1, PSVar::phi_qbar1} );
+  //res = integrand->run( FinalState::LH, Hypothesis::TTH,  {PSVar::cos_qbar1, PSVar::phi_qbar1} );
   //res = integrand->run( FinalState::LH, Hypothesis::TTBB,  {PSVar::cos_q1, PSVar::phi_q1, PSVar::cos_qbar1, PSVar::phi_qbar1} );
 
-  //res = integrand->run( FinalState::LH, Hypothesis::TTBB,  {PSVar::cos_bbar, PSVar::phi_bbar} );
+  res = integrand->run( FinalState::LH, Hypothesis::TTBB,  {PSVar::cos_qbar1, PSVar::phi_qbar1} );
   //res = integrand->run( FinalState::LH, Hypothesis::TTH,  {PSVar::cos_q1, PSVar::phi_q1, PSVar::cos_qbar1, PSVar::phi_qbar1} );
 
   //integrand->run( FinalState::TTH, Hypothesis::TTH,  {} );

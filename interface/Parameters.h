@@ -59,6 +59,11 @@ namespace MEM {
   int eta_to_bin( const double&, bool =false );
   double deltaR( const LV&, const LV&);
 
+  bool descending (double, double);
+
+  std::vector<std::size_t> get_sorted_indexes(const std::vector<double>&, const double&);
+  bool is_in( const vector<std::size_t>&, const std::size_t&);
+
   const double PI   = 3.14159265359;
   const double MTOP = 174.3;
   const double MTOP2= MTOP*MTOP;
@@ -295,7 +300,7 @@ namespace MEM {
   namespace IntegrandType {
     enum IntegrandType { Constant=1, Jacobian=2, Transfer=4, ScattAmpl=8, DecayAmpl=16, PDF=32, Sudakov=64, Recoil=128, SmearJets=256, SmearMET=512 };
   }
-  
+
   struct CompPerm {
     CompPerm(int order=0){
       highpt_first = order;
@@ -331,7 +336,10 @@ namespace MEM {
 	       bool   =false,            // restrict tf to same range used for quark energy integration
 	       int    =1,                // use highest pT jets for E_q/E_b,
                TFMethod::TFMethod =TFMethod::Builtin,
-	       int    =0                 // do minimisation instead of integration
+	       int    =0,                // do minimisation instead of integration
+	       int    =0,                // do runtime pruning of permutations
+	       double =1e-03,            // pruning accuracy  
+	       int    =0                 // prefit
 	       );
 
     void defaultCfg(float nCallsMultiplier=1.0);
@@ -395,6 +403,15 @@ namespace MEM {
     // do minimzation, not integration
     int do_minimize;
     
+    // do runtime pruning of permutations
+    int do_perm_filtering;
+
+    // pruning accuracy
+    double perm_filtering_rel;
+
+    // do a pre-fit to filter permutations
+    int do_prefit;
+
     std::map<std::pair<TFType::TFType, int>, TF1> tf_map;
   };
 

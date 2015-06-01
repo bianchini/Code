@@ -19,6 +19,30 @@ double MEM::deltaR( const LV& a, const LV& b ){
   return sqrt( TMath::Power(a.Eta()-b.Eta(),2) + TMath::Power( TMath::ACos(TMath::Cos(a.Phi()-b.Phi())),2) );
 }
 
+bool MEM::descending (double a, double b){ 
+  return (a >=b ); 
+}
+
+vector<std::size_t> MEM::get_sorted_indexes(const std::vector<double>& in, const double& cut){
+  std::vector<std::size_t> out;
+  double max   {0.};
+  for(std::size_t id = 0 ; id < in.size() ; ++id){
+    double in_id = in[id];
+    if( in_id >= max ) max = in_id;
+  }
+  if(max<=0.) return out;
+  for(std::size_t id = 0 ; id < in.size() ; ++id){
+    if( in[id]/max >= cut ) out.push_back( id );
+  }
+  return out;
+}
+
+bool MEM::is_in( const std::vector<std::size_t>& v, const std::size_t& id){
+  if( v.size()<1 ) return true;
+  for( auto idx : v ) if( idx==id ) return true;
+  return false;
+}
+
 bool MEM::isQuark(const MEM::TFType::TFType& t) {
   return (t==TFType::bReco || t==TFType::qReco || t==TFType::bLost || t==TFType::qLost);
 }
@@ -548,7 +572,9 @@ MEM::MEMConfig::MEMConfig(int nmc,
 			  bool tfrange,
 			  int hpf,
                           MEM::TFMethod::TFMethod method,
-			  int minim){
+			  int minim,
+			  int permprun, double permrel,
+			  int prefit){
   n_max_calls  = nmc;
   abs          = ab;
   rel          = re;
@@ -575,6 +601,9 @@ MEM::MEMConfig::MEMConfig(int nmc,
   perm_pruning = {};
   transfer_function_method = method;
   do_minimize  = minim;
+  do_perm_filtering  = permprun;
+  perm_filtering_rel = permrel;
+  do_prefit          = prefit;
 }
 
 void MEM::MEMConfig::defaultCfg(float nCallsMultiplier){
