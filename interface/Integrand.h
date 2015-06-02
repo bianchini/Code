@@ -70,6 +70,7 @@ namespace MEM {
     //void run( const FinalState =FinalState::LH, const Hypothesis =Hypothesis::TTH, const std::vector<PSVar> ={});
     MEMOutput run( const FinalState::FinalState=FinalState::LH,
 		   const Hypothesis::Hypothesis =Hypothesis::TTH,
+		   const std::vector<PSVar::PSVar> = std::vector<PSVar::PSVar>(),
 		   const std::vector<PSVar::PSVar> = std::vector<PSVar::PSVar>()
 		   );
 
@@ -90,7 +91,7 @@ namespace MEM {
     void fill_map( const std::vector<PSVar::PSVar>& );
 
     // make assumption
-    void make_assumption( const std::vector<PSVar::PSVar>&, MEMOutput& );
+    void make_assumption(const std::vector<PSVar::PSVar>&, const std::vector<PSVar::PSVar>&, MEMOutput& );
 
     void do_integration (const std::size_t&, double*, double*, double&, double&, double&);
     void do_minimization(const std::size_t&, double*, double*, double&, double&, double&);
@@ -156,6 +157,9 @@ namespace MEM {
 
     // setup the minimzer
     void setup_minimizer();
+
+    // improve minimization
+    void refine_minimization(std::size_t&, const ROOT::Math::Functor&, const std::size_t&, double*, double*);
 
     // smear MET
     void smear_met();

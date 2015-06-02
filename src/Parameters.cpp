@@ -193,7 +193,13 @@ double MEM::transfer_function(double* y, double* x, const TFType::TFType& type, 
 #endif
     }
     break;
-
+  case TFType::Unknown:
+    w *= 1.;
+#ifdef DEBUG_MODE
+    if( debug&DebugVerbosity::integration) 
+      cout << "\t\ttransfer_function: Evaluate W = 1 " << endl;
+#endif
+    break;
   default:
     break;
   }
