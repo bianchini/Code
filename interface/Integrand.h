@@ -234,6 +234,10 @@ namespace MEM {
     
     //Stores the global cumulative transfer functions for jet reconstruction efficiency
     const std::map<std::pair<TFType::TFType, int>, TF1> tf_map;
+    
+    //the PDF-s for the b-tagger discriminants
+    std::map<DistributionType::DistributionType, TH3D> btag_pdfs;
+
 
   };
 
