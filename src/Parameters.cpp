@@ -193,7 +193,13 @@ double MEM::transfer_function(double* y, double* x, const TFType::TFType& type, 
 #endif
     }
     break;
-
+  case TFType::Unknown:
+    w *= 1.;
+#ifdef DEBUG_MODE
+    if( debug&DebugVerbosity::integration) 
+      cout << "\t\ttransfer_function: Evaluate W = 1 " << endl;
+#endif
+    break;
   default:
     break;
   }
@@ -738,4 +744,8 @@ int MEM::getEtaBin(double eta) {
 
 void MEM::MEMConfig::set_tf_global(TFType::TFType type, int etabin, TF1 tf) {
     tf_map[std::make_pair(type, etabin)] = tf;
+}
+
+void MEM::MEMConfig::add_distribution_global(DistributionType::DistributionType type, TH3D tf) {
+    btag_pdfs.insert(std::make_pair(type, tf));
 }

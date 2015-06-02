@@ -37,6 +37,7 @@
 #include "TVector3.h"
 #include "TMath.h"
 #include "TF1.h"
+#include "TH3D.h"
 #include "TF2.h"
 #include "TRandom3.h"
 #include "Math/Minimizer.h"
@@ -124,6 +125,10 @@ namespace MEM {
  
   namespace TFType {
     enum TFType {bReco=0, qReco=1, bLost=2, qLost=3, muReco=4, elReco=5, MET=6, Recoil=7, Unknown=8};
+  }
+  
+  namespace DistributionType {
+    enum DistributionType {csv_b=0, csv_c=1, csv_l=2};
   }
   
   namespace TFMethod {
@@ -346,6 +351,7 @@ namespace MEM {
     void setNCalls(FinalState::FinalState, Hypothesis::Hypothesis, Assumption::Assumption, int);
     int getNCalls(FinalState::FinalState, Hypothesis::Hypothesis, Assumption::Assumption);
     void set_tf_global(TFType::TFType type, int etabin, TF1 tf);
+    void add_distribution_global(DistributionType::DistributionType type, TH3D tf);
 
     // optionally this can be called instead of the built-in array
     int n_max_calls;
@@ -413,6 +419,8 @@ namespace MEM {
     int do_prefit;
 
     std::map<std::pair<TFType::TFType, int>, TF1> tf_map;
+    
+    std::map<DistributionType::DistributionType, TH3D> btag_pdfs;
   };
 
   struct MEMOutput{

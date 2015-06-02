@@ -1,7 +1,8 @@
 #include "interface/Integrand.h"
 
 MEM::Integrand::Integrand(int debug, const MEMConfig& config) :
-tf_map(config.tf_map) {
+tf_map(config.tf_map),
+btag_pdfs(config.btag_pdfs) {
 
   // establish invariants
   debug_code         = debug;
@@ -37,12 +38,21 @@ MEM::Integrand::~Integrand(){
   obs_leptons.clear();
   obs_mets.clear();
   perm_index.clear();
+  for(auto p : perm_indexes_assumption) p.clear();
   perm_indexes_assumption.clear();
   perm_const_assumption.clear();
   perm_tmpval_assumption.clear();
   perm_pruned.clear();
   map_to_var.clear();
   map_to_part.clear();
+  if(ig2!=nullptr){
+    delete ig2;
+    ig2 = nullptr;
+  }
+  if(minimizer!=nullptr){
+    delete minimizer;
+    minimizer = nullptr;
+  }
 }
 
 
@@ -390,9 +400,15 @@ void MEM::Integrand::push_back_object(const LV& p4,  const MEM::ObjectType::Obje
 
 void MEM::Integrand::push_back_object(MEM::Object* obj){
 
+  //Here's how to access the b-tag PDF distributions of jets from a non-const function
+  //TH3D& h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
   switch( obj->type() ){
   case ObjectType::Jet:
-    obs_jets.push_back( obj ); 
+    obs_jets.push_back( obj );
+    // cout << "pushed jet " << obj->p4().Pt() << " "
+    //     << h.GetBinContent(h.FindBin(
+    //         obj->p4().Pt(), std::abs(obj->p4().Eta()), 0.5
+    //     )) << endl;
     break;
   case ObjectType::Lepton:
     obs_leptons.push_back( obj ); 
@@ -459,7 +475,7 @@ void MEM::Integrand::set_permutation_strategy(const std::vector<MEM::Permutation
 }
 
 
-MEM::MEMOutput MEM::Integrand::run( const MEM::FinalState::FinalState f, const MEM::Hypothesis::Hypothesis h, const std::vector<MEM::PSVar::PSVar> list){
+MEM::MEMOutput MEM::Integrand::run( const MEM::FinalState::FinalState f, const MEM::Hypothesis::Hypothesis h, const std::vector<MEM::PSVar::PSVar> missed, const std::vector<MEM::PSVar::PSVar> any){
 
   if( debug_code&DebugVerbosity::init ){
     cout << "Integrand::run(): START" << endl;
@@ -474,13 +490,18 @@ MEM::MEMOutput MEM::Integrand::run( const MEM::FinalState::FinalState f, const M
   // prepare permutation, count variables
   init(f,h);
 
+  std::vector<PSVar::PSVar> list;
+  for(auto it : missed) list.push_back(it); // quarks out-of-acceptance
+  for(auto it : any)    list.push_back(it); // quark directions to be marginalised
+
   // number of calls
   n_max_calls = cfg.is_default ? 
     cfg.calls[static_cast<std::size_t>(fs)][static_cast<std::size_t>(h)][list.size()/2] : 
     cfg.n_max_calls;
 
   if( debug_code&DebugVerbosity::init ){
-    cout << "\tcfg.calls[" << static_cast<std::size_t>(fs) << "][" << static_cast<std::size_t>(h) << "][" << list.size()/2 << "] = " 
+    cout << "\tcfg.calls[" << static_cast<std::size_t>(fs) 
+	 << "][" << static_cast<std::size_t>(h) << "][" << list.size()/2 << "] = " 
 	 << cfg.calls[static_cast<std::size_t>(fs)][static_cast<std::size_t>(h)][list.size()/2]
 	 << " (n_max_calls = " << n_max_calls << ")" << endl;
   }
@@ -497,7 +518,7 @@ MEM::MEMOutput MEM::Integrand::run( const MEM::FinalState::FinalState f, const M
   auto t1 = high_resolution_clock::now();
 
   // do the calculation
-  make_assumption( list, out ); 
+  make_assumption( missed, any, out ); 
 
   // stop the clock!
   auto t2 = high_resolution_clock::now();
@@ -543,6 +564,7 @@ void MEM::Integrand::next_event(){
   cfg.is_default     = true;
   n_perm_max         = 0;
   perm_index.clear();
+  for(auto p : perm_indexes_assumption) p.clear();
   perm_indexes_assumption.clear();
   perm_const_assumption.clear();
   perm_tmpval_assumption.clear();
@@ -567,6 +589,7 @@ void MEM::Integrand::next_hypo(){
     minimizer = nullptr;
   }
   perm_index.clear();
+  for(auto p : perm_indexes_assumption) p.clear();
   perm_indexes_assumption.clear();
   perm_const_assumption.clear();
   perm_tmpval_assumption.clear();
@@ -577,6 +600,7 @@ void MEM::Integrand::next_hypo(){
   n_calls    = 0;
   n_skip     = 0;
   n_perm_max = 0;
+  cfg.is_default = true;
   if( debug_code&DebugVerbosity::init ){
     cout << "Integrand::next_hypo(): END" << endl;
   }
@@ -592,7 +616,9 @@ bool MEM::Integrand::test_assumption( const size_t& lost){
   return true;
 }
 
-void MEM::Integrand::make_assumption( const std::vector<MEM::PSVar::PSVar>& lost, MEMOutput& out){
+void MEM::Integrand::make_assumption( const std::vector<MEM::PSVar::PSVar>& missed, 
+				      const std::vector<MEM::PSVar::PSVar>& any, 
+				      MEMOutput& out){
 
   if( debug_code&DebugVerbosity::init ){
     cout << "Integrand::make_assumption(): START" << endl;
@@ -601,6 +627,10 @@ void MEM::Integrand::make_assumption( const std::vector<MEM::PSVar::PSVar>& lost
   double prob{0.};
   double err2{0.};
   double chi2{0.};
+
+  std::vector<PSVar::PSVar> lost;
+  for(auto it : missed) lost.push_back( it );
+  for(auto it : any)    lost.push_back( it );
 
   // an assumption may not be consistent with the number of observed jets
   // E.g.: assume 1 lost quark but 2 jets missing wrt to expectation
@@ -624,10 +654,13 @@ void MEM::Integrand::make_assumption( const std::vector<MEM::PSVar::PSVar>& lost
     // - provide first cosTheta: then *it-1 gives the position of E
     // - (*it-1) / 3 gives particle position (0=q1,1=qbar1,2=b1,...)
     size_t count{0};
-    for(auto it = lost.begin() ; it!=lost.end() ; ++count, ++it ){
+    for(auto it = missed.begin() ; it!=missed.end() ; ++count, ++it ){
       size_t lost_particle = (static_cast<size_t>(*it)-1)/3;
-      //if(count%2==0) perm[ lost_particle ] = -1;      
       if(count%2==0) perm[ map_to_part[ static_cast<PSPart::PSPart>(lost_particle)] ] = -1;      
+    }
+    for(auto it = any.begin() ; it!=any.end() ; ++count, ++it ){
+      size_t lost_particle = (static_cast<size_t>(*it)-1)/3;
+      if(count%2==0) perm[ map_to_part[ static_cast<PSPart::PSPart>(lost_particle)] ] = -2;      
     }
 
     // count the number of lost quarks as assumed in perm
@@ -691,7 +724,9 @@ void MEM::Integrand::make_assumption( const std::vector<MEM::PSVar::PSVar>& lost
     n_calls     = 0;
     n_skip      = 0;
     prob        = 0.;
+    err2        = 0.;
     error_code  = 0;
+    chi2        = 0.;
     //debug_code |= DebugVerbosity::integration;
     do_integration ( npar, xL, xU, prob, err2, chi2);
   }
@@ -703,6 +738,16 @@ void MEM::Integrand::make_assumption( const std::vector<MEM::PSVar::PSVar>& lost
   }
 
   if(!cfg.int_code) prob /= (volume*perm_indexes_assumption.size());  
+
+  if( TMath::IsNaN(prob) ){
+    cout << "\tdo_integration() returned a NaN" << endl;
+    prob = 0.;
+    err2 = 0.;
+    chi2 = 99.;
+    error_code = 1;
+    return;
+  }
+
   out.p     = prob;
   out.p_err = sqrt(err2);
   out.chi2  = chi2;
@@ -736,9 +781,19 @@ void  MEM::Integrand::do_integration(const std::size_t& npar, double* xL, double
 
   // do the integral over the sum of permutations
   else{
-    prob += ig2->Integral(xL,xU);
-    err2 += TMath::Power(ig2->Error(),2.);
-    chi2 += ig2->ChiSqr();
+    double p     = ig2->Integral(xL,xU); 
+    double p_err = TMath::Power(ig2->Error(),2.);
+    double c2    = ig2->ChiSqr(); 
+    if( TMath::IsNaN(p) ){
+      cout << "\tIntegral() returned a NaN..." << endl;
+      p     = 0.;
+      p_err = 0.;
+      c2    = 99.;
+      error_code = 1;
+    }
+    prob += p;
+    err2 += p_err;
+    chi2 += c2;
   }
 
   return;
@@ -752,6 +807,8 @@ void  MEM::Integrand::do_minimization(const std::size_t& npar, double* xL, doubl
   // do a global minimization of the integrand  
   if( !cfg.perm_int || (cfg.do_prefit && prefit_step==0)){
     
+    size_t num_trials{0};
+
     // setup the minimzer
     if(minimizer!=nullptr) {
       delete minimizer;
@@ -759,6 +816,8 @@ void  MEM::Integrand::do_minimization(const std::size_t& npar, double* xL, doubl
     }
     minimizer = ROOT::Math::Factory::CreateMinimizer("Minuit2", "");
     setup_minimizer();
+    minimizer->SetFunction(toIntegrate);
+
     // init variables
     for(size_t np = 0; np < npar ; ++np){
       string var_name = "par_"+std::to_string(np);
@@ -769,13 +828,16 @@ void  MEM::Integrand::do_minimization(const std::size_t& npar, double* xL, doubl
     }
 
     // run!
-    minimizer->SetFunction(toIntegrate);
+    ++num_trials;
     minimizer->Minimize();
-    double nll = minimizer->MinValue();
+    if(cfg.do_prefit && minimizer->Status()!=0) 
+      refine_minimization(num_trials, toIntegrate, npar, xL, xU);
+
+    double nll       = minimizer->MinValue();
+    const double *xs = minimizer->X(); 
 
     if(debug_code&DebugVerbosity::init ){
-      const double *xs = minimizer->X();
-      cout << "\tStatus = " << minimizer->Status() 
+      cout << "\tStatus = " << minimizer->Status()  << " after " << num_trials << " trials"
 	   << ", Minimum nll = " <<  nll 
 	   << " (p = " << TMath::Exp(-nll)  << ")" << endl;
       for( size_t var = 0 ; var < npar ; ++var)
@@ -786,7 +848,6 @@ void  MEM::Integrand::do_minimization(const std::size_t& npar, double* xL, doubl
       prefit_step = 1;
       if( debug_code&DebugVerbosity::init ) cout << "\tSTEP...." << prefit_step << ": evaluate permutations at minimum" << endl;
 
-      const double *xs = minimizer->X(); 
       for( std::size_t n_perm = 0; n_perm < perm_indexes_assumption.size() ; ++n_perm ){
 	this_perm   = n_perm;
 	perm_tmpval_assumption[n_perm] = TMath::Exp(-Eval( xs ));
@@ -795,7 +856,6 @@ void  MEM::Integrand::do_minimization(const std::size_t& npar, double* xL, doubl
       
       if( debug_code&DebugVerbosity::init ){
 	cout << "\tPruning the " <<  perm_indexes_assumption.size() << " permutations using the pre-fit" << endl;
-	//sort( perm_tmpval_assumption.begin(), perm_tmpval_assumption.end(), MEM::descending );
 	for( size_t it = 0; it <  perm_tmpval_assumption.size() ; ++it ){
 	  if(is_in(perm_pruned,it)) 
 	    cout << "\t\t" << perm_tmpval_assumption[it] << " <==" << endl;    
@@ -1361,7 +1421,7 @@ double MEM::Integrand::Eval(const double* x) const{
     // strategy to speed-up 
     if( cfg.do_perm_filtering && n_calls<n_max_calls)
       ((const_cast<Integrand*>(this))->perm_tmpval_assumption)[ n_perm ] += (p0*p1);
-
+    
     p += (p0*p1);
   }
   
@@ -1377,6 +1437,12 @@ double MEM::Integrand::Eval(const double* x) const{
     cout << "\tIntegrand::Eval(): END" << endl;
   }
 #endif
+
+  if( TMath::IsNaN(p) ){
+    cout << "\tEval() returned a NaN..." << endl;
+    return 0.;
+  }
+
 
   return p;
 }
@@ -1433,6 +1499,7 @@ int MEM::Integrand::create_PS_LH(MEM::PS& ps, const double* x, const vector<int>
   double E_HIGH{0.};
   double E_REC {numeric_limits<double>::max()};
   TVector3 dir (1.,0.,0.);
+  TFType::TFType tftype = TFType::Unknown;
 
   // map a quark to an index inside the obs_ collections
   size_t nj_q1    =  map_to_part.find(PSPart::q1)->second; 
@@ -1449,39 +1516,45 @@ int MEM::Integrand::create_PS_LH(MEM::PS& ps, const double* x, const vector<int>
     dir     = obj->p4().Vect().Unit();
     E_LOW   = obj->getObs(Observable::E_LOW_Q) ;
     E_HIGH  = obj->getObs(Observable::E_HIGH_Q);
+    tftype  = TFType::qReco;
   }
   else{
     dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_q1)->second ]) );
     dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_q1)->second ] );
     E_LOW   = MQ;
     E_HIGH  = TMath::Min(cfg.emax, 2*MEM::TF_ACC_param[1]/TMath::Sin(dir.Theta()) ); // Restrict to 2*E threshol
+    tftype  = (perm[nj_q1]==-1 ? TFType::qLost : TFType::Unknown);
   }
   E       = E_LOW + (E_HIGH-E_LOW)*(x[ map_to_var.find(PSVar::E_q1)->second ]);
-  extend_PS( ps, PSPart::q1, E, MQ, dir, perm[nj_q1], PSVar::cos_q1, PSVar::phi_q1, PSVar::E_q1, (perm[nj_q1]>=0?TFType::qReco:TFType::qLost) ); 
+  extend_PS( ps, PSPart::q1, E, MQ, dir, perm[nj_q1], PSVar::cos_q1, PSVar::phi_q1, PSVar::E_q1, tftype ); 
 
   /////  PSPart::qbar1
   if( perm[nj_qbar1]>=0 ){
     dir     = obs_jets[ perm[nj_qbar1] ]->p4().Vect().Unit();
+    tftype  = TFType::qReco;
   }
   else{
     dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_qbar1)->second ]) );
     dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_qbar1)->second ] );
+    tftype  = (perm[nj_qbar1]==-1 ? TFType::qLost : TFType::Unknown);
   }
   E    = solve( ps.lv(PSPart::q1), DMW2 , MQ, dir, E_REC, accept );
-  extend_PS( ps, PSPart::qbar1, E, MQ, dir, perm[nj_qbar1], PSVar::cos_qbar1, PSVar::phi_qbar1, PSVar::E_qbar1,  (perm[nj_qbar1]>=0?TFType::qReco:TFType::qLost) ); 
+  extend_PS( ps, PSPart::qbar1, E, MQ, dir, perm[nj_qbar1], PSVar::cos_qbar1, PSVar::phi_qbar1, PSVar::E_qbar1, tftype); 
 
   /////  PSPart::b1
   if( perm[nj_b1]>=0 ){
     MEM::Object* obj = obs_jets[ perm[nj_b1] ]; 
     dir     = obj->p4().Vect().Unit();
     E_REC   = obj->p4().E();
+    tftype  = TFType::bReco;
   }
   else{
     dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_b1)->second ]) );
     dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_b1)->second ] );
+    tftype  = (perm[nj_b1]==-1 ? TFType::qLost : TFType::Unknown);
   }
   E       = solve(ps.lv(PSPart::q1) + ps.lv(PSPart::qbar1), DMT2, MB, dir, E_REC, accept);
-  extend_PS( ps, PSPart::b1, E, MB , dir, perm[nj_b1], PSVar::cos_b1, PSVar::phi_b1, PSVar::E_b1,  (perm[nj_b1]>=0?TFType::bReco:TFType::bLost) ); 
+  extend_PS( ps, PSPart::b1, E, MB , dir, perm[nj_b1], PSVar::cos_b1, PSVar::phi_b1, PSVar::E_b1, tftype ); 
   
   /////  PSPart::q2
   MEM::Object* lep = obs_leptons[ nl_q2 ]; 
@@ -1503,13 +1576,15 @@ int MEM::Integrand::create_PS_LH(MEM::PS& ps, const double* x, const vector<int>
     MEM::Object* obj = obs_jets[ perm[nj_b2] ];
     dir     = obj->p4().Vect().Unit();
     E_REC   = obj->p4().E();
+    tftype  = TFType::bReco;
   }
   else{
     dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_b2)->second ]) );
     dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_b2)->second ] );
+    tftype  = (perm[nj_b2]==-1 ? TFType::bLost : TFType::Unknown);
   }
   E       = solve( ps.lv(PSPart::q2) + ps.lv(PSPart::qbar2), DMT2, MB, dir, E_REC, accept );
-  extend_PS( ps, PSPart::b2, E, MB, dir, perm[nj_b2], PSVar::cos_b2, PSVar::phi_b2, PSVar::E_b2,  (perm[nj_b2]>=0?TFType::bReco:TFType::bLost) ); 
+  extend_PS( ps, PSPart::b2, E, MB, dir, perm[nj_b2], PSVar::cos_b2, PSVar::phi_b2, PSVar::E_b2,  tftype); 
   
   /////  PSPart::b
   if( perm[nj_b]>=0 ){
@@ -1517,15 +1592,17 @@ int MEM::Integrand::create_PS_LH(MEM::PS& ps, const double* x, const vector<int>
     dir     = obj->p4().Vect().Unit();
     E_LOW   = obj->getObs(Observable::E_LOW_B) ;
     E_HIGH  = obj->getObs(Observable::E_HIGH_B);    
+    tftype  = TFType::bReco;
   }
   else{
     dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_b)->second ]) );
     dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_b)->second ] );
     E_LOW   = MB;
     E_HIGH  = TMath::Min(cfg.emax, 2*MEM::TF_ACC_param[1]/TMath::Sin(dir.Theta()) );
+    tftype  = (perm[nj_b]==-1 ? TFType::bLost : TFType::Unknown);
   }
   E       = E_LOW + (E_HIGH-E_LOW)*(x[ map_to_var.find(PSVar::E_b)->second ]);
-  extend_PS( ps, PSPart::b, E, MB, dir, perm[nj_b], PSVar::cos_b, PSVar::phi_b, PSVar::E_b,  (perm[nj_b]>=0?TFType::bReco:TFType::bLost) ); 
+  extend_PS( ps, PSPart::b, E, MB, dir, perm[nj_b], PSVar::cos_b, PSVar::phi_b, PSVar::E_b,  tftype ); 
 
   /////  PSPart::bbar   
   if( perm[nj_bbar]>=0 ){
@@ -1534,17 +1611,19 @@ int MEM::Integrand::create_PS_LH(MEM::PS& ps, const double* x, const vector<int>
     E_REC   = obj->p4().E();
     E_LOW   = obj->getObs(Observable::E_LOW_B) ;
     E_HIGH  = obj->getObs(Observable::E_HIGH_B);        
+    tftype  = TFType::bReco;
   }
   else{
     dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_bbar)->second ]) );
     dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_bbar)->second ] );
     E_LOW   = MB;
     E_HIGH  = TMath::Min(cfg.emax, 2*MEM::TF_ACC_param[1]/TMath::Sin(dir.Theta()) );
+    tftype  = (perm[nj_bbar]==-1 ? TFType::bLost : TFType::Unknown);
   }
   E    = hypo==Hypothesis::TTBB ?  
     E_LOW + (E_HIGH-E_LOW)*(x[ map_to_var.find(PSVar::E_bbar)->second ]) : 
     solve( ps.lv(PSPart::b), DMH2, MB, dir, E_REC, accept);
-  extend_PS( ps, PSPart::bbar, E, MB, dir, perm[nj_bbar], PSVar::cos_bbar, PSVar::phi_bbar, PSVar::E_bbar,  (perm[nj_bbar]>=0?TFType::bReco:TFType::bLost) ); 
+  extend_PS( ps, PSPart::bbar, E, MB, dir, perm[nj_bbar], PSVar::cos_bbar, PSVar::phi_bbar, PSVar::E_bbar,  tftype ); 
 
   // protect against collinear radiation for TTBB
   if( hypo==Hypothesis::TTBB ){
@@ -1624,6 +1703,7 @@ int MEM::Integrand::create_PS_LL(MEM::PS& ps, const double* x, const vector<int>
   double E_HIGH{0.};
   double E_REC {numeric_limits<double>::max()};
   TVector3 dir (1.,0.,0.);
+  TFType::TFType tftype = TFType::Unknown;
 
   // map a quark to an index inside the obs_ collections
   size_t nl_q1    =  map_to_part.find(PSPart::q1)->second; 
@@ -1650,13 +1730,15 @@ int MEM::Integrand::create_PS_LL(MEM::PS& ps, const double* x, const vector<int>
     MEM::Object* obj = obs_jets[ perm[nj_b1] ];
     dir     = obj->p4().Vect().Unit();
     E_REC   = obj->p4().E();
+    tftype  = TFType::bReco;
   }
   else{
     dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_b1)->second ]) );
     dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_b1)->second ] );
+    tftype  = (perm[nj_b1]==-1 ? TFType::bLost : TFType::Unknown);
   }
   E       = solve(ps.lv(PSPart::q1) + ps.lv(PSPart::qbar1), DMT2, MB, dir, E_REC, accept);
-  extend_PS( ps, PSPart::b1, E, MB , dir, perm[nj_b1], PSVar::cos_b1, PSVar::phi_b1, PSVar::E_b1,  (perm[nj_b1]>=0?TFType::bReco:TFType::bLost) ); 
+  extend_PS( ps, PSPart::b1, E, MB , dir, perm[nj_b1], PSVar::cos_b1, PSVar::phi_b1, PSVar::E_b1, tftype ); 
   
   /////  PSPart::q2
   MEM::Object* lep2 = obs_leptons[ nl_q2 ];
@@ -1675,13 +1757,15 @@ int MEM::Integrand::create_PS_LL(MEM::PS& ps, const double* x, const vector<int>
     MEM::Object* obj = obs_jets[ perm[nj_b2] ];
     dir     = obj->p4().Vect().Unit();
     E_REC   = obj->p4().E();
+    tftype  = TFType::bReco;
   }
   else{
     dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_b2)->second ]) );
     dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_b2)->second ] );
+    tftype  = (perm[nj_b2]==-1 ? TFType::bLost : TFType::Unknown);
   }
   E       = solve( ps.lv(PSPart::q2) + ps.lv(PSPart::qbar2), DMT2, MB, dir, E_REC, accept );
-  extend_PS( ps, PSPart::b2, E, MB, dir, perm[nj_b2], PSVar::cos_b2, PSVar::phi_b2, PSVar::E_b2,  (perm[nj_b2]>=0?TFType::bReco:TFType::bLost) ); 
+  extend_PS( ps, PSPart::b2, E, MB, dir, perm[nj_b2], PSVar::cos_b2, PSVar::phi_b2, PSVar::E_b2, tftype ); 
   
   /////  PSPart::b 
   if( perm[nj_b]>=0 ){
@@ -1689,15 +1773,17 @@ int MEM::Integrand::create_PS_LL(MEM::PS& ps, const double* x, const vector<int>
     dir     = obj->p4().Vect().Unit();
     E_LOW   = obj->getObs(Observable::E_LOW_B) ;
     E_HIGH  = obj->getObs(Observable::E_HIGH_B);
+    tftype  = TFType::bReco;
   }
   else{
     dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_b)->second ]) );
     dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_b)->second ] );
     E_LOW   = MB;
     E_HIGH  = TMath::Min(cfg.emax, 2*MEM::TF_ACC_param[1]/TMath::Sin(dir.Theta()) );
+    tftype  = (perm[nj_b]==-1 ? TFType::bLost : TFType::Unknown);
   }
   E       = E_LOW + (E_HIGH-E_LOW)*(x[ map_to_var.find(PSVar::E_b)->second ]);
-  extend_PS( ps, PSPart::b, E, MB, dir, perm[nj_b], PSVar::cos_b, PSVar::phi_b, PSVar::E_b,  (perm[nj_b]>=0?TFType::bReco:TFType::bLost) ); 
+  extend_PS( ps, PSPart::b, E, MB, dir, perm[nj_b], PSVar::cos_b, PSVar::phi_b, PSVar::E_b,  tftype ); 
 
   /////  PSPart::bbar  
   if( perm[nj_bbar]>=0 ){
@@ -1706,17 +1792,19 @@ int MEM::Integrand::create_PS_LL(MEM::PS& ps, const double* x, const vector<int>
     E_REC   = obj->p4().E();
     E_LOW   = obj->getObs(Observable::E_LOW_B) ;
     E_HIGH  = obj->getObs(Observable::E_HIGH_B);
+    tftype  = TFType::bReco;
   }
   else{
     dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_bbar)->second ]) );
     dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_bbar)->second ] );
     E_LOW   = MB;
     E_HIGH  = TMath::Min(cfg.emax, 2*MEM::TF_ACC_param[1]/TMath::Sin(dir.Theta()) );
+    tftype  = (perm[nj_bbar]==-1 ? TFType::bLost : TFType::Unknown);
   }
   E    = hypo==Hypothesis::TTBB ? 
     E_LOW + (E_HIGH-E_LOW)*(x[ map_to_var.find(PSVar::E_bbar)->second ]) : 
     solve( ps.lv(PSPart::b), DMH2, MB, dir, E_REC, accept);
-  extend_PS( ps, PSPart::bbar, E, MB, dir, perm[nj_bbar], PSVar::cos_bbar, PSVar::phi_bbar, PSVar::E_bbar,  (perm[nj_bbar]>=0?TFType::bReco:TFType::bLost) ); 
+  extend_PS( ps, PSPart::bbar, E, MB, dir, perm[nj_bbar], PSVar::cos_bbar, PSVar::phi_bbar, PSVar::E_bbar,  tftype ); 
 
   // protect against collinear radiation for TTBB
   if( hypo==Hypothesis::TTBB ){
@@ -1761,6 +1849,7 @@ int MEM::Integrand::create_PS_HH(MEM::PS& ps, const double* x, const vector<int>
   double E_HIGH{0.};
   double E_REC {numeric_limits<double>::max()};
   TVector3 dir (1.,0.,0.);
+  TFType::TFType tftype;
 
   // map a quark to an index inside the obs_ collections
   size_t nj_q1    =  map_to_part.find(PSPart::q1)->second; 
@@ -1778,39 +1867,45 @@ int MEM::Integrand::create_PS_HH(MEM::PS& ps, const double* x, const vector<int>
     dir     = obj->p4().Vect().Unit();
     E_LOW   = obj->getObs(Observable::E_LOW_Q) ;
     E_HIGH  = obj->getObs(Observable::E_HIGH_Q);
+    tftype  = TFType::qReco;
   }
   else{
     dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_q1)->second ]) );
     dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_q1)->second ] );
     E_LOW   = MQ;
     E_HIGH  = TMath::Min(cfg.emax, 2*MEM::TF_ACC_param[1]/TMath::Sin(dir.Theta()) );
+    tftype  = (perm[nj_q1]==-1 ? TFType::qLost : TFType::Unknown);
   }
   E       = E_LOW + (E_HIGH-E_LOW)*(x[ map_to_var.find(PSVar::E_q1)->second ]);
-  extend_PS( ps, PSPart::q1, E, MQ, dir, perm[nj_q1], PSVar::cos_q1, PSVar::phi_q1, PSVar::E_q1, (perm[nj_q1]>=0?TFType::qReco:TFType::qLost) ); 
+  extend_PS( ps, PSPart::q1, E, MQ, dir, perm[nj_q1], PSVar::cos_q1, PSVar::phi_q1, PSVar::E_q1, tftype); 
 
   /////  PSPart::qbar1
   if( perm[nj_qbar1]>=0 ){
     dir     = obs_jets[ perm[nj_qbar1] ]->p4().Vect().Unit();
+    tftype  = TFType::qReco;
   }
   else{
     dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_qbar1)->second ]) );
     dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_qbar1)->second ] );
+    tftype  = (perm[nj_qbar1]==-1 ? TFType::qLost : TFType::Unknown);
   }
   E    = solve( ps.lv(PSPart::q1), DMW2 , MQ, dir, E_REC, accept );
-  extend_PS( ps, PSPart::qbar1, E, MQ, dir, perm[nj_qbar1], PSVar::cos_qbar1, PSVar::phi_qbar1, PSVar::E_qbar1,  (perm[nj_qbar1]>=0?TFType::qReco:TFType::qLost) ); 
+  extend_PS( ps, PSPart::qbar1, E, MQ, dir, perm[nj_qbar1], PSVar::cos_qbar1, PSVar::phi_qbar1, PSVar::E_qbar1,  tftype); 
 
   /////  PSPart::b1
   if( perm[nj_b1]>=0 ){
     MEM::Object* obj = obs_jets[ perm[nj_b1] ]; 
     dir     = obj->p4().Vect().Unit();
     E_REC   = obj->p4().E();
+    tftype  = TFType::bReco;
   }
   else{
     dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_b1)->second ]) );
     dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_b1)->second ] );
+    tftype  = (perm[nj_b1]==-1 ? TFType::bLost : TFType::Unknown);
   }
   E       = solve(ps.lv(PSPart::q1) + ps.lv(PSPart::qbar1), DMT2, MB, dir, E_REC, accept);
-  extend_PS( ps, PSPart::b1, E, MB , dir, perm[nj_b1], PSVar::cos_b1, PSVar::phi_b1, PSVar::E_b1,  (perm[nj_b1]>=0?TFType::bReco:TFType::bLost) ); 
+  extend_PS( ps, PSPart::b1, E, MB , dir, perm[nj_b1], PSVar::cos_b1, PSVar::phi_b1, PSVar::E_b1, tftype); 
   
   /////  PSPart::q2
   if( perm[ nj_q2 ]>=0 ){
@@ -1818,39 +1913,45 @@ int MEM::Integrand::create_PS_HH(MEM::PS& ps, const double* x, const vector<int>
     dir     = obj->p4().Vect().Unit();
     E_LOW   = obj->getObs(Observable::E_LOW_Q) ;
     E_HIGH  = obj->getObs(Observable::E_HIGH_Q);
+    tftype  = TFType::qReco;
   }
   else{
     dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_q2)->second ]) );
     dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_q2)->second ] );
     E_LOW   = MQ;
     E_HIGH  = TMath::Min(cfg.emax, 2*MEM::TF_ACC_param[1]/TMath::Sin(dir.Theta()) );
+    tftype  = (perm[nj_q2]==-1 ? TFType::qLost : TFType::Unknown);
   }
   E       = E_LOW + (E_HIGH-E_LOW)*(x[ map_to_var.find(PSVar::E_q2)->second ]);
-  extend_PS( ps, PSPart::q2, E, MQ, dir, perm[nj_q2], PSVar::cos_q2, PSVar::phi_q2, PSVar::E_q2, (perm[nj_q2]>=0?TFType::qReco:TFType::qLost) ); 
+  extend_PS( ps, PSPart::q2, E, MQ, dir, perm[nj_q2], PSVar::cos_q2, PSVar::phi_q2, PSVar::E_q2, tftype ); 
 
   /////  PSPart::qbar2
   if( perm[nj_qbar2]>=0 ){
     dir = obs_jets[ perm[nj_qbar2] ]->p4().Vect().Unit();
+    tftype  = TFType::qReco;
   }
   else{
     dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_qbar2)->second ]) );
     dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_qbar2)->second ] );
+    tftype  = (perm[nj_qbar2]==-1 ? TFType::qLost : TFType::Unknown);
   }
   E    = solve( ps.lv(PSPart::q2), DMW2 , MQ, dir, E_REC, accept );
-  extend_PS( ps, PSPart::qbar2, E, MQ, dir, perm[nj_qbar2], PSVar::cos_qbar2, PSVar::phi_qbar2, PSVar::E_qbar2,  (perm[nj_qbar2]>=0?TFType::qReco:TFType::qLost) ); 
+  extend_PS( ps, PSPart::qbar2, E, MQ, dir, perm[nj_qbar2], PSVar::cos_qbar2, PSVar::phi_qbar2, PSVar::E_qbar2,  tftype ); 
   
   /////  PSPart::b2
   if( perm[nj_b2]>=0 ){
     MEM::Object* obj = obs_jets[ perm[nj_b2] ];
     dir     = obj->p4().Vect().Unit();
     E_REC   = obj->p4().E();
+    tftype  = TFType::bReco;
   }
   else{
     dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_b2)->second ]) );
     dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_b2)->second ] );
+    tftype  = (perm[nj_b2]==-1 ? TFType::bLost : TFType::Unknown);
   }
   E       = solve( ps.lv(PSPart::q2) + ps.lv(PSPart::qbar2), DMT2, MB, dir, E_REC, accept );
-  extend_PS( ps, PSPart::b2, E, MB, dir, perm[nj_b2], PSVar::cos_b2, PSVar::phi_b2, PSVar::E_b2,  (perm[nj_b2]>=0?TFType::bReco:TFType::bLost) ); 
+  extend_PS( ps, PSPart::b2, E, MB, dir, perm[nj_b2], PSVar::cos_b2, PSVar::phi_b2, PSVar::E_b2,  tftype); 
   
   /////  PSPart::b
   if( perm[nj_b]>=0 ){
@@ -1858,15 +1959,17 @@ int MEM::Integrand::create_PS_HH(MEM::PS& ps, const double* x, const vector<int>
     dir     = obj->p4().Vect().Unit();
     E_LOW   = obj->getObs(Observable::E_LOW_B) ;
     E_HIGH  = obj->getObs(Observable::E_HIGH_B);    
+    tftype  = TFType::bReco;
   }
   else{
     dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_b)->second ]) );
     dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_b)->second ] );
     E_LOW   = MB;
     E_HIGH  = TMath::Min(cfg.emax, 2*MEM::TF_ACC_param[1]/TMath::Sin(dir.Theta()) );
+    tftype  = (perm[nj_b]==-1 ? TFType::bLost : TFType::Unknown);
   }
   E       = E_LOW + (E_HIGH-E_LOW)*(x[ map_to_var.find(PSVar::E_b)->second ]);
-  extend_PS( ps, PSPart::b, E, MB, dir, perm[nj_b], PSVar::cos_b, PSVar::phi_b, PSVar::E_b,  (perm[nj_b]>=0?TFType::bReco:TFType::bLost) ); 
+  extend_PS( ps, PSPart::b, E, MB, dir, perm[nj_b], PSVar::cos_b, PSVar::phi_b, PSVar::E_b,  tftype ); 
 
   /////  PSPart::bbar   
   if( perm[nj_bbar]>=0 ){
@@ -1875,17 +1978,19 @@ int MEM::Integrand::create_PS_HH(MEM::PS& ps, const double* x, const vector<int>
     E_REC   = obj->p4().E();
     E_LOW   = obj->getObs(Observable::E_LOW_B) ;
     E_HIGH  = obj->getObs(Observable::E_HIGH_B);        
+    tftype  = TFType::bReco;
   }
   else{
     dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_bbar)->second ]) );
     dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_bbar)->second ] );
     E_LOW   = MB;
     E_HIGH  = TMath::Min(cfg.emax, 2*MEM::TF_ACC_param[1]/TMath::Sin(dir.Theta()) );
+    tftype  = (perm[nj_bbar]==-1 ? TFType::bLost : TFType::Unknown);
   }
   E    = hypo==Hypothesis::TTBB ?  
     E_LOW + (E_HIGH-E_LOW)*(x[ map_to_var.find(PSVar::E_bbar)->second ]) : 
     solve( ps.lv(PSPart::b), DMH2, MB, dir, E_REC, accept);
-  extend_PS( ps, PSPart::bbar, E, MB, dir, perm[nj_bbar], PSVar::cos_bbar, PSVar::phi_bbar, PSVar::E_bbar,  (perm[nj_bbar]>=0?TFType::bReco:TFType::bLost) ); 
+  extend_PS( ps, PSPart::bbar, E, MB, dir, perm[nj_bbar], PSVar::cos_bbar, PSVar::phi_bbar, PSVar::E_bbar,  tftype); 
 
   // protect against collinear radiation for TTBB
   if( hypo==Hypothesis::TTBB ){
@@ -2041,9 +2146,8 @@ double MEM::Integrand::matrix(const PS& ps) const {
   m *= pdf( x1, x2 , lv_b.Pt()+lv_bbar.Pt() );
 
   if( TMath::IsNaN(m) ){
-    cout << "\tA NaN occurred while evaluation m..." << endl;
-    m = 0.;
-    return m;
+    cout << "\tmatrix() returned a NaN..." << endl;
+    return 0.;
   }
 
   return m;
@@ -2077,8 +2181,7 @@ double MEM::Integrand::matrix_nodecay(const PS& ps) const {
 
   if( TMath::IsNaN(m) ){
     cout << "\tA NaN occurred while evaluation m..." << endl;
-    m = 0.;
-    return m;
+    return 0.;
   }
 
   return m;
@@ -2270,10 +2373,8 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm, int& acce
     w *= transfer_function( y_rho, x_pT, TFType::Recoil, accept, cfg.tf_offscale, debug_code );
 
   if( TMath::IsNaN(w) ){
-    cout << "\tA NaN occurred while evaluation w..." << endl;
-    w = 0.;
-    const_cast<Integrand*>(this)->error_code = 1;
-    return w;
+    cout << "\ttransfer() returned a NaN..." << endl;
+    return 0.;
   }
 
 #ifdef DEBUG_MODE
@@ -2634,6 +2735,42 @@ void MEM::Integrand::setup_minimizer(){
   minimizer->SetPrintLevel(0);
   return;
 }
+
+void MEM::Integrand::refine_minimization(std::size_t& num_trials, const ROOT::Math::Functor& toIntegrate, const std::size_t& npar, double* xL, double* xU){
+
+  if(debug_code&DebugVerbosity::init ){
+    cout << "\trefine_minimization(): try to set quark energies to constant" << endl;
+  }
+
+  while(num_trials<2){
+    
+    if(minimizer!=nullptr)
+      delete minimizer ;
+
+    minimizer = ROOT::Math::Factory::CreateMinimizer("Minuit2", "");
+    setup_minimizer();
+    minimizer->SetFunction(toIntegrate);
+	
+    for(size_t np = 0; np < npar ; ++np){
+      string var_name = "par_"+std::to_string(np);
+      if( xU[np]==1. && xL[np]==0. ){
+	minimizer->SetFixedVariable(np, var_name, (xU[np]+xL[np])/2. );
+	if(debug_code&DebugVerbosity::init )
+	  printf("\tParam[%lu] = %s fixed to %.2f\n", np, var_name.c_str(),  (xU[np]+xL[np])/2); 
+      }
+      else{
+	minimizer->SetLimitedVariable(np, var_name.c_str() , (xU[np]+xL[np])/2 , 5e-02 , xL[np] , xU[np] );
+	if(debug_code&DebugVerbosity::init )
+	  printf("\tParam[%lu] = %s set to %.2f. Range: [%.2f,%.2f]\n", np, var_name.c_str(),  (xU[np]+xL[np])/2 , xL[np], xU[np] ); 	    
+      }
+    }
+    ++num_trials;
+    minimizer->Minimize(); 
+  }
+  
+  return;
+}
+
 
 void MEM::Integrand::smear_met(){
   
