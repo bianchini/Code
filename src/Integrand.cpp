@@ -1,7 +1,8 @@
 #include "interface/Integrand.h"
 
 MEM::Integrand::Integrand(int debug, const MEMConfig& config) :
-tf_map(config.tf_map) {
+tf_map(config.tf_map),
+btag_pdfs(config.btag_pdfs) {
 
   // establish invariants
   debug_code         = debug;
@@ -399,9 +400,15 @@ void MEM::Integrand::push_back_object(const LV& p4,  const MEM::ObjectType::Obje
 
 void MEM::Integrand::push_back_object(MEM::Object* obj){
 
+  //Here's how to access the b-tag PDF distributions of jets from a non-const function
+  //TH3D& h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
   switch( obj->type() ){
   case ObjectType::Jet:
-    obs_jets.push_back( obj ); 
+    obs_jets.push_back( obj );
+    // cout << "pushed jet " << obj->p4().Pt() << " "
+    //     << h.GetBinContent(h.FindBin(
+    //         obj->p4().Pt(), std::abs(obj->p4().Eta()), 0.5
+    //     )) << endl;
     break;
   case ObjectType::Lepton:
     obs_leptons.push_back( obj ); 
