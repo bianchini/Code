@@ -295,9 +295,18 @@ double MEM::transfer_function2( void* obj, //either MEM::Object or TF1
 #endif
     break;
     
+  case TFType::Unknown:
+    w *= 1.;
+#ifdef DEBUG_MODE
+    if( debug&DebugVerbosity::integration) 
+      cout << "\t\ttransfer_function2: Evaluate W = 1 " << endl;
+#endif
+    break;
+
   default:
     break;
   }
+
   return w;
 }
 

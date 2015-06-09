@@ -150,7 +150,7 @@ namespace MEM {
   } 
   
   namespace Observable {
-    enum Observable { E_LOW_Q=0, E_HIGH_Q=1, E_LOW_B=2, E_HIGH_B=3, BTAG=4, CHARGE=5, PDGID=6};
+    enum Observable { E_LOW_Q=0, E_HIGH_Q=1, E_LOW_B=2, E_HIGH_B=3, BTAG=4, CHARGE=5, PDGID=6, CSV=7};
   }
   
   class ObsHash{
@@ -287,7 +287,11 @@ namespace MEM {
   };
   
   namespace Hypothesis {
-    enum Hypothesis { TTH=0, TTBB=1, Undefined=3 };
+    enum Hypothesis { TTH=0, TTBB=1, Undefined=2 };
+  }
+
+  namespace PermConstants {
+    enum PermConstants { btag_TTBB=0, btag_TTCC=1, btag_TTJJ=2, VarTransf=4 };
   }
   
   namespace FinalState {
@@ -299,7 +303,7 @@ namespace MEM {
   }
   
   namespace Permutations {
-    enum Permutations { BTagged=0, QUntagged, QQbarSymmetry, BBbarSymmetry, QQbarBBbarSymmetry, HEPTopTagged, HiggsTagged};
+    enum Permutations { BTagged=0, QUntagged, QQbarSymmetry, BBbarSymmetry, QQbarBBbarSymmetry, HEPTopTagged, HiggsTagged, FirstRankedByBTAG, FirstTwoRankedByBTAG, FirstThreeRankedByBTAG};
   }
   
   namespace IntegrandType {
@@ -432,6 +436,8 @@ namespace MEM {
     int    num_max_calls;	
     int    num_calls;
     float  efficiency;
+    int    prefit_code;
+    double btag_weights[3];
     std::size_t num_perm;    
     std::size_t assumption;
     FinalState::FinalState final_state;
@@ -452,6 +458,9 @@ namespace MEM {
       os << "\tMaximum number of calls = " << num_max_calls << endl;
       os << "\tPhase-space efficiency  = " << efficiency*100 << "%" << endl;
       os << "\tError code              = " << error_code << endl;
+      os << "\tPre-fit code            = " << prefit_code << endl;
+      os << "\tB-tag weights           = " 
+	 << "(" <<  btag_weights[0] << ", " <<  btag_weights[1] << ", " <<  btag_weights[2] << ")" << endl;
       os << "\tJob done in..............." << time*0.001 << " seconds" << endl;
       os << "\t********************************************" << endl;
       os.precision(8);

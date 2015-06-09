@@ -105,8 +105,14 @@ namespace MEM {
     // filter out permutations
     bool accept_perm( const std::vector<int>&, const std::vector<Permutations::Permutations>& ) const;
 
+    // filter out permutations
+    std::vector<std::size_t> get_permutations_byBTAG( const std::size_t& ) const;
+
+    // remove permutations not passing get_permutations_byBTAG()
+    void filter_permutations_byBTAG();
+
     // a constanta value for each permutation
-    double get_permutation_constants(  const std::vector<int>& ) const;
+    std::map<MEM::PermConstants::PermConstants, double> get_permutation_constants(  const std::vector<int>& ) const;
 
     // main method. Needed by GSLMCIntegrator
     double Eval(const double*) const;
@@ -215,9 +221,19 @@ namespace MEM {
     std::vector<std::vector<int> > perm_indexes_assumption;
     std::size_t this_perm;
     std::vector< double >          perm_const_assumption;
+    std::vector< double >          perm_btag_assumption;
     std::vector< double >          perm_tmpval_assumption;
     std::vector< std::size_t >     perm_pruned;
+
+    std::vector< double >          perm_btag_bb_assumption;
+    std::vector< double >          perm_btag_cc_assumption;
+    std::vector< double >          perm_btag_jj_assumption;
     
+    // status of the prefit (0= not run, 1= run and succesfull, -1= run and unsuccesfull)
+    int prefit_code;
+
+    // the btag likelihood (summed over permutations and for the maximal permutation only)
+    double btag_weights[3];
 
     // map between parameter names (physical) and positions in
     // VEGAS space

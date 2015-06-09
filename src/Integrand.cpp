@@ -21,6 +21,8 @@ btag_pdfs(config.btag_pdfs) {
   n_skip             = 0;
   this_perm          = 0;
   n_perm_max         = 0;
+  prefit_code        = 0;
+  for(size_t b = 0 ; b < 3; ++b) btag_weights[b] = 0.;
   cfg                = config;
   comparator         = CompPerm();
 
@@ -41,6 +43,10 @@ MEM::Integrand::~Integrand(){
   for(auto p : perm_indexes_assumption) p.clear();
   perm_indexes_assumption.clear();
   perm_const_assumption.clear();
+  perm_btag_assumption.clear();
+  perm_btag_bb_assumption.clear();
+  perm_btag_jj_assumption.clear();
+  perm_btag_cc_assumption.clear();
   perm_tmpval_assumption.clear();
   perm_pruned.clear();
   map_to_var.clear();
@@ -400,15 +406,9 @@ void MEM::Integrand::push_back_object(const LV& p4,  const MEM::ObjectType::Obje
 
 void MEM::Integrand::push_back_object(MEM::Object* obj){
 
-  //Here's how to access the b-tag PDF distributions of jets from a non-const function
-  //TH3D& h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
   switch( obj->type() ){
   case ObjectType::Jet:
     obs_jets.push_back( obj );
-    // cout << "pushed jet " << obj->p4().Pt() << " "
-    //     << h.GetBinContent(h.FindBin(
-    //         obj->p4().Pt(), std::abs(obj->p4().Eta()), 0.5
-    //     )) << endl;
     break;
   case ObjectType::Lepton:
     obs_leptons.push_back( obj ); 
@@ -532,6 +532,8 @@ MEM::MEMOutput MEM::Integrand::run( const MEM::FinalState::FinalState f, const M
   out.num_calls     = n_calls;
   out.efficiency    = float(n_calls)/(n_calls+n_skip);
   out.error_code    = error_code;
+  out.prefit_code   = prefit_code;
+  for(size_t b = 0 ; b < 3; ++b) out.btag_weights[b] = btag_weights[b];
 
   if( debug_code&DebugVerbosity::output ){
     out.print(cout);
@@ -563,10 +565,16 @@ void MEM::Integrand::next_event(){
   n_skip             = 0;
   cfg.is_default     = true;
   n_perm_max         = 0;
+  prefit_code        = 0;
+  for(size_t b = 0 ; b < 3; ++b) btag_weights[b] = 0.;
   perm_index.clear();
   for(auto p : perm_indexes_assumption) p.clear();
   perm_indexes_assumption.clear();
   perm_const_assumption.clear();
+  perm_btag_assumption.clear();
+  perm_btag_bb_assumption.clear();
+  perm_btag_jj_assumption.clear();
+  perm_btag_cc_assumption.clear();
   perm_tmpval_assumption.clear();
   perm_pruned.clear();
   map_to_var.clear();
@@ -592,6 +600,10 @@ void MEM::Integrand::next_hypo(){
   for(auto p : perm_indexes_assumption) p.clear();
   perm_indexes_assumption.clear();
   perm_const_assumption.clear();
+  perm_btag_assumption.clear();
+  perm_btag_bb_assumption.clear();
+  perm_btag_jj_assumption.clear();
+  perm_btag_cc_assumption.clear();
   perm_tmpval_assumption.clear();
   perm_pruned.clear();
   map_to_var.clear();
@@ -600,6 +612,8 @@ void MEM::Integrand::next_hypo(){
   n_calls    = 0;
   n_skip     = 0;
   n_perm_max = 0;
+  prefit_code= 0;
+  for(size_t b = 0 ; b < 3; ++b) btag_weights[b] = 0.;
   cfg.is_default = true;
   if( debug_code&DebugVerbosity::init ){
     cout << "Integrand::next_hypo(): END" << endl;
@@ -672,20 +686,43 @@ void MEM::Integrand::make_assumption( const std::vector<MEM::PSVar::PSVar>& miss
     if(count!=(lost.size()/2))  continue;
     if( !accept_perm( perm, cfg.perm_pruning )) continue;
     
-    if( debug_code&DebugVerbosity::init ) {
+    if( debug_code&DebugVerbosity::init_more ) {
       cout << "\tAdd permutation [ ";
       for( auto ind : perm ) cout << ind << " ";
       cout << "]" << endl;
     }
     perm_indexes_assumption.push_back( perm ); 
-    perm_const_assumption.push_back( get_permutation_constants(perm) );
+    std::map<PermConstants::PermConstants, double> cperm = get_permutation_constants(perm);
+    perm_const_assumption.push_back   ( cperm.at(PermConstants::PermConstants::VarTransf) );
+
+    if( hypo==Hypothesis::Hypothesis::TTH || hypo==Hypothesis::Hypothesis::TTBB)
+      perm_btag_assumption.push_back    ( cperm.at(PermConstants::PermConstants::btag_TTBB) );
+    else
+      perm_btag_assumption.push_back(1.0);
+
+    perm_btag_bb_assumption.push_back ( cperm.at(PermConstants::PermConstants::btag_TTBB) );
+    perm_btag_jj_assumption.push_back ( cperm.at(PermConstants::PermConstants::btag_TTCC) );
+    perm_btag_cc_assumption.push_back ( cperm.at(PermConstants::PermConstants::btag_TTJJ) );
     perm_tmpval_assumption.push_back( 0. );
   }  
 
-  if( debug_code&DebugVerbosity::init_more ) {
+  // filter permutations by btag:
+  //   - loop over permutations and rank them by decreasing value of btag likelihood
+  //   - if Permutations::First*RankedByBTAG is among the perm_pruning strategies, remover underranked permutations
+  //   - clean perm_*_assumptions
+  //   - if Permutations::First*RankedByBTAG is NOT among the perm_pruning strategies, perm_btag_assumption is filled with 1.0's
+  filter_permutations_byBTAG();
+
+  // save the btag weights
+  for( auto b_perm : perm_btag_bb_assumption ) btag_weights[static_cast<std::size_t>(PermConstants::PermConstants::btag_TTBB)] += b_perm;
+  for( auto b_perm : perm_btag_cc_assumption ) btag_weights[static_cast<std::size_t>(PermConstants::PermConstants::btag_TTCC)] += b_perm;
+  for( auto b_perm : perm_btag_jj_assumption ) btag_weights[static_cast<std::size_t>(PermConstants::PermConstants::btag_TTJJ)] += b_perm;
+
+  if( debug_code&DebugVerbosity::init ) {
     size_t n_perm{0};
     for( auto perm : perm_indexes_assumption ){
-      cout << "\tperm. " << n_perm << ", k-factor=" << perm_const_assumption[n_perm] << ": [ ";
+      cout << "\tperm. " << n_perm << ", k-factor=" << perm_const_assumption[n_perm] 
+	   << ", b-tag= " << perm_btag_assumption[n_perm] << ": [ ";
       ++n_perm;
       for( auto ind : perm )
 	cout << ind << " ";
@@ -845,6 +882,7 @@ void  MEM::Integrand::do_minimization(const std::size_t& npar, double* xL, doubl
     }
     
     if(cfg.do_prefit && minimizer->Status()==0){
+      prefit_code = 1;
       prefit_step = 1;
       if( debug_code&DebugVerbosity::init ) cout << "\tSTEP...." << prefit_step << ": evaluate permutations at minimum" << endl;
 
@@ -865,6 +903,9 @@ void  MEM::Integrand::do_minimization(const std::size_t& npar, double* xL, doubl
 	cout << "\tTotal of " << perm_pruned.size() << " permutations filtered." << endl;
       }
 
+    }
+    else{
+      prefit_code = -1;
     }
 
     // fill variables
@@ -918,6 +959,185 @@ void  MEM::Integrand::do_minimization(const std::size_t& npar, double* xL, doubl
 }
 
 
+// N.B. like this, the code will loop over all jets and choose the combination(s) with largest likelihood.
+// ==> always 12*rank_max combinations
+// if uncommented, one gets 12*rank_max*(# of combinations of jets.size() taken [...] at the time), where [...] depends on the hypothesis
+// ==> this may be VERY CPU intensive
+std::vector<std::size_t> MEM::Integrand::get_permutations_byBTAG( const std::size_t& rank_max ) const {
+
+  if( debug_code&DebugVerbosity::init_more ){
+    cout << "Integrand::get_permutations_byBTAG(): START" << endl;
+  }
+
+
+  /*
+  // these are the indexes that identify different choice of jets 
+  vector<std::size_t> indexes_to_check;
+  if( fs==FinalState::LH ) indexes_to_check = vector<size_t> {map_to_part.find(PSPart::q1)->second, 
+							      map_to_part.find(PSPart::qbar1)->second,
+							      map_to_part.find(PSPart::b1)->second, 
+							      map_to_part.find(PSPart::b2)->second, 
+							      map_to_part.find(PSPart::b)->second, 
+							      map_to_part.find(PSPart::bbar)->second};
+  if( fs==FinalState::LL ) indexes_to_check = vector<size_t> {map_to_part.find(PSPart::b1)->second, 
+							      map_to_part.find(PSPart::b2)->second, 
+							      map_to_part.find(PSPart::b)->second, 
+							      map_to_part.find(PSPart::bbar)->second};
+  if( fs==FinalState::HH ) indexes_to_check  = vector<size_t>{map_to_part.find(PSPart::q1)->second,
+							      map_to_part.find(PSPart::qbar1)->second,
+							      map_to_part.find(PSPart::b1)->second, 
+							      map_to_part.find(PSPart::q2)->second,
+							      map_to_part.find(PSPart::qbar2)->second,
+							      map_to_part.find(PSPart::b2)->second,
+							      map_to_part.find(PSPart::b)->second, 
+							      map_to_part.find(PSPart::bbar)->second};
+  */
+
+  // store here the indices to perm_indexes_assumption that pass the selection
+  vector<std::size_t> pass;
+
+  for( size_t p = 0 ; p < perm_indexes_assumption.size() ; ++p){
+    const std::vector<int> perm_p = perm_indexes_assumption[p];
+    
+    double btag_p = perm_btag_assumption[p];
+    double tmpMax = btag_p;
+
+    size_t rank{0};
+
+    if( debug_code&DebugVerbosity::init_more ) 
+      cout << "\tPermutation " << p << " has btag likelihood = " << btag_p << ", tmp maximum at " << tmpMax << endl; 
+  
+    for( size_t q = 0 ; q < perm_indexes_assumption.size() && rank < rank_max; ++q){
+      if( q==p ) continue;
+      
+      /*
+      const std::vector<int> perm_q = perm_indexes_assumption[q];
+      bool hasSameJets{true};
+      for( auto ind_p : indexes_to_check){
+	int indx_p = perm_p[ind_p];
+	if(indx_p<0) continue;
+	bool matched{false};
+	for( auto ind_q : indexes_to_check){
+	  int indx_q = perm_q[ind_q];
+	  if(indx_q==indx_p) matched = true;       
+	}
+	hasSameJets &= matched;
+      }
+      if(!hasSameJets) continue;
+      */
+
+      double btag_q = perm_btag_assumption[q];
+      
+      if( (btag_q-tmpMax)/tmpMax > 1e-03 ){
+	tmpMax          = btag_q;
+	++rank;
+	if( debug_code&DebugVerbosity::init_more ) 
+	  cout << "\t\t\tnew maximum at " << tmpMax << ", tmp ranking of p is " << rank << endl;
+      }      
+    }
+    
+    if(rank<rank_max){
+      pass.push_back(p);
+      if( debug_code&DebugVerbosity::init_more ) cout << "\tPermutation " << p << " has been accepted!" << endl; 
+    }
+  }  
+
+  if( debug_code&DebugVerbosity::init_more ){
+    cout << "Integrand::get_permutations_byBTAG(): END" << endl;
+  }
+
+  return pass;
+} 
+
+void MEM::Integrand::filter_permutations_byBTAG(){
+
+  if( debug_code&DebugVerbosity::init){
+    cout << "Integrand::filter_permutations_byBTAG(): START" << endl;
+  }
+
+  // the indices to perm_indexes_assumption that correspond to the selected permutations
+  std::vector<std::size_t> pruned_by_btag;
+
+  // find out which stragey was requested (3 options for the moment)
+  bool take_first_1_by_btag{false};
+  bool take_first_2_by_btag{false};
+  bool take_first_3_by_btag{false};
+
+  for( auto strat : cfg.perm_pruning ){
+    if(strat == Permutations::Permutations::FirstRankedByBTAG)      take_first_1_by_btag = true;
+    if(strat == Permutations::Permutations::FirstTwoRankedByBTAG)   take_first_2_by_btag = true;
+    if(strat == Permutations::Permutations::FirstThreeRankedByBTAG) take_first_3_by_btag = true;
+  }
+
+  if( take_first_1_by_btag || take_first_2_by_btag || take_first_3_by_btag ){
+
+    if( take_first_1_by_btag && 
+	!take_first_2_by_btag) pruned_by_btag = get_permutations_byBTAG(1); 
+    if( take_first_2_by_btag &&
+	!take_first_3_by_btag) pruned_by_btag = get_permutations_byBTAG(2); 
+    if( take_first_3_by_btag ) pruned_by_btag = get_permutations_byBTAG(3); 
+
+    if( debug_code&DebugVerbosity::init) 
+      cout << "\tPruning by btag selected " << pruned_by_btag.size() << " permutations." << endl;
+    
+    // temporary containers for the permutations
+    std::vector<std::vector<int> > perm_indexes_assumption_tmp;
+    std::vector< double >          perm_const_assumption_tmp;
+    std::vector< double >          perm_btag_assumption_tmp;
+    std::vector< double >          perm_btag_bb_assumption_tmp;
+    std::vector< double >          perm_btag_cc_assumption_tmp;
+    std::vector< double >          perm_btag_jj_assumption_tmp;
+    std::vector< double >          perm_tmpval_assumption_tmp;
+
+    // store filtered permutations
+    for(auto p : pruned_by_btag ){
+      if( debug_code&DebugVerbosity::init ) {
+	cout << "\tAccept permutation [ ";
+	for( auto ind : perm_indexes_assumption[p] ) cout << ind << " ";
+	cout << "]" << endl;
+      }
+      perm_indexes_assumption_tmp.push_back( perm_indexes_assumption[p] );
+      perm_const_assumption_tmp.push_back  ( perm_const_assumption[p]   );
+      perm_btag_assumption_tmp.push_back   ( perm_btag_assumption[p]    );
+      perm_btag_bb_assumption_tmp.push_back( perm_btag_bb_assumption[p] );
+      perm_btag_cc_assumption_tmp.push_back( perm_btag_cc_assumption[p] );
+      perm_btag_jj_assumption_tmp.push_back( perm_btag_jj_assumption[p] );
+      perm_tmpval_assumption_tmp.push_back ( perm_tmpval_assumption[p]  );
+    }    
+
+    // clear old vectors to store the new ones
+    for(auto p : perm_indexes_assumption) p.clear();
+    perm_indexes_assumption.clear();
+    perm_const_assumption.clear();
+    perm_btag_assumption.clear();
+    perm_btag_bb_assumption.clear();
+    perm_btag_jj_assumption.clear();
+    perm_btag_cc_assumption.clear();    
+    perm_tmpval_assumption.clear();
+
+    // better to use a std::move here to speed up...
+    perm_indexes_assumption   = std::move(perm_indexes_assumption_tmp);
+    perm_const_assumption     = std::move(perm_const_assumption_tmp);
+    perm_btag_assumption      = std::move(perm_btag_assumption_tmp);
+    perm_btag_bb_assumption   = std::move(perm_btag_bb_assumption_tmp);
+    perm_btag_cc_assumption   = std::move(perm_btag_cc_assumption_tmp);
+    perm_btag_jj_assumption   = std::move(perm_btag_jj_assumption_tmp);
+    perm_tmpval_assumption    = std::move(perm_tmpval_assumption_tmp);
+  }
+
+  // if no pruning based on the b likelihood is requested, then do not use b tagging for probability()
+  else{
+    for( auto& p : perm_btag_assumption ) p = 1.0; 
+  }
+
+  if( debug_code&DebugVerbosity::init){
+    cout << "Integrand::filter_permutations_byBTAG(): END" << endl;
+  }
+
+  return;
+}
+
+
 bool MEM::Integrand::accept_perm( const vector<int>& perm, const std::vector<MEM::Permutations::Permutations>& strategies ) const {
 
   if( debug_code&DebugVerbosity::init_more ){
@@ -928,7 +1148,7 @@ bool MEM::Integrand::accept_perm( const vector<int>& perm, const std::vector<MEM
   vector<size_t> indexes1;
   vector<size_t> indexes2;
 
-  // loop over strategies to filter out permutations
+  // loop over strategies bto filter out permutations
   for( auto s = strategies.begin() ; s != strategies.end() ; ++s){
 
     if( debug_code&DebugVerbosity::init_more ){
@@ -1220,42 +1440,117 @@ bool MEM::Integrand::accept_perm( const vector<int>& perm, const std::vector<MEM
   return true;
 }
 
-double MEM::Integrand::get_permutation_constants( const vector<int>& perm ) const {
+std::map<MEM::PermConstants::PermConstants, double> MEM::Integrand::get_permutation_constants( const vector<int>& perm ) const {
 
   if( debug_code&DebugVerbosity::init_more ){
     cout << "Integrand::get_permutation_constants(): START" << endl;
   }
 
-  double p{1.};
-  double DeltaE{1.};
-  size_t pos;
+  std::map<PermConstants::PermConstants, double> out;
 
+  double p     {1.};
+  double DeltaE{1.};
+  double bb    {1.};
+  double bp    {1.};
+
+  // aditional likelihoods (for TT_JJ/BJ/CC)
+  double jj    {1.};
+  double cc    {1.};
+
+  size_t pos;
   MEM::Object* obj = nullptr;
+
   switch( fs ){
   case FinalState::LH:
     // PSVar::E_q1
     pos = map_to_part.find(PSPart::q1)->second;
     if( perm[ pos ]>=0 ){
-      obj = obs_jets[ perm[pos] ];
+      obj    = obs_jets[ perm[pos] ];
       DeltaE = (obj->getObs(Observable::E_HIGH_Q) - obj->getObs(Observable::E_LOW_Q));
+      if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
+	TH3D h1 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
+	TH3D h2 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_c);
+	bp =  0.5*h1.GetBinContent( h1.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) )) 
+	  + 0.5*h2.GetBinContent( h2.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", l/c) = " << bp << endl;
+      }      
     }
     else{
       DeltaE = cfg.emax - MQ;
+      bp     = 1.0;
     }
     if( debug_code&DebugVerbosity::init_more ) cout << "\tdE_q = " << DeltaE << " GeV" << endl;
     p *= DeltaE;
+    bb*= bp;
+
+    // PSVar::E_qbar1    
+    pos = map_to_part.find(PSPart::qbar1)->second;
+    if( perm[ pos ]>=0 ){
+      obj    = obs_jets[ perm[pos] ];
+      bp     = 1.;
+      if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
+	TH3D h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
+	bp =  h.GetBinContent( h.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", l) = " << bp << endl;
+      }      
+    }
+    else bp = 1.;    
+    bb*= bp;
+
+    // PSVar::E_b1    
+    pos = map_to_part.find(PSPart::b1)->second;
+    if( perm[ pos ]>=0 ){
+      obj    = obs_jets[ perm[pos] ];
+      bp     = 1.;
+      if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
+	TH3D h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
+	bp =  h.GetBinContent( h.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", b) = " << bp << endl;
+      }      
+    }
+    else bp = 1.;
+    bb*= bp;
+
+    // PSVar::E_b2    
+    pos = map_to_part.find(PSPart::b2)->second;
+    if( perm[ pos ]>=0 ){
+      obj    = obs_jets[ perm[pos] ];
+      bp     = 1.;
+      if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
+	TH3D h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
+	bp *=  h.GetBinContent( h.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", b) = " << bp << endl;
+      }      
+    }
+    else bp = 1.;
+    bb*= bp;
 
     // PSVar::E_b    
+    jj = bb;
+    cc = bb;
     pos = map_to_part.find(PSPart::b)->second;
     if( perm[ pos ]>=0 ){
       obj = obs_jets[ perm[pos] ];
+      bp  = 1.;
       DeltaE = (obj->getObs(Observable::E_HIGH_B) - obj->getObs(Observable::E_LOW_B)); 
+      if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
+	TH3D h1 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
+	TH3D h2 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
+	TH3D h3 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_c);
+	bp  = h1.GetBinContent( h1.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	jj *= h2.GetBinContent( h2.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	cc *= h3.GetBinContent( h3.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", b) = " << bp << endl;
+      }      
     }
     else{
       DeltaE = cfg.emax - MB;
+      bp     = 1.;
     }
     if( debug_code&DebugVerbosity::init_more ) cout << "\tdE_b = " << DeltaE << " GeV" << endl;
     p *= DeltaE;
+    bb*= bp;
+
 
     // PSVar::E_bbar
     if( hypo==Hypothesis::TTBB ){
@@ -1270,19 +1565,80 @@ double MEM::Integrand::get_permutation_constants( const vector<int>& perm ) cons
       if( debug_code&DebugVerbosity::init_more ) cout << "\tdE_bbar = " << DeltaE << " GeV" << endl;
       p *= DeltaE;
     }
+
+    // PSVar::E_bbar 
+    pos = map_to_part.find(PSPart::bbar)->second;
+    if( perm[ pos ]>=0 ){
+      obj    = obs_jets[ perm[pos] ];
+      bp     = 1.;
+      if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
+	TH3D h1 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
+	TH3D h2 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
+	TH3D h3 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_c);
+	bp  = h1.GetBinContent( h1.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	jj *= h2.GetBinContent( h2.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	cc *= h3.GetBinContent( h3.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", b) = " << bp << endl;
+      }      
+    }
+    else bp = 1.;
+    bb*= bp;
+    
     break;
   case FinalState::LL:
-    // PSVar::E_b 
-    pos = map_to_part.find(PSPart::b)->second;
+    // PSVar::E_b1    
+    pos = map_to_part.find(PSPart::b1)->second;
     if( perm[ pos ]>=0 ){
+      obj    = obs_jets[ perm[pos] ];
+      bp     = 1.;
+      if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
+	TH3D h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
+	bp =  h.GetBinContent( h.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", b) = " << bp << endl;
+      }      
+    }
+    else bp = 1.;
+    bb*= bp;
+
+    // PSVar::E_b2    
+    pos = map_to_part.find(PSPart::b2)->second;
+    if( perm[ pos ]>=0 ){
+      obj    = obs_jets[ perm[pos] ];
+      bp     = 1.;
+      if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
+	TH3D h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
+	bp =  h.GetBinContent( h.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", b) = " << bp << endl;
+      }      
+    }
+    else bp = 1.;
+    bb*= bp;
+
+    // PSVar::E_b
+    jj = bb;
+    cc = bb;
+    pos = map_to_part.find(PSPart::b)->second;
+    if( perm[ pos ]>=0 ){      
       obj = obs_jets[ perm[pos] ];
+      bp  = 1.;
       DeltaE = (obj->getObs(Observable::E_HIGH_B) - obj->getObs(Observable::E_LOW_B));
+      if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
+	TH3D h1 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
+	TH3D h2 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
+	TH3D h3 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_c);
+	bp  = h1.GetBinContent( h1.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	jj *= h2.GetBinContent( h2.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	cc *= h3.GetBinContent( h3.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", b) = " << bp << endl;
+      }      
     }
     else{
       DeltaE = cfg.emax - MB;
+      bp     = 1.;
     }
     if( debug_code&DebugVerbosity::init_more ) cout << "\tdE_b = " << DeltaE << " GeV" << endl;
     p *= DeltaE;
+    bb*= bp;
 
     // PSVar::E_bbar 
     if( hypo==Hypothesis::TTBB ){
@@ -1297,6 +1653,24 @@ double MEM::Integrand::get_permutation_constants( const vector<int>& perm ) cons
       if( debug_code&DebugVerbosity::init_more ) cout << "\tdE_bbar = " << DeltaE << " GeV" << endl;
       p *= DeltaE;
     }
+    // PSVar::E_bbar 
+    pos = map_to_part.find(PSPart::bbar)->second;
+    if( perm[ pos ]>=0 ){
+      obj    = obs_jets[ perm[pos] ];
+      bp     = 1.;
+      if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
+	TH3D h1 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
+	TH3D h2 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
+	TH3D h3 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_c);
+	bp  = h1.GetBinContent( h1.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	jj *= h2.GetBinContent( h2.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	cc *= h3.GetBinContent( h3.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", b) = " << bp << endl;
+      }      
+    }
+    else bp = 1.;
+    bb*= bp;
+
     break;
 
   case FinalState::HH:
@@ -1304,37 +1678,125 @@ double MEM::Integrand::get_permutation_constants( const vector<int>& perm ) cons
     pos = map_to_part.find(PSPart::q1)->second;
     if( perm[ pos ]>=0 ){
       obj = obs_jets[ perm[pos] ];
+      bp  = 1.;
       DeltaE = (obj->getObs(Observable::E_HIGH_Q) - obj->getObs(Observable::E_LOW_Q));
+      if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
+ 	TH3D h1 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
+ 	TH3D h2 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_c);
+	bp =  h1.GetBinContent( h1.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) )) +
+	  h2.GetBinContent( h2.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));;
+	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", l/c) = " << bp << endl;
+      }      
     }
     else{
       DeltaE = cfg.emax - MQ;
+      bp     = 1.;
     }
     if( debug_code&DebugVerbosity::init_more ) cout << "\tdE_q = " << DeltaE << " GeV" << endl;
     p *= DeltaE;
+    bb*= bp;
+
+    // PSVar::E_qbar1    
+    pos = map_to_part.find(PSPart::qbar1)->second;
+    if( perm[ pos ]>=0 ){
+      obj    = obs_jets[ perm[pos] ];
+      bp     = 1.;
+      if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
+	TH3D h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
+	bp =  h.GetBinContent( h.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", l) = " << bp << endl;
+      }      
+    }
+    else bp = 1.;
+    bb*= bp;
+
+    // PSVar::E_b1    
+    pos = map_to_part.find(PSPart::b1)->second;
+    if( perm[ pos ]>=0 ){
+      obj    = obs_jets[ perm[pos] ];
+      bp     = 1.;
+      if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
+	TH3D h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
+	bp =  h.GetBinContent( h.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", b) = " << bp << endl;
+      }      
+    }
+    else bp = 1.;
+    bb*= bp;
 
     // PSVar::E_q2
     pos = map_to_part.find(PSPart::q2)->second;
     if( perm[ pos ]>=0 ){
       obj = obs_jets[ perm[pos] ];
+      bp  = 1.;
       DeltaE = (obj->getObs(Observable::E_HIGH_Q) - obj->getObs(Observable::E_LOW_Q));
+      if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
+	TH3D h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
+	bp =  h.GetBinContent( h.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", l) = " << bp << endl;
+      }      
     }
     else{
       DeltaE = cfg.emax - MQ;
+      bp     = 1.;
     }
     if( debug_code&DebugVerbosity::init_more ) cout << "\tdE_q = " << DeltaE << " GeV" << endl;
     p *= DeltaE;
+    bb*= bp;
+
+    // PSVar::E_qbar2    
+    pos = map_to_part.find(PSPart::qbar2)->second;
+    if( perm[ pos ]>=0 ){
+      obj    = obs_jets[ perm[pos] ];
+      bp     = 1.;
+      if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
+	TH3D h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
+	bp =  h.GetBinContent( h.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", l) = " << bp << endl;
+      }      
+    }
+    else bp = 1.;
+    bb*= bp;
+
+    // PSVar::E_b2    
+    pos = map_to_part.find(PSPart::b1)->second;
+    if( perm[ pos ]>=0 ){
+      obj    = obs_jets[ perm[pos] ];
+      bp     = 1.;
+      if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
+	TH3D h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
+	bp =  h.GetBinContent( h.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", b) = " << bp << endl;
+      }      
+    }
+    else bp = 1.;
+    bb*= bp;
 
     // PSVar::E_b
+    jj = bb;
+    cc = bb;
     pos = map_to_part.find(PSPart::b)->second;
     if( perm[ pos ]>=0 ){
       obj = obs_jets[ perm[pos] ];
+      bp  = 1.;
       DeltaE = (obj->getObs(Observable::E_HIGH_B) - obj->getObs(Observable::E_LOW_B)); 
+      if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
+	TH3D h1 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
+	TH3D h2 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
+	TH3D h3 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_c);
+	bp  = h1.GetBinContent( h1.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	jj *= h2.GetBinContent( h2.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	cc *= h3.GetBinContent( h3.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", b) = " << bp << endl;
+      }      
     }
     else{
       DeltaE = cfg.emax - MB;
+      bp     = 1.;
     }
     if( debug_code&DebugVerbosity::init_more ) cout << "\tdE_b = " << DeltaE << " GeV" << endl;
     p *= DeltaE;
+    bb*= bp;
 
     // PSVar::E_bbar
     if( hypo==Hypothesis::TTBB ){
@@ -1349,20 +1811,45 @@ double MEM::Integrand::get_permutation_constants( const vector<int>& perm ) cons
       if( debug_code&DebugVerbosity::init_more ) cout << "\tdE_bbar = " << DeltaE << " GeV" << endl;
       p *= DeltaE;
     }
+
+    // PSVar::E_bbar
+    pos = map_to_part.find(PSPart::bbar)->second;
+    if( perm[ pos ]>=0 ){
+      obj    = obs_jets[ perm[pos] ];
+      bp     = 1.;
+      if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
+	TH3D h1 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
+	TH3D h2 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
+	TH3D h3 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_c);
+	bp  = h1.GetBinContent( h1.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	jj *= h2.GetBinContent( h2.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	cc *= h3.GetBinContent( h3.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", b) = " << bp << endl;
+      }      
+    }
+    else bp = 1.;
+    bb*= bp;
+
     break;
+
   default:
     break;
   }
 
   if( debug_code&DebugVerbosity::init_more ){
-    cout << "\tVariable transformation permutation-dependent returned p=" << p << endl;
+    cout << "\tVariable transformation permutation-dependent returned p*b = " << p << " * " << bb << " = " << p*bb << endl;
   }
-
+  
   if( debug_code&DebugVerbosity::init_more ){
     cout << "Integrand::get_permutation_constants(): END" << endl;
   }
 
-  return p;
+  out[PermConstants::PermConstants::VarTransf] = p;
+  out[PermConstants::PermConstants::btag_TTBB] = bb;
+  out[PermConstants::PermConstants::btag_TTCC] = cc;
+  out[PermConstants::PermConstants::btag_TTJJ] = jj;
+
+  return out;
 }
 
 
@@ -1409,7 +1896,7 @@ double MEM::Integrand::Eval(const double* x) const{
     
 
     double p0 = probability(x, n_perm );
-    double p1 = cfg.int_code>0 ? perm_const_assumption[n_perm] : 1.0;
+    double p1 = cfg.int_code>0 ? perm_const_assumption[n_perm]*perm_btag_assumption[n_perm] : 1.0;
 #ifdef DEBUG_MODE
     if( debug_code&DebugVerbosity::integration ){
       cout << "\t\tPermutation #" << n_perm 
@@ -2091,7 +2578,10 @@ double MEM::Integrand::probability(const double* x, const std::size_t& n_perm ) 
   }
 
   p *= constants();
+
   p *= transfer(ps, perm_indexes_assumption[n_perm], accept);
+  if(cfg.do_prefit>1 && prefit_step==0) return p;
+
   if(cfg.tf_suppress && accept>=cfg.tf_suppress){
 #ifdef DEBUG_MODE
     if( debug_code&DebugVerbosity::integration ){
@@ -2100,8 +2590,8 @@ double MEM::Integrand::probability(const double* x, const std::size_t& n_perm ) 
 #endif
     return 0.;
   }
-  p *= matrix(ps);
 
+  p *= matrix(ps);
 
 #ifdef DEBUG_MODE
   if( debug_code&DebugVerbosity::integration ){
