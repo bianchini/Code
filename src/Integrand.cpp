@@ -1166,7 +1166,8 @@ bool MEM::Integrand::accept_perm( const vector<int>& perm, const std::vector<MEM
       for( auto ind : indexes1 ){ 
 	if( perm[ind]>=0 && 
 	    obs_jets[perm[ind]]->isSet(Observable::BTAG) && 
-	    obs_jets[perm[ind]]->getObs(Observable::BTAG)<0.5){
+	    obs_jets[perm[ind]]->getObs(Observable::BTAG)<0.5 &&
+	    (!obs_jets[perm[ind]]->isSet(Observable::PDGID) || (obs_jets[perm[ind]]->isSet(Observable::PDGID) && obs_jets[perm[ind]]->getObs(Observable::PDGID)==0 )  )  ){
 	  if( debug_code&DebugVerbosity::init_more ){
 	    cout << "\t\tDiscard permutation: obs_jets[ perm[" << ind << "] ] has BTAG=" << obs_jets[perm[ind]]->getObs(Observable::BTAG) << endl;
 	  }
@@ -1188,7 +1189,8 @@ bool MEM::Integrand::accept_perm( const vector<int>& perm, const std::vector<MEM
       for( auto ind : indexes1 ){
 	if( perm[ind]>=0 &&
             obs_jets[perm[ind]]->isSet(Observable::BTAG) &&
-            obs_jets[perm[ind]]->getObs(Observable::BTAG)>0.5){
+            obs_jets[perm[ind]]->getObs(Observable::BTAG)>0.5 && 
+	    (!obs_jets[perm[ind]]->isSet(Observable::PDGID) || (obs_jets[perm[ind]]->isSet(Observable::PDGID) && obs_jets[perm[ind]]->getObs(Observable::PDGID)==0 )  )  ){
 	  if( debug_code&DebugVerbosity::init_more ){
 	    cout << "\t\tDiscard permutation: obs_jets[ perm[" << ind << "] ] has BTAG=" << obs_jets[perm[ind]]->getObs(Observable::BTAG) << endl;
 	  }
@@ -1373,6 +1375,7 @@ bool MEM::Integrand::accept_perm( const vector<int>& perm, const std::vector<MEM
 
       // assume one can match quarks to HEPTopTag subjets 
     case Permutations::HEPTopTagged:
+
       // deal with the first top
       if(!(fs==FinalState::HH || fs==FinalState::LH)) continue;
       indexes1 =  vector<size_t>{map_to_part.find(PSPart::q1)->second, 
@@ -1410,6 +1413,32 @@ bool MEM::Integrand::accept_perm( const vector<int>& perm, const std::vector<MEM
 	  return false;
 	}
       }
+      break;
+
+     // assume one can match quarks to HEPTopTag subjets 
+    case Permutations::HEPTopTaggedNoPrefix:
+
+      // deal with the first top
+      if(!(fs==FinalState::HH || fs==FinalState::LH)) continue;
+      indexes1 =  vector<size_t>{map_to_part.find(PSPart::q1)->second, 
+				 map_to_part.find(PSPart::qbar1)->second, 
+				 map_to_part.find(PSPart::b1)->second};
+
+      if( perm[indexes1[0]]<0 || perm[indexes1[1]]<0 || perm[indexes1[2]]<0 ) continue;
+      if( obs_jets[perm[indexes1[0]]]->getObs(Observable::PDGID)*
+	  obs_jets[perm[indexes1[1]]]->getObs(Observable::PDGID)*
+	  obs_jets[perm[indexes1[2]]]->getObs(Observable::PDGID) != 5)  return false;
+
+      // deal with the second top (if any)
+      if(!(fs==FinalState::HH)) continue;
+      indexes2 =  vector<size_t>{map_to_part.find(PSPart::q2)->second, 
+				 map_to_part.find(PSPart::qbar2)->second, 
+				 map_to_part.find(PSPart::b2)->second};
+
+      if( perm[indexes2[0]]<0 || perm[indexes2[1]]<0 || perm[indexes2[2]]<0 ) continue;
+      if( obs_jets[perm[indexes2[0]]]->getObs(Observable::PDGID)*
+	  obs_jets[perm[indexes2[1]]]->getObs(Observable::PDGID)*
+	  obs_jets[perm[indexes2[2]]]->getObs(Observable::PDGID) != 5)  return false;
       break;
 
       // assume one can match quarks to HiggsTagger subjets 

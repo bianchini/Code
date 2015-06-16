@@ -303,7 +303,7 @@ namespace MEM {
   }
   
   namespace Permutations {
-    enum Permutations { BTagged=0, QUntagged, QQbarSymmetry, BBbarSymmetry, QQbarBBbarSymmetry, HEPTopTagged, HiggsTagged, FirstRankedByBTAG, FirstTwoRankedByBTAG, FirstThreeRankedByBTAG};
+    enum Permutations { BTagged=0, QUntagged, QQbarSymmetry, BBbarSymmetry, QQbarBBbarSymmetry, HEPTopTagged, HEPTopTaggedNoPrefix, HiggsTagged, FirstRankedByBTAG, FirstTwoRankedByBTAG, FirstThreeRankedByBTAG};
   }
   
   namespace IntegrandType {
