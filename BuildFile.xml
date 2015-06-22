@@ -1,7 +1,6 @@
 <use   name="root"/>
 <use   name="rootcore"/>
 <use   name="rootmath"/>
-<use   name="rootmathmore"/>
 <use   name="rootminuit"/>
 <use   name="rootminuit2"/>
 <use   name="classlib"/>

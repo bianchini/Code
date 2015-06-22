@@ -336,7 +336,7 @@ namespace MEM {
 	       int    =0,                // =0 <=> Int{ Perm }; =1 <=> Perm{ Int }
 	       double =13000.,           // c.o.m. energy
 	       double =8000.,            // max energy for integration over momenta
-	       string ="cteq65.LHgrid",  // PDF set
+	       string ="cteq66",  // PDF set
 	       double =0.98,             // light quark energy CL
 	       double =0.98,             // heavy quark energy CL
 	       double =0.98,             // nu phi CL
