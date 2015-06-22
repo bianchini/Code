@@ -9,6 +9,10 @@ using namespace MEM;
 
 int main(int argc, char *argv[]){
 
+  TFile* fout  = new TFile("out.root","RECREATE");
+  TH1F* h0_ran   = new TH1F("h0_ran", "", 100,0,1); 
+  TH1F* h0_in    = new TH1F("h0_in",  "", 100,0,1); 
+
   TFile* f = TFile::Open("../MEAnalysis/root/ControlPlotsV6.root","READ");
   TH3D* h3_b = (TH3D*)f->Get("csv_b_pt_eta");
   TH3D* h3_c = (TH3D*)f->Get("csv_c_pt_eta");
@@ -38,7 +42,7 @@ int main(int argc, char *argv[]){
   lv_j2.SetPtEtaPhiM(35.6511192322, 0.566395223141, -2.51394343376, 8.94268417358);
   Object j2( lv_j2, ObjectType::Jet );
   j2.addObs( Observable::BTAG, 1. );
-  j2.addObs( Observable::PDGID, 5 );  
+  j2.addObs( Observable::PDGID, 1 );  
   j2.addObs( Observable::CSV,   0.9  );  
   //j2.addObs( Observable::BTAGPROB, 0.70 );  
 
@@ -54,7 +58,7 @@ int main(int argc, char *argv[]){
   lv_j4.SetPtEtaPhiM(52.0134391785, -0.617823541164, -1.23360788822, 6.45914268494);
   Object j4( lv_j4, ObjectType::Jet );
   j4.addObs( Observable::BTAG, 1. );
-  j4.addObs( Observable::PDGID, 5 );  
+  j4.addObs( Observable::PDGID, 1 );  
   j4.addObs( Observable::CSV, 0.7 );  
   //j4.addObs( Observable::BTAGPROB, 0.70 );    
 
@@ -88,9 +92,9 @@ int main(int argc, char *argv[]){
 
   for(int i = 0 ; i < nmax ; ++i){
 
-    //rnd->push_back_object( &j1 );
+    rnd->push_back_object( &j1 );
     rnd->push_back_object( &j2 );
-    //rnd->push_back_object( &j3 );
+    rnd->push_back_object( &j3 );
     rnd->push_back_object( &j4 );
     rnd->push_back_object( &j5 );
     rnd->push_back_object( &j6 );
@@ -98,13 +102,17 @@ int main(int argc, char *argv[]){
     BTagRandomizerOutput out = rnd->run();
     if(nmax<10) out.print(cout);
 
-    if(out.pass) 
+    if(out.pass){ 
       ++n_pass;
-    if(out.pass_rnd)
+      h0_in ->Fill((out.input_btag)[0]);
+    }
+    if(out.pass_rnd || (!out.pass_rnd && out.pass)){
       ++n_pass_rnd;
-    n_pass_weight  += out.p;
-    n_pass_weight2 += out.p*out.p; 
-    
+      n_pass_weight  += out.p;
+      n_pass_weight2 += out.p*out.p; 
+      h0_ran->Fill((out.rnd_btag)[0], out.p);   
+    }
+
     rnd->next_event();
   }
 
@@ -117,4 +125,9 @@ int main(int argc, char *argv[]){
   cout << "Done!" << endl;
   delete rnd;
   f->Close();
+  
+  fout->cd();
+  h0_ran->Write();
+  h0_in->Write();
+  fout->Close();
 }

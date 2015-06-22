@@ -231,7 +231,7 @@ MEM::BTagRandomizerOutput MEM::BTagRandomizer::run(){
       }
 
       if( rnd >= cut_val ){
-	lk.set(j,true);
+	//lk.set(j,true);
 	++count_pass;
       }
     }

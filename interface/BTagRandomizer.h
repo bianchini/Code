@@ -73,9 +73,9 @@ namespace MEM {
       os << "\tError code:          " << err << endl;
       os << "\tB,C,L:               " << n_b << "," << n_c << "," << n_l << endl;
       os << "\tNumber of toys:      " << ntoys << endl;
-      os << "\tInput --------- Random values:" << endl;
+      os << "\tInput     --------- Random values:" << endl;
       for(size_t i = 0 ; i < rnd_btag.size() ; ++i)
-	os << "\t[ " << input_btag[i] << " ] --------- [ " << rnd_btag[i] << " ]" << endl;
+	printf( "\t[ %.3f ] --------- [ %.3f ]\n", input_btag[i], rnd_btag[i]);
       os << "\t*************************************" << endl;
     }
   };
