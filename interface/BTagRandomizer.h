@@ -88,7 +88,7 @@ namespace MEM {
       os << "\tError code:          " << err << endl;
       os << "\tB,C,L:               " << n_b << "," << n_c << "," << n_l << endl;
       os << "\tNumber of toys:      " << ntoys << endl;
-      os << "\tInput     --------- Random values:" << endl;
+      os << "\tInput:    --------- Random:" << endl;
       for(size_t i = 0 ; i < rnd_btag.size() ; ++i)
 	printf( "\t[ %.3f ] --------- [ %.3f ]\n", input_btag[i], rnd_btag[i]);
       os << "\t*************************************" << endl;
@@ -122,7 +122,6 @@ namespace MEM {
     int count_c;
     int count_l;
     int assign_rnd;  
-    CompPerm comparator;
     std::vector<MEM::Object*> jets;
     std::map<std::size_t, TH1D* >  pdfs;
     std::map<std::size_t, double > effs;

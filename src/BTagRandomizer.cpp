@@ -1,7 +1,10 @@
 #include "interface/BTagRandomizer.h"
 
 
-MEM::BTagRandomizer::BTagRandomizer(int debug, int seed, const std::map<DistributionType::DistributionType, TH3D>& pdf, int assignrnd, int nmax){
+MEM::BTagRandomizer::BTagRandomizer(int debug, int seed, 
+				    const std::map<DistributionType::DistributionType, TH3D>& pdf, 
+				    int assignrnd, 
+				    int nmax){
   btag_pdfs  = pdf;
   debug_code = debug;
   n_tags_l   = 0;
@@ -140,6 +143,7 @@ MEM::BTagRandomizerOutput MEM::BTagRandomizer::run(){
 
   n_jets = int(jets.size());
   assert( n_jets >= n_tags_l );
+  assert( n_tags_h<0 || n_tags_h>=n_tags_l );
   
   init_pdfs();
   if(error_code>0) return out;
@@ -147,21 +151,20 @@ MEM::BTagRandomizerOutput MEM::BTagRandomizer::run(){
   perm_index.clear();
   for(size_t id = 0; id < size_t(n_jets) ; ++id) perm_index.push_back( id );
   
-  comparator = CompPerm(1);
   sort( perm_index.begin(), perm_index.end(),  std::less<int>() );  
   vector<int> perm_index_copy = perm_index;
-  n_perm_max = 0;
 
+  n_perm_max = 0;
   std::map<int,size_t> n_perms_max;
   for(int n_tags = n_tags_l ; n_tags <= (n_tags_h>0 ? TMath::Min(n_tags_h,n_jets) : n_jets) ; ++n_tags){
     n_perms_max[n_tags] = 0;
     do{ 
-      ++n_perm_max; 
       if( debug_code&DebugVerbosity::init_more ) {
 	cout << "\tperm. " << n_perm_max << ": [ ";
 	for( auto ind : perm_index_copy ) cout << ind << " ";
 	cout << "]" << endl;
       }
+      ++n_perm_max; 
       ++(n_perms_max.at(n_tags));
     } 
     while( next_combination( perm_index_copy.begin(), perm_index_copy.begin()+n_tags, perm_index_copy.end(), std::less<int>() ) );
@@ -233,7 +236,6 @@ MEM::BTagRandomizerOutput MEM::BTagRandomizer::run(){
   if( debug_code&DebugVerbosity::init_more ) 
     h_combinations.Print("all");
   
-  //return out;
 
   const size_t n = size_t(n_jets);
   MEM::Lock lk(n);
