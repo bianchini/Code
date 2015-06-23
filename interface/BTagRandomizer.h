@@ -2,6 +2,8 @@
 #define BTAGRANDOMIZER_H
 
 #include "interface/Parameters.h"
+#include "interface/Utils.h"
+#include <random>
 
 namespace MEM {
 
@@ -10,28 +12,41 @@ namespace MEM {
   struct Lock{
     Lock(const std::size_t& s){
       size = s;
-      lock = new vector<bool>(s);
-      for(size_t l = 0 ; l < s; ++l) (*lock)[l] = false;
+      lock    = new vector<bool>(s);
+      haslock = new vector<bool>(s);
+      for(size_t l = 0 ; l < s; ++l) (*lock)[l]    = false;
+      for(size_t l = 0 ; l < s; ++l) (*haslock)[l] = false;
     }
     ~Lock(){
       lock->clear();
+      haslock->clear();
       delete lock;
+      delete haslock;
     }
-    void set(const size_t& j, const bool& val){
+    void set_lock(const size_t& j, const bool& val){
       (*lock)[j] = val;
+    }
+    void set_haslock(const size_t& j, const bool& val){
+      (*haslock)[j] = val;
     }
     bool allset(){
       bool out = true;
-      for(size_t l = 0 ; l < size; ++l) out &= (*lock)[l];
+      for(size_t l = 0 ; l < size; ++l){
+	if((*haslock)[l]) out &= (*lock)[l];
+      }
       return out;
     }
-    bool get(const size_t& j){
+    bool get_lock(const size_t& j){
       return (*lock)[j];
+    }
+    bool get_haslock(const size_t& j){
+      return (*haslock)[j];
     }
     void reset(){
       for(size_t l = 0 ; l < size; ++l) (*lock)[l] = false;
     }
     vector<bool>* lock;
+    vector<bool>* haslock;
     std::size_t size;
   };
 
@@ -92,7 +107,7 @@ namespace MEM {
 
   private:
 
-    vector<int> get_permutation(const std::size_t&);
+    vector<int> get_permutation(const std::size_t&,const int&);
     void init_pdfs();
 
     TRandom3* ran;

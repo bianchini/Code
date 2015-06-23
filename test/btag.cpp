@@ -10,8 +10,20 @@ using namespace MEM;
 int main(int argc, char *argv[]){
 
   TFile* fout  = new TFile("out.root","RECREATE");
-  TH1F* h0_ran   = new TH1F("h0_ran", "", 100,0,1); 
-  TH1F* h0_in    = new TH1F("h0_in",  "", 100,0,1); 
+  vector<TH1F*> h_inp;
+  vector<TH1F*> h_ran;
+  vector<TH1F*> h_ratio;
+  for(int j = 0 ; j < 6 ; ++j){
+    TH1F* inp = new TH1F(Form("h%d_inp",j), "", 20,0,1); 
+    TH1F* ran = new TH1F(Form("h%d_ran",j), "", 20,0,1); 
+    TH1F* ratio = new TH1F(Form("h%d_ratio",j), "", 20,0,1); 
+    inp->Sumw2();
+    ran->Sumw2();
+    ratio->Sumw2();
+    h_inp.push_back( inp );
+    h_ran.push_back( ran );
+    h_ratio.push_back( ratio );
+  }
 
   TFile* f = TFile::Open("../MEAnalysis/root/ControlPlotsV6.root","READ");
   TH3D* h3_b = (TH3D*)f->Get("csv_b_pt_eta");
@@ -42,7 +54,7 @@ int main(int argc, char *argv[]){
   lv_j2.SetPtEtaPhiM(35.6511192322, 0.566395223141, -2.51394343376, 8.94268417358);
   Object j2( lv_j2, ObjectType::Jet );
   j2.addObs( Observable::BTAG, 1. );
-  j2.addObs( Observable::PDGID, 1 );  
+  j2.addObs( Observable::PDGID, 5 );  
   j2.addObs( Observable::CSV,   0.9  );  
   //j2.addObs( Observable::BTAGPROB, 0.70 );  
 
@@ -58,7 +70,7 @@ int main(int argc, char *argv[]){
   lv_j4.SetPtEtaPhiM(52.0134391785, -0.617823541164, -1.23360788822, 6.45914268494);
   Object j4( lv_j4, ObjectType::Jet );
   j4.addObs( Observable::BTAG, 1. );
-  j4.addObs( Observable::PDGID, 1 );  
+  j4.addObs( Observable::PDGID, 5 );  
   j4.addObs( Observable::CSV, 0.7 );  
   //j4.addObs( Observable::BTAGPROB, 0.70 );    
 
@@ -104,17 +116,19 @@ int main(int argc, char *argv[]){
 
     if(out.pass){ 
       ++n_pass;
-      h0_in ->Fill((out.input_btag)[0]);
+      for(int j = 0 ; j < 6 ; ++j) h_inp[j]->Fill((out.input_btag)[j]);
     }
     if(out.pass_rnd || (!out.pass_rnd && out.pass)){
       ++n_pass_rnd;
       n_pass_weight  += out.p;
       n_pass_weight2 += out.p*out.p; 
-      h0_ran->Fill((out.rnd_btag)[0], out.p);   
+      for(int j = 0 ; j < 6 ; ++j) h_ran[j]->Fill((out.rnd_btag)[j]);
     }
 
     rnd->next_event();
   }
+
+  for(int j = 0 ; j < 6 ; ++j) h_ratio[j]->Divide(h_inp[j], h_ran[j], 1./h_inp[j]->Integral(), 1./h_ran[j]->Integral());
 
   double pass_prob = double(n_pass)/nmax;
   cout << "N toys        = " << nmax << endl;
@@ -127,7 +141,8 @@ int main(int argc, char *argv[]){
   f->Close();
   
   fout->cd();
-  h0_ran->Write();
-  h0_in->Write();
+  for(int j = 0 ; j < 6 ; ++j) h_ratio[j]->Write();
+  for(int j = 0 ; j < 6 ; ++j) h_inp[j]->Write();
+  for(int j = 0 ; j < 6 ; ++j) h_ran[j]->Write();
   fout->Close();
 }

@@ -148,23 +148,38 @@ MEM::BTagRandomizerOutput MEM::BTagRandomizer::run(){
   for(size_t id = 0; id < size_t(n_jets) ; ++id) perm_index.push_back( id );
   
   comparator = CompPerm(1);
-  sort( perm_index.begin(), perm_index.end(), comparator );  
+  sort( perm_index.begin(), perm_index.end(),  std::less<int>() );  
   vector<int> perm_index_copy = perm_index;
   n_perm_max = 0;
-  do{ ++n_perm_max; } 
-  while( next_permutation( perm_index_copy.begin(), perm_index_copy.end(), comparator) );
+
+  std::map<int,size_t> n_perms_max;
+  for(int n_tags = n_tags_l ; n_tags <= (n_tags_h>0 ? TMath::Min(n_tags_h,n_jets) : n_jets) ; ++n_tags){
+    n_perms_max[n_tags] = 0;
+    do{ 
+      ++n_perm_max; 
+      if( debug_code&DebugVerbosity::init_more ) {
+	cout << "\tperm. " << n_perm_max << ": [ ";
+	for( auto ind : perm_index_copy ) cout << ind << " ";
+	cout << "]" << endl;
+      }
+      ++(n_perms_max.at(n_tags));
+    } 
+    while( next_combination( perm_index_copy.begin(), perm_index_copy.begin()+n_tags, perm_index_copy.end(), std::less<int>() ) );
+  }
 
   if( debug_code&DebugVerbosity::init_more ){
     cout << "\tMaximum of " << n_perm_max << " permutation(s) considered" << endl;
   }
 
+  TH1D h_combinations("h_combinations","", n_perm_max+1, 0, n_perm_max+1);
   double pass{0.};
+  size_t count_perm{0};
   for(int n_tags = n_tags_l ; n_tags <= (n_tags_h>0 ? TMath::Min(n_tags_h,n_jets) : n_jets) ; ++n_tags){
-    for( std::size_t n_perm = 0 ; n_perm < n_perm_max ; ++n_perm ){        
+    for( std::size_t n_perm = 0 ; n_perm < n_perms_max.at(n_tags) ; ++n_perm ){        
 
       double p{1.};
       if( debug_code&DebugVerbosity::event ) cout << "\tPermutation " << n_perm  << endl;
-      auto perm = get_permutation(n_perm);
+      auto perm = get_permutation(n_perm, n_tags);
       if(perm.size()==0) continue;
       
       for( int j = 0 ; j < n_jets ; ++j){
@@ -188,14 +203,46 @@ MEM::BTagRandomizerOutput MEM::BTagRandomizer::run(){
 
       if( debug_code&DebugVerbosity::event ) cout << "\tp = : " << p  << endl;
 
-      p /= (TMath::Factorial( n_tags )*TMath::Factorial( n_jets-n_tags ));
+      //p /= (TMath::Factorial( n_tags )*TMath::Factorial( n_jets-n_tags ));
+      if( debug_code&DebugVerbosity::event ) cout << "\tFilling bin " << count_perm << endl;
+      h_combinations.Fill( count_perm, p);
       pass += p;
+      ++count_perm;
     }
   }
 
+  size_t rnd_perm = h_combinations.GetBinLowEdge(h_combinations.FindBin(h_combinations.GetRandom()));
+  int n_tags_rnd {0};
+  int n_perm_rnd {0};
+  count_perm = 0;
+  for(int n_tags = n_tags_l ; n_tags <= (n_tags_h>0 ? TMath::Min(n_tags_h,n_jets) : n_jets) ; ++n_tags){
+    for( std::size_t n_perm = 0 ; n_perm < n_perms_max.at(n_tags) ; ++n_perm ){        
+      if( count_perm==rnd_perm){
+	n_tags_rnd = n_tags;
+	n_perm_rnd = n_perm;
+      }
+      ++count_perm;
+    }
+  }
+
+
+  if( debug_code&DebugVerbosity::init_more ) 
+    cout << "Random permutation: " 
+	 << rnd_perm << ", n tags: " << n_tags_rnd << ", n_perm: " << n_perm_rnd  << endl;
+
+  if( debug_code&DebugVerbosity::init_more ) 
+    h_combinations.Print("all");
   
+  //return out;
+
   const size_t n = size_t(n_jets);
   MEM::Lock lk(n);
+  auto perm = get_permutation(n_perm_rnd, n_tags_rnd);
+  for(int t = 0 ; t < n_tags_rnd ; ++t){
+    if( debug_code&DebugVerbosity::init_more ) cout << "\tLocking jet index [" << perm[t] << "]" << endl;
+    lk.set_haslock( size_t(perm[t]), true );
+  }
+
   vector<double> rnd_btag   = vector<double>(n);
   vector<double> input_btag = vector<double>(n);
 
@@ -206,15 +253,20 @@ MEM::BTagRandomizerOutput MEM::BTagRandomizer::run(){
     if( debug_code&DebugVerbosity::event ) 
       cout << "\tToy: " << ntoys << endl;
 
-    int count_pass{0};
+    int count_pass  {0};
+    int count_pass_t{0};
+    int count_pass_u{0};
+
     for(size_t j = 0; j < std::size_t(n_jets) ; ++j){
 
-      if( lk.get(j) ){
+      if( ntoys>=2 && lk.get_haslock(j) && lk.get_lock(j) ){
 	if( debug_code&DebugVerbosity::event ) 
 	cout << "\tRandom value jet[" << j << "]: " << rnd_btag[j] << " (locked)"  << endl;
+	++count_pass;
+	++count_pass_t;	
 	continue;
       }
-
+      
       double rnd{0.};
       if(ntoys<2){ 
 	rnd           = vals.at(j);
@@ -230,13 +282,18 @@ MEM::BTagRandomizerOutput MEM::BTagRandomizer::run(){
 	else        cout << "\tRandom value jet[" << j << "]: " << rnd_btag[j] << endl;
       }
 
-      if( rnd >= cut_val ){
-	//lk.set(j,true);
+      if(  rnd >= cut_val ){
 	++count_pass;
+	if( ntoys>=2 && lk.get_haslock(j) ){
+	  lk.set_lock(j, true); 
+	  ++count_pass_t;
+	}
+	if( ntoys>=2 && !lk.get_haslock(j) ) ++count_pass_u;
       }
     }
+
     if( debug_code&DebugVerbosity::event ) 
-      cout << "\tPassing: " << count_pass << endl;
+      cout << "\tPassing: " << count_pass << " (" << count_pass_t << "," << count_pass_u << ")" << endl;
 
     // burn first toy
     if( ntoys < 2){
@@ -250,15 +307,11 @@ MEM::BTagRandomizerOutput MEM::BTagRandomizer::run(){
       continue;
     }
       
-    if( (n_tags_h<0         && count_pass>=n_tags_l) ||
-	(n_tags_h==n_tags_l && count_pass==n_tags_l) ||
-	(n_tags_h>n_tags_l  && count_pass>=n_tags_l && count_pass<=n_tags_h) ||
-	lk.allset() ){
+    if( count_pass_t == n_tags_rnd && count_pass_u==0 ){
       out.pass_rnd = 1;
       break;
     }
-    if(n_tags_h==n_tags_l && count_pass>n_tags_l)  lk.reset();
-    if(n_tags_h>n_tags_l  && count_pass>n_tags_h)  lk.reset();
+    if(count_pass_t>n_tags_rnd)  lk.reset();
   }
 
   out.ntoys      = ntoys;  
@@ -299,7 +352,7 @@ void MEM::BTagRandomizer::push_back_object( Object* obj){
   return;
 }
 
-std::vector<int> MEM::BTagRandomizer::get_permutation(const std::size_t& n){
+std::vector<int> MEM::BTagRandomizer::get_permutation(const std::size_t& n, const int& ntag){
   vector<int> perm_index_copy = perm_index;
   std::size_t n_perm{0};
   do{
@@ -312,7 +365,7 @@ std::vector<int> MEM::BTagRandomizer::get_permutation(const std::size_t& n){
       return perm_index_copy;    
     }
     ++n_perm;
-  } while( next_permutation( perm_index_copy.begin(), perm_index_copy.end(), comparator) );
+  } while( next_combination( perm_index_copy.begin(), perm_index_copy.begin()+ntag, perm_index_copy.end(), std::less<int>()) );
 
   return vector<int>{};
 } 
