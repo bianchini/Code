@@ -54,7 +54,7 @@ int main(int argc, char *argv[]){
   lv_j2.SetPtEtaPhiM(35.6511192322, 0.566395223141, -2.51394343376, 8.94268417358);
   Object j2( lv_j2, ObjectType::Jet );
   j2.addObs( Observable::BTAG, 1. );
-  j2.addObs( Observable::PDGID, 5 );  
+  j2.addObs( Observable::PDGID, 1 );  
   j2.addObs( Observable::CSV,   0.9  );  
   //j2.addObs( Observable::BTAGPROB, 0.70 );  
 
@@ -70,7 +70,7 @@ int main(int argc, char *argv[]){
   lv_j4.SetPtEtaPhiM(52.0134391785, -0.617823541164, -1.23360788822, 6.45914268494);
   Object j4( lv_j4, ObjectType::Jet );
   j4.addObs( Observable::BTAG, 1. );
-  j4.addObs( Observable::PDGID, 5 );  
+  j4.addObs( Observable::PDGID, 1 );  
   j4.addObs( Observable::CSV, 0.7 );  
   //j4.addObs( Observable::BTAGPROB, 0.70 );    
 
@@ -102,6 +102,7 @@ int main(int argc, char *argv[]){
   else
     rnd->set_condition(4, -1,  0.879);
 
+
   for(int i = 0 ; i < nmax ; ++i){
 
     rnd->push_back_object( &j1 );
@@ -122,11 +123,22 @@ int main(int argc, char *argv[]){
       ++n_pass_rnd;
       n_pass_weight  += out.p;
       n_pass_weight2 += out.p*out.p; 
-      for(int j = 0 ; j < 6 ; ++j) h_ran[j]->Fill((out.rnd_btag)[j]);
+      for(int j = 0 ; j < 6 ; ++j) h_ran[j]->Fill((out.rnd_btag)[j], out.p);
     }
 
+    JetCategory cat0 = JetCategory(0, 0, 0.879, 0, "6j0t");
+    JetCategory cat1 = JetCategory(1, 1, 0.879, 1, "6j1t");
+    JetCategory cat2 = JetCategory(2, 2, 0.879, 2, "6j2t");
+    JetCategory cat3 = JetCategory(3, 3, 0.879, 3, "6j3t");
+    JetCategory cat4 = JetCategory(4,-1, 0.879, 4, "6jge4t");
+    vector<BTagRandomizerOutput> out_all = rnd->run_all(vector<JetCategory>{cat0, cat1, cat2, cat3, cat4});
+    for(auto o : out_all ) o.print(cout);
+    
     rnd->next_event();
   }
+
+
+
 
   for(int j = 0 ; j < 6 ; ++j) h_ratio[j]->Divide(h_inp[j], h_ran[j], 1./h_inp[j]->Integral(), 1./h_ran[j]->Integral());
 

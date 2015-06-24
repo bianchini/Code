@@ -3,20 +3,26 @@
 
 MEM::BTagRandomizer::BTagRandomizer(int debug, int seed, 
 				    const std::map<DistributionType::DistributionType, TH3D>& pdf, 
-				    int assignrnd, 
+				    int assignrnd,
+				    int compress,
 				    int nmax){
-  btag_pdfs  = pdf;
-  debug_code = debug;
-  n_tags_l   = 0;
-  n_tags_h   = 0;
-  n_jets     = 0;
-  cut_val    = 0.;
-  error_code = 0;
-  n_max_toys = nmax;
-  count_b    = 0;
-  count_c    = 0;
-  count_l    = 0;
-  assign_rnd = assignrnd;
+  btag_pdfs    = pdf;
+  init         = 0;
+  debug_code   = debug;
+  n_tags_l     = 0;
+  n_tags_h     = 0;
+  n_jets       = 0;
+  cut_val      = 0.;
+  error_code   = 0;
+  n_max_toys   = nmax;
+  count_b      = 0;
+  count_c      = 0;
+  count_l      = 0;
+  assign_rnd   = assignrnd;
+  compress_csv = compress;
+  tag_id       = 0;
+  tag_name     = "";
+
   ran = new TRandom3();
   if(seed<0) gRandom->SetSeed(0);
   if(seed>0) gRandom->SetSeed(seed);
@@ -37,14 +43,26 @@ void MEM::BTagRandomizer::next_event(){
   effs.clear();
   vals.clear();
   perm_index.clear();
+  init       = 0;
   n_perm_max = 0;
   n_jets     = 0;
   count_b    = 0;
   count_c    = 0;
   count_l    = 0;  
   error_code = 0;
+  tag_id     = 0;
+  tag_name   = "";
   return;
 }
+
+void MEM::BTagRandomizer::next_category(){
+  n_perm_max = 0;
+  error_code = 0;
+  tag_id     = 0;
+  tag_name   = "";  
+  return;
+}
+
 
 void MEM::BTagRandomizer::init_pdfs(){
 
@@ -75,6 +93,9 @@ void MEM::BTagRandomizer::init_pdfs(){
     }
 
     double discr = jets[j]->isSet(Observable::CSV) ? jets[j]->getObs(Observable::CSV) : -99.; 
+    if(compress_csv) discr = TMath::Max(discr,  0.);
+    if(compress_csv) discr = TMath::Min(discr,  0.999999);
+
     int pdg      = int(jets[j]->getObs(Observable::PDGID));
 
     if( debug_code&DebugVerbosity::init_more)
@@ -107,10 +128,11 @@ void MEM::BTagRandomizer::init_pdfs(){
     h3.SetDefaultSumw2();
     int binX = h3.GetXaxis()->FindBin(jets[j]->p4().Pt());
     int binY = h3.GetYaxis()->FindBin(std::abs(jets[j]->p4().Eta()));
-    TH1D* h1 = h3.ProjectionZ(Form("%d_pz",int(j)), binX,binX,binY,binY);
-    if( assign_rnd ){
-      for(int k = 0 ; k < 2 ; ++k) discr = h1->GetRandom(); 
-    }
+
+    // protection against underflow
+    TH1D* h1 = h3.ProjectionZ(Form("%d_pz",int(j)), 
+			      TMath::Max(binX,1),TMath::Max(binX,1),
+			      TMath::Max(binY,1),TMath::Max(binY,1));
 
     if(!h1){
       cout << "BTagRandomizer::init_pdfs(): no histogram for jet[" << j << "] " << endl;   
@@ -118,10 +140,24 @@ void MEM::BTagRandomizer::init_pdfs(){
       continue;
     }
 
-    int bin = h1->FindBin(cut_val);
-    double pass = h1->Integral( bin , h1->GetNbinsX() );
+    //deal with underflow
+    if(compress_csv){
+      if(h1->GetBinContent(0)>0. )
+	h1->SetBinContent(1, h1->GetBinContent(0) + h1->GetBinContent(1));
+      if(h1->GetBinContent(h1->GetNbinsX()+1)>0. )
+	h1->SetBinContent(h1->GetNbinsX(), h1->GetBinContent(h1->GetNbinsX()) + h1->GetBinContent(h1->GetNbinsX()+1));
+    }
+
+    if( assign_rnd ){
+      for(int k = 0 ; k < 2 ; ++k) discr = h1->GetRandom(); 
+      if( debug_code&DebugVerbosity::init_more)
+	cout << "BTagRandomizer::init_pdfs(): assigning random output " << discr << endl;
+    }
+
+    int bin     = h1->FindBin(cut_val);
+    double pass = h1->Integral( bin , compress_csv ? h1->GetNbinsX() :  h1->GetNbinsX()+1 );
     pass -= (cut_val-h1->GetBinLowEdge( bin ))/h1->GetBinWidth( bin )*h1->GetBinContent(bin);
-    pass /= h1->Integral(0,  h1->GetNbinsX() );
+    pass /= h1->Integral(compress_csv ? 1 : 0,  compress_csv ? h1->GetNbinsX() : h1->GetNbinsX()+1 );
 
     pdfs.insert( make_pair(j, h1)    );
     effs.insert( make_pair(j, pass)  );
@@ -130,9 +166,26 @@ void MEM::BTagRandomizer::init_pdfs(){
       cout << "BTagRandomizer::init_pdfs(): adding <TH1D*, " << pass << "," << discr << "> for jet[" << j << "], bin(" << binX << "," << binY << ")" << endl;   
   }
 
-  
+  init = 1;
+  return;
 }
 
+vector<MEM::BTagRandomizerOutput> MEM::BTagRandomizer::run_all(const vector<JetCategory>& cats){
+
+  vector<BTagRandomizerOutput> out;
+
+  for(size_t c = 0 ; c < cats.size() ; ++c){
+    JetCategory cat = cats[c];
+    tag_id   = cat.tag;
+    tag_name = cat.name_tag;
+    set_condition( cat.ntags_l, cat.ntags_h, cat.cut );
+    BTagRandomizerOutput out_c = run();
+    out.push_back(out_c);
+    next_category();
+  }
+
+  return out;
+}
 
 MEM::BTagRandomizerOutput MEM::BTagRandomizer::run(){
 
@@ -145,8 +198,8 @@ MEM::BTagRandomizerOutput MEM::BTagRandomizer::run(){
   assert( n_jets >= n_tags_l );
   assert( n_tags_h<0 || n_tags_h>=n_tags_l );
   
-  init_pdfs();
-  if(error_code>0) return out;
+  if(!init) init_pdfs();
+  if(error_code>0 || !init) return out;
 
   perm_index.clear();
   for(size_t id = 0; id < size_t(n_jets) ; ++id) perm_index.push_back( id );
@@ -156,7 +209,7 @@ MEM::BTagRandomizerOutput MEM::BTagRandomizer::run(){
 
   n_perm_max = 0;
   std::map<int,size_t> n_perms_max;
-  for(int n_tags = n_tags_l ; n_tags <= (n_tags_h>0 ? TMath::Min(n_tags_h,n_jets) : n_jets) ; ++n_tags){
+  for(int n_tags = n_tags_l ; n_tags <= (n_tags_h>=0 ? TMath::Min(n_tags_h,n_jets) : n_jets) ; ++n_tags){
     n_perms_max[n_tags] = 0;
     do{ 
       if( debug_code&DebugVerbosity::init_more ) {
@@ -177,7 +230,7 @@ MEM::BTagRandomizerOutput MEM::BTagRandomizer::run(){
   TH1D h_combinations("h_combinations","", n_perm_max+1, 0, n_perm_max+1);
   double pass{0.};
   size_t count_perm{0};
-  for(int n_tags = n_tags_l ; n_tags <= (n_tags_h>0 ? TMath::Min(n_tags_h,n_jets) : n_jets) ; ++n_tags){
+  for(int n_tags = n_tags_l ; n_tags <= (n_tags_h>=0 ? TMath::Min(n_tags_h,n_jets) : n_jets) ; ++n_tags){
     for( std::size_t n_perm = 0 ; n_perm < n_perms_max.at(n_tags) ; ++n_perm ){        
 
       double p{1.};
@@ -218,7 +271,7 @@ MEM::BTagRandomizerOutput MEM::BTagRandomizer::run(){
   int n_tags_rnd {0};
   int n_perm_rnd {0};
   count_perm = 0;
-  for(int n_tags = n_tags_l ; n_tags <= (n_tags_h>0 ? TMath::Min(n_tags_h,n_jets) : n_jets) ; ++n_tags){
+  for(int n_tags = n_tags_l ; n_tags <= (n_tags_h>=0 ? TMath::Min(n_tags_h,n_jets) : n_jets) ; ++n_tags){
     for( std::size_t n_perm = 0 ; n_perm < n_perms_max.at(n_tags) ; ++n_perm ){        
       if( count_perm==rnd_perm){
 	n_tags_rnd = n_tags;
@@ -330,9 +383,12 @@ MEM::BTagRandomizerOutput MEM::BTagRandomizer::run(){
   out.n_b        = count_b;  
   out.n_c        = count_c;  
   out.n_l        = count_l;  
+  out.n_jets     = n_jets;
   out.n_tags_l   = n_tags_l;
   out.n_tags_h   = n_tags_h;
-
+  out.tag_id     = tag_id;
+  out.tag_name   = tag_name;
+  
   return out;
 }
 
