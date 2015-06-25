@@ -26,5 +26,7 @@
 	<class name="std::map<std::pair<MEM::TFType::TFType,int>,TF1>"/>
 	<class name="std::map<MEM::DistributionType::DistributionType,TH3D>"/>
 	<class name="MEM::BTagRandomizer"/>
+	<class name="MEM::BTagRandomizerOutput"/>
+	<class name="MEM::JetCategory"/>
 
 </lcgdict>
