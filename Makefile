@@ -34,7 +34,7 @@ BINDIR=$(BASEDIR)/bin
 LIBDIR=$(BASEDIR)/libs	
 SRCDIR = $(BASEDIR)/src
 HDIR = $(BASEDIR)/interface
-MEM  = -lopenloops -lbar -lcoli -lpphttxcallme2born -lppttxbbxcallme2born -lppttxjcallme2born -lMathMore -lLHAPDF
+MEM  = -lopenloops -lbar -lcoli -lpphttxcallme2born -lppttxbbxcallme2born -lppttxjcallme2born -lMathMore -lLHAPDF -lTreePlayer
 
 ### Main Target, first
 .PHONY: all
