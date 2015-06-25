@@ -126,7 +126,7 @@ int main(int argc, char *argv[]){
 					   );
 
   
-  TCut cut = "numJets<=6";
+  TCut cut = "numJets<=6 && is_sl";
   TFile* fin = TFile::Open(Form("/scratch/bianchi/%s.root", argv[1]));
   TTree* tin = (TTree*)fin->Get("tree");
 
@@ -166,7 +166,7 @@ int main(int argc, char *argv[]){
 
   for (Long64_t i = 0; i < nentries; i++){
 
-    if( count_pass>100000 ) break;
+    if( count_pass>200000 ) break;
 
     tin->GetEntry(i);
 
@@ -238,12 +238,12 @@ int main(int argc, char *argv[]){
       }
 
       //// Input
-      float dR_min_bb =  99.;
-      float dR_min_jj =  99.;
+      float dR_min_bb =  9999.;
+      float dR_min_jj =  9999.;
       float dR_max_bb = -99.;
       float dR_max_jj = -99.;
-      float m_min_bb  =  99.;
-      float m_min_jj  =  99.;
+      float m_min_bb  =  9999.;
+      float m_min_jj  =  9999.;
       float m_max_bb  = -99.;
       float m_max_jj  = -99.;
       for( int j = 0 ; j < njets-1 ; ++j){
@@ -284,12 +284,12 @@ int main(int argc, char *argv[]){
       (corr_inp_map.at(o))[7] = m_max_jj;
 
       ///////// Rand
-      dR_min_bb =  99.;
-      dR_min_jj =  99.;
+      dR_min_bb =  9999.;
+      dR_min_jj =  9999.;
       dR_max_bb = -99.;
       dR_max_jj = -99.;
-      m_min_bb  =  99.;
-      m_min_jj  =  99.;
+      m_min_bb  =  9999.;
+      m_min_jj  =  9999.;
       m_max_bb  = -99.;
       m_max_jj  = -99.;
       for( int j = 0 ; j < njets-1 ; ++j){
