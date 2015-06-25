@@ -11,6 +11,7 @@ namespace {
         std::pair<MEM::DistributionType::DistributionType,TH3D> _o2;
         std::map<std::pair<MEM::TFType::TFType,int>,TF1> _i3;
         std::map<MEM::DistributionType::DistributionType,TH3D> _i4;
+        std::vector<MEM::JetCategory> _i5;
         // MEM::Integrand _i1;
         // MEM::Object _i2;
     }
