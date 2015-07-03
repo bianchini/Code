@@ -39,6 +39,8 @@ MEM::BTagRandomizer::~BTagRandomizer(){
 
 void MEM::BTagRandomizer::next_event(){
   jets.clear();
+  for(auto pdf : pdfs)
+    delete pdf.second;
   pdfs.clear();
   effs.clear();
   vals.clear();
