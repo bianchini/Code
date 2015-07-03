@@ -1,7 +1,8 @@
 
 
 {
-
+  bool DOGLOBAL     = true;
+  bool DOUNWEIGHTED = false;
 
   TCanvas *c1  = new TCanvas("c1","",5,30,650,600);
   c1->SetGrid(1,1);
@@ -29,23 +30,27 @@
   leg->SetTextSize(0.04);
   
   TString names[] = {
-    "tth_13tev_amcatnlo_pu20bx25_0" 
-    ,"tth_13tev_amcatnlo_pu20bx25_1"
-    ,"ttjets_13tev_madgraph_pu20bx25_phys14_0"
-    ,"ttjets_13tev_madgraph_pu20bx25_phys14_1"
+    //"tth_13tev_amcatnlo_pu20bx25_0" 
+    //,"tth_13tev_amcatnlo_pu20bx25_1"
+    //,"ttjets_13tev_madgraph_pu20bx25_phys14_0"
+    //,
+    "ttjets_13tev_madgraph_pu20bx25_phys14_1"
   };
   TString samples[] = {
-    "t#bar{t}H, reco CSV"
-    ,"t#bar{t}H, closure test"
-    ,"t#bar{t}+jets, reco CSV"
-    ,"t#bar{t}+jets, closure test"
+    //"t#bar{t}H, reco CSV charm=light"
+    //,"t#bar{t}H, closure test"
+    //,"t#bar{t}+jets, reco CSV"
+    //,
+    "t#bar{t}+jets, closure test"
   };
   
   for( int it_name = 0 ; it_name < 4 ; ++it_name){
 
     TString name   = names[it_name];
     TString sample = samples[it_name];  
-    
+
+    if(DOUNWEIGHTED) sample = sample+" (unweighted)";
+
     TFile* fout = new TFile("test/validate_"+name+".root","RECREATE");
     fout->mkdir("csv");
     fout->mkdir("csv_ratio");
@@ -63,7 +68,14 @@
     TFile* f = TFile::Open("test/btag_out_"+name+".root");
     TTree* t = (TTree*)f->Get("tree");
     TH1F*  h = new TH1F("h","",10,0,10);
+    TH1F*  h_yields_inp   = new TH1F("h_yields_inp","",15,0,15);
+    TH1F*  h_yields_rnd   = new TH1F("h_yields_rnd","",15,0,15);
+    TH1F*  h_yields_ratio = new TH1F("h_yields_ratio","",15,0,15);
+    TH1F*  h_frac_inp     = new TH1F("h_frac_inp","",15,0,15);
+    TH1F*  h_frac_rnd     = new TH1F("h_frac_rnd","",15,0,15);
+    TH1F*  h_frac_ratio   = new TH1F("h_frac_ratio","",15,0,15);
     
+
     char* globals[2] = {"met","HT"};
     
     for( int njet = 4 ; njet <=6 ; ++njet ){
@@ -72,11 +84,13 @@
 	h->Sumw2();
 	t->Draw("njet>>h",Form("njet==%d && pass[%d]",njet,i));
 	double pass_err=0.; 
+	int pass_entries = h->GetEntries();
 	float pass = h->IntegralAndError(1, h->GetNbinsX(), pass_err); 
 	
 	h->Reset();
 	t->Draw("njet>>h",Form("(njet==%d)*pcat[%d]", njet,i));
 	double weight_err=0.; 
+	int weight_entries = h->GetEntries();
 	float weight = h->IntegralAndError(1, h->GetNbinsX(), weight_err); 
 
 	float ratio = pass>0 ? (weight-pass)/pass  : 0.;
@@ -85,7 +99,18 @@
 	printf("\tWEIGHT: %.0f +/- %.1f\n", weight, weight_err);
 	printf("\tDiff: %.1f\%\n",   ratio*100);
 	
-	
+	h_yields_ratio->GetXaxis()->SetBinLabel((njet-4)*5+i+1, Form("(%d,%d)", njet, i));
+	h_yields_inp->SetBinContent((njet-4)*5+i+1, pass);
+	h_yields_inp->SetBinError((njet-4)*5+i+1, pass_err);
+	h_yields_rnd->SetBinContent((njet-4)*5+i+1, weight);
+	h_yields_rnd->SetBinError((njet-4)*5+i+1, weight_err);
+	h_frac_ratio->GetXaxis()->SetBinLabel((njet-4)*5+i+1, Form("(%d,%d)", njet, i));
+	h_frac_inp->SetBinContent((njet-4)*5+i+1, pass_entries);
+	h_frac_inp->SetBinError((njet-4)*5+i+1, sqrt(pass_entries));
+	h_frac_rnd->SetBinContent((njet-4)*5+i+1, weight_entries);
+	h_frac_rnd->SetBinError((njet-4)*5+i+1, sqrt(weight_entries));
+
+	if(DOGLOBAL){	
 	for(int gl = 0 ; gl < 2 ; ++gl){
 	  char* glo = globals[gl];
 	  TH1F* h_inp   = new TH1F(Form("h_%s_inp_%d_%d",  glo,njet,i),Form("N_{jet}=%d, N_{tag}=%d; %s", njet, i, glo),20,0, gl<1 ? 300 : 2000);
@@ -147,8 +172,7 @@
       }
 
 
-
-      for(int k = 0 ; k <4 ; ++k){
+      for(int k = 0 ; k < 4 ; ++k){
 	string title = "";
 	if(k==0) title = "min for tagged jets";
 	if(k==1) title = "min for untagged jets";
@@ -163,6 +187,12 @@
 	h_ratio->Sumw2();
 	t->Draw(Form("corr_inp_%d[%d]>>h_inp_%d_%d_%d",i, k, njet, i,k), Form("njet==%d && pass[%d]",njet,i));
 	t->Draw(Form("corr_rnd_%d[%d]>>h_rnd_%d_%d_%d",i, k, njet, i,k), Form("(njet==%d)*pcat[%d]", njet,i));
+	if(DOUNWEIGHTED){
+	  h_rnd->Reset();
+	  t->Draw(Form("corr_rnd_%d[%d]>>h_rnd_%d_%d_%d",i, k, njet, i,k), Form("(njet==%d)", njet));
+	  h_rnd->Scale(h_inp->Integral()/h_rnd->Integral());
+	}
+
 	h_inp->SetLineColor(kBlue);
 	h_rnd->SetLineColor(kRed);
 	h_inp->SetLineWidth(3);
@@ -214,7 +244,7 @@
 	delete h_inp; delete h_rnd; delete h_ratio; delete line;
       }
 
-      for(int k = 4 ; k <8 ; ++k){
+      for(int k = 4 ; k < 8 ; ++k){
 	string title = "";
 	if(k==4) title = "min for tagged jets";
 	if(k==5) title = "min for untagged jets";
@@ -279,6 +309,7 @@
 
 	delete h_inp; delete h_rnd; delete h_ratio; delete line;
       }
+	}
 
       for(int k = 0 ; k <6 ; ++k){
 	if(k>=njet) continue;
@@ -299,6 +330,11 @@
 	h_csv_ratio->Sumw2();
 	t->Draw(Form("csv_inp_%d[%d]>>h_csv_inp_%d_%d_%d",i,k,njet, i,k), Form("njet==%d && pass[%d]",njet,i));
 	t->Draw(Form("csv_rnd_%d[%d]>>h_csv_rnd_%d_%d_%d",i,k,njet, i,k), Form("(njet==%d)*pcat[%d]", njet,i));
+	if(DOUNWEIGHTED){
+	  h_csv_rnd->Reset();
+	  t->Draw(Form("csv_rnd_%d[%d]>>h_csv_rnd_%d_%d_%d",i,k,njet, i,k), Form("(njet==%d)", njet));
+	  h_csv_rnd->Scale(h_csv_inp->Integral()/h_csv_rnd->Integral());
+	}
 
 	h_pt_inp->Sumw2();
 	h_pt_rnd->Sumw2();
@@ -466,7 +502,53 @@
 	f->cd();
       }
     }
-  }
+    }
+
+    fout->cd();    
+    h_yields_rnd->Add(h_yields_inp, -1.);
+    h_yields_ratio->Divide(h_yields_rnd,h_yields_inp,1.0,1.0);
+    h_yields_ratio->SetMaximum(+.3);
+    h_yields_ratio->SetMinimum(-.3);
+    c1->Clear();
+    c1->SetName("yields");
+    c1->cd();
+    leg->Clear();
+    leg->SetHeader(sample);     
+    leg->AddEntry(h_yields_ratio, "#frac{N_{weight}-N_{cut}}{N_{cut}}" ,"L");	
+    h_yields_ratio->SetLineWidth(3); 
+    h_yields_ratio->SetLineColor(kBlue); 
+    h_yields_ratio->Draw();
+    leg->Draw();
+    TF1* line = new TF1("line","0",  h_yields_ratio->GetXaxis()->GetXmin(),  h_yields_ratio->GetXaxis()->GetXmax());
+    line->SetLineWidth(3);
+    line->SetLineColor(kBlack);
+    line->SetLineStyle(kDashed);
+    line->Draw("SAME");
+    c1->Write();
+    c1->SaveAs("./test/plots/"+TString(c1->GetName())+"_"+name+".png");
+
+    fout->cd();    
+    h_frac_ratio->Divide(h_frac_inp,h_frac_rnd,1.0,1.0);
+    h_frac_ratio->SetMaximum(0.7);
+    h_frac_ratio->SetMinimum(0.0);
+    c1->Clear();
+    c1->SetName("fraction");
+    c1->cd();
+    leg->Clear();
+    leg->SetHeader(sample);     
+    leg->AddEntry(h_frac_ratio, "Fraction of passing events" ,"L");	
+    h_frac_ratio->SetLineWidth(3); 
+    h_frac_ratio->SetLineColor(kBlue); 
+    h_frac_ratio->Draw();
+    leg->Draw();
+    TF1* line = new TF1("line","0",  h_frac_ratio->GetXaxis()->GetXmin(),  h_frac_ratio->GetXaxis()->GetXmax());
+    line->SetLineWidth(3);
+    line->SetLineColor(kBlack);
+    line->SetLineStyle(kDashed);
+    line->Draw("SAME");
+    c1->Write();
+    c1->SaveAs("./test/plots/"+TString(c1->GetName())+"_"+name+".png");
+
 
     fout->cd();
     fout->Close();

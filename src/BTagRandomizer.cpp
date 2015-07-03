@@ -26,6 +26,16 @@ MEM::BTagRandomizer::BTagRandomizer(int debug, int seed,
   ran = new TRandom3();
   if(seed<0) gRandom->SetSeed(0);
   if(seed>0) gRandom->SetSeed(seed);
+
+  if( debug_code&DebugVerbosity::init){
+    cout << "BTagRandomizer::BTagRandomizer(): " << endl;
+    cout << "\tRandom seed:        " << gRandom->GetSeed() << endl;
+    cout << "\tPdfs initilialized: " << (btag_pdfs.size()>0) << endl;
+    cout << "\tMax number of toys: " << n_max_toys << endl;
+    if(assign_rnd)   cout << "\tWARNING: Sampling csv output from pdfs" << endl;
+    if(compress_csv) cout << "\tWARNING: Compressing csv output in [0,1]" << endl;
+  }
+
 }
 
 MEM::BTagRandomizer::~BTagRandomizer(){
@@ -149,7 +159,7 @@ void MEM::BTagRandomizer::init_pdfs(){
     }
 
     if( assign_rnd ){
-      for(int k = 0 ; k < 2 ; ++k) discr = h1->GetRandom(); 
+      for(int k = 0 ; k < int(ran->Uniform(1,10)) ; ++k) discr = h1->GetRandom(); 
       if( debug_code&DebugVerbosity::init_more)
 	cout << "BTagRandomizer::init_pdfs(): assigning random output " << discr << endl;
     }
