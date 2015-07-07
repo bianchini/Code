@@ -98,7 +98,7 @@ void MEM::BTagRandomizer::init_pdfs(){
     if(compress_csv) discr = TMath::Max(discr,  0.);
     if(compress_csv) discr = TMath::Min(discr,  0.999999);
 
-    int pdg      = int(jets[j]->getObs(Observable::PDGID));
+    int pdg      = std::abs(int(jets[j]->getObs(Observable::PDGID)));
 
     if( debug_code&DebugVerbosity::init_more)
       cout << "BTagRandomizer::init_pdfs(): init jet[" << j << "] with (Pt,Eta,PDGID,csv) = (" 
@@ -107,15 +107,22 @@ void MEM::BTagRandomizer::init_pdfs(){
     
     DistributionType::DistributionType type = DistributionType::DistributionType::csv_l;
 
-    if( std::abs(pdg)<4 || std::abs(pdg)==21 ){
+    if( pdg<4 || pdg==21 ){
       type = DistributionType::DistributionType::csv_l;
       ++count_l;
+      if     ( pdg==3  && btag_pdfs.find(DistributionType::DistributionType::csv_s) != btag_pdfs.end() )
+	type = DistributionType::DistributionType::csv_s;
+      else if( pdg<2   && btag_pdfs.find(DistributionType::DistributionType::csv_u) != btag_pdfs.end() )
+	type = DistributionType::DistributionType::csv_u;
+      else if( pdg==21 && btag_pdfs.find(DistributionType::DistributionType::csv_g) != btag_pdfs.end() )
+	type = DistributionType::DistributionType::csv_g;
+      else{ /*...*/ }
     }
-    else if( std::abs(pdg)==4 ){
+    else if( pdg==4 ){
       type = DistributionType::DistributionType::csv_c;
       ++count_c;
     }
-    else if( std::abs(pdg)==5 ){
+    else if( pdg==5 ){
       type = DistributionType::DistributionType::csv_b;
       ++count_b;
     }
@@ -213,6 +220,9 @@ MEM::BTagRandomizerOutput MEM::BTagRandomizer::run(){
   std::map<int,size_t> n_perms_max;
   for(int n_tags = n_tags_l ; n_tags <= (n_tags_h>=0 ? TMath::Min(n_tags_h,n_jets) : n_jets) ; ++n_tags){
     n_perms_max[n_tags] = 0;
+    if( debug_code&DebugVerbosity::init_more ) 
+      cout << "Tags: " << n_tags << " / " << n_tags_h << " / "  << n_jets << " / "
+	   << (n_tags_h>=0 ? TMath::Min(n_tags_h,n_jets) : n_jets) << endl;
     do{ 
       if( debug_code&DebugVerbosity::init_more ) {
 	cout << "\tperm. " << n_perm_max << ": [ ";
@@ -398,6 +408,9 @@ void MEM::BTagRandomizer::set_condition(const int& ntags_l, const int& ntags_h, 
   n_tags_l = ntags_l;
   n_tags_h = ntags_h;
   cut_val  = v;
+  if( debug_code&DebugVerbosity::init_more ){
+    cout << "BTagRandomizer::set_condition(): add category (" << n_tags_l << "," << n_tags_h << ")" << endl;
+  }
 }
 
 void MEM::BTagRandomizer::push_back_object( Object* obj){

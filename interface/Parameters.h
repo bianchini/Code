@@ -128,7 +128,7 @@ namespace MEM {
   }
   
   namespace DistributionType {
-    enum DistributionType {csv_b=0, csv_c=1, csv_l=2};
+    enum DistributionType {csv_b=0, csv_c=1, csv_l=2, csv_s=3, csv_u=4, csv_g=5};
   }
   
   namespace TFMethod {
