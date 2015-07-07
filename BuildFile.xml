@@ -1,10 +1,8 @@
 <use   name="root"/>
-<use   name="rootcintex"/>
-<use   name="rootgraphics"/>
-<use   name="roofit"/>
+<use   name="rootcore"/>
+<use   name="rootmath"/>
 <use   name="rootminuit"/>
 <use   name="rootminuit2"/>
-<use   name="roottmva"/>
 <use   name="classlib"/>
 <use   name="boost"/>
 <use   name="lhapdf"/>
@@ -14,7 +12,7 @@
 <lib   name="openloops_ppttbb_1tL"/>
 <lib   name="pphttxcallme2born"/>
 <lib   name="ppttxbbxcallme2born"/>
-<Flags CXXFLAGS="-std=c++11 -fPIC -g -I$(CMSSW_BASE)/src/TTH/MEIntegratorStandalone -I$(INCLUDE_DIR)"/>
+<Flags CXXFLAGS="-I$(CMSSW_BASE)/src/TTH/MEIntegratorStandalone"/>
 <Flags GENREFLEX_ARGS="-I$(CMSSW_BASE)/src/TTH/MEIntegratorStandalone"/>
 <export>
   <lib   name="1"/>
