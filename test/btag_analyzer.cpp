@@ -16,13 +16,13 @@ using namespace MEM;
 
 int main(int argc, char *argv[]){
 
-  if(argc<3) return 0;
+  if(argc<5) return 0;
 
   double csv_cut{0.814};
   
-  TFile* fout  = new TFile( Form("test/btag_out_%s_%d.root", argv[1], atoi(argv[2])),"RECREATE");
+  TFile* fout  = new TFile( Form("/scratch/bianchi/74X/btag_out_%s_%d%s.root", argv[1], atoi(argv[2]), argc>3 ? argv[3] : ""),"RECREATE");
   TTree* tout  = new TTree("tree", "");
-  int njet, ntag, ncat, event;
+  int njet, ntag, ncat, event, nB, nC, nL, ttCls;
   float pcat        [99];
   int   pass        [99];
   int   pass_rnd    [99];
@@ -50,8 +50,10 @@ int main(int argc, char *argv[]){
 
   float HT, met;
   float pt    [99];
+  float mcpt  [99];
   float eta   [99];
   int   pdgid [99];
+  int   mcid  [99];
 
   map<int, float*> csv_rnd_map;
   map<int, float*> csv_inp_map;
@@ -82,14 +84,20 @@ int main(int argc, char *argv[]){
 
   tout->Branch("event",    &event,    "event/I");
   tout->Branch("njet",     &njet,     "njet/I");
+  tout->Branch("nB",       &nB,       "nB/I");
+  tout->Branch("nC",       &nC,       "nC/I");
+  tout->Branch("nL",       &nL,       "nL/I");
+  tout->Branch("ttCls",    &ttCls,    "ttCls/I");
   tout->Branch("ncat",     &ncat,     "ncat/I");
   tout->Branch("ntag",     &ntag,     "ntag/I");
   tout->Branch("pcat",     pcat,      "pcat[ncat]/F");
   tout->Branch("pass",     pass,      "pass[ncat]/I");
   tout->Branch("pass_rnd", pass_rnd,  "pass_rnd[ncat]/I");
   tout->Branch("pt",       pt,        "pt[njet]/F");
+  tout->Branch("mcpt",     mcpt,        "mcpt[njet]/F");
   tout->Branch("eta",      eta,       "eta[njet]/F");
   tout->Branch("pdgid",    pdgid,     "pdgid[njet]/I");
+  tout->Branch("mcid",     mcid,     "mcid[njet]/I");
   tout->Branch("HT",      &HT,      "HT/F");
   tout->Branch("met",     &met,     "met/F");
 
@@ -106,14 +114,30 @@ int main(int argc, char *argv[]){
     tout->Branch(Form("corr_inp_%d",it->first),  it->second,   Form("corr_inp_%d[8]/F",it->first));
 
 
-  TFile* f = TFile::Open("../MEAnalysis/root/ControlPlotsV6_finerPt.root","READ");
-  TH3D* h3_b = (TH3D*)f->Get("csv_b_pt_eta");
-  TH3D* h3_c = (TH3D*)f->Get("csv_c_pt_eta");
-  TH3D* h3_l = (TH3D*)f->Get("csv_l_pt_eta");
+  //TFile* f = TFile::Open("../MEAnalysis/root/ControlPlotsV6_finerPt.root","READ");
+  //TFile* f = TFile::Open("/shome/bianchi/TTH-74X-heppy//CMSSW/src/TTH/MEAnalysis/root/ControlPlotsV6_evenfinerPt_moreFlavour_722sync.root");
+  TFile* f = TFile::Open("/shome/bianchi/TTH-74X-heppy//CMSSW/src/TTH/MEAnalysis/root/csv.root");
+  TH3D* h3_b   = (TH3D*)f->Get("csv_b_pt_eta");
+  TH3D* h3_c   = (TH3D*)f->Get("csv_c_pt_eta");
+  TH3D* h3_b_t = (TH3D*)f->Get("csv_b_t_pt_eta");
+  TH3D* h3_c_t = (TH3D*)f->Get("csv_c_t_pt_eta");
+  TH3D* h3_b_g = (TH3D*)f->Get("csv_b_g_pt_eta");
+  TH3D* h3_c_g = (TH3D*)f->Get("csv_c_g_pt_eta");
+  TH3D* h3_l   = (TH3D*)f->Get("csv_l_pt_eta");
+  //TH3D* h3_s = (TH3D*)f->Get("csv_s_pt_eta");
+  //TH3D* h3_g = (TH3D*)f->Get("csv_g_pt_eta");
+  //TH3D* h3_u = (TH3D*)f->Get("csv_u_pt_eta");
   std::map<MEM::DistributionType::DistributionType, TH3D> btag_pdfs;
-  btag_pdfs[MEM::DistributionType::DistributionType::csv_b] = *h3_b ;
-  btag_pdfs[MEM::DistributionType::DistributionType::csv_c] = *h3_c ;
-  btag_pdfs[MEM::DistributionType::DistributionType::csv_l] = *h3_l ;
+  btag_pdfs[MEM::DistributionType::DistributionType::csv_b]   = *h3_b ;
+  btag_pdfs[MEM::DistributionType::DistributionType::csv_c]   = *h3_c ;
+  btag_pdfs[MEM::DistributionType::DistributionType::csv_b_t] = *h3_b_t ;
+  btag_pdfs[MEM::DistributionType::DistributionType::csv_c_t] = *h3_c_t ;
+  btag_pdfs[MEM::DistributionType::DistributionType::csv_b_g] = *h3_b_g ;
+  btag_pdfs[MEM::DistributionType::DistributionType::csv_c_g] = *h3_c_g ;
+  btag_pdfs[MEM::DistributionType::DistributionType::csv_l]   = *h3_l ;
+  //btag_pdfs[MEM::DistributionType::DistributionType::csv_s] = *h3_s ;
+  //btag_pdfs[MEM::DistributionType::DistributionType::csv_u] = *h3_u ;
+  //btag_pdfs[MEM::DistributionType::DistributionType::csv_g] = *h3_g ;
 
   BTagRandomizer* rnd = new BTagRandomizer(DebugVerbosity::init
 					   //|DebugVerbosity::init_more
@@ -126,15 +150,18 @@ int main(int argc, char *argv[]){
 					   );
 
   
-  TCut cut = "numJets<=6 && is_sl";
-  TFile* fin = TFile::Open(Form("/scratch/bianchi/%s.root", argv[1]));
+  TCut cut = "numJets>=4 && numJets<=8 && is_sl";
+  TFile* fin = TFile::Open(Form("/scratch/bianchi/new/%s.root", argv[1]));
+  
+  if(fin==0 || fin->IsZombie()) return 0;
+
   TTree* tin = (TTree*)fin->Get("tree");
 
   TTreeFormula* treeformula = new TTreeFormula("selection", cut , tin );
 
   int njets;
   int is_sl;
-  int evt;
+  int evt, ttCls_;
   double nBCSVM;
   double jets_pt     [99];
   double jets_eta    [99];
@@ -143,10 +170,12 @@ int main(int argc, char *argv[]){
   double jets_btagCSV[99];
   double jets_mcPt   [99];
   int jets_mcFlavour [99];
+  int jets_mcMatchId [99];
   double btag_LR_4b_2b;
   double met_pt;
 
   tin->SetBranchAddress("evt",         &evt);
+  tin->SetBranchAddress("ttCls",       &ttCls_);
   tin->SetBranchAddress("njets",       &njets);
   tin->SetBranchAddress("is_sl",       &is_sl);
   tin->SetBranchAddress("nBCSVM",      &nBCSVM);
@@ -157,6 +186,7 @@ int main(int argc, char *argv[]){
   tin->SetBranchAddress("jets_btagCSV",jets_btagCSV);
   tin->SetBranchAddress("jets_mcPt",   jets_mcPt   );
   tin->SetBranchAddress("jets_mcFlavour",  jets_mcFlavour   );
+  tin->SetBranchAddress("jets_mcMatchId",  jets_mcMatchId   );
   tin->SetBranchAddress("btag_LR_4b_2b",   &btag_LR_4b_2b);
   tin->SetBranchAddress("met_pt",   &met_pt);
 
@@ -166,7 +196,7 @@ int main(int argc, char *argv[]){
 
   for (Long64_t i = 0; i < nentries; i++){
 
-    if( count_pass>200000 ) break;
+    if( count_pass>atoi(argv[4]) ) break;
 
     tin->GetEntry(i);
 
@@ -182,19 +212,30 @@ int main(int argc, char *argv[]){
 
     HT  = 0.;
     met = met_pt; 
+
+    nB = 0;
+    nC = 0;
+    nL = 0;
     for( int j = 0 ; j < njets ; ++j){
 
       pt[j]    = jets_pt[j];
+      mcpt[j]  = jets_mcPt[j];
       HT      += jets_pt[j];
       eta[j]   = jets_eta[j];
       pdgid[j] = jets_mcFlavour[j];
+      mcid[j]  = jets_mcMatchId[j];
 
+      if     ( std::abs(jets_mcFlavour[j])==5 ) ++nB;
+      else if( std::abs(jets_mcFlavour[j])==4 ) ++nC;
+      else ++nL;
+	
       TLorentzVector lv;
       lv.SetPtEtaPhiM(jets_pt[j], jets_eta[j], jets_phi[j], jets_mass[j]);
       Object* jet = new Object( lv, ObjectType::Jet );
-      jet->addObs( Observable::BTAG,  jets_btagCSV[j]>csv_cut   );  
-      jet->addObs( Observable::PDGID, jets_mcFlavour[j]);  
-      jet->addObs( Observable::CSV,   jets_btagCSV[j]  );  
+      jet->addObs( Observable::BTAG,      jets_btagCSV[j]>csv_cut   );  
+      jet->addObs( Observable::PDGID,     std::abs(jets_mcFlavour[j]));  
+      jet->addObs( Observable::CSV,       jets_btagCSV[j]  );  
+      jet->addObs( Observable::MCMATCH,   std::abs(jets_mcMatchId[j])  );  
       rnd->push_back_object( jet );
 
       if( j<5 ){
@@ -222,7 +263,7 @@ int main(int argc, char *argv[]){
     njet  = njets;
     ncat  = int(cats.size());    
     ntag  = int(nBCSVM);
-    
+    ttCls = ttCls_;    
 
     //cout << "\tRunning BTagRandomizerOutput with " << cats.size() << " confs" << endl;
     vector<BTagRandomizerOutput> out_all = rnd->run_all( cats );

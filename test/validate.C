@@ -30,18 +30,24 @@
   leg->SetTextSize(0.04);
   
   TString names[] = {
+    //
     //"tth_13tev_amcatnlo_pu20bx25_0" 
-    //,"tth_13tev_amcatnlo_pu20bx25_1"
-    //,"ttjets_13tev_madgraph_pu20bx25_phys14_0"
     //,
-    "ttjets_13tev_madgraph_pu20bx25_phys14_1"
+    //"tth_13tev_amcatnlo_pu20bx25_1"
+    //,
+    "ttjets_13tev_madgraph_pu20bx25_phys14_0ByDecay"
+    //,
+    //"ttjets_13tev_madgraph_pu20bx25_phys14_1"
   };
   TString samples[] = {
-    //"t#bar{t}H, reco CSV charm=light"
-    //,"t#bar{t}H, closure test"
-    //,"t#bar{t}+jets, reco CSV"
+    //
+    //"t#bar{t}H, reco CSV"
     //,
-    "t#bar{t}+jets, closure test"
+    //"t#bar{t}H, closure test"
+    //,
+    "t#bar{t}+jets, reco CSV"
+    //,
+    //"t#bar{t}+jets, closure test"
   };
   
   for( int it_name = 0 ; it_name < 4 ; ++it_name){
@@ -65,7 +71,10 @@
     fout->mkdir("global");
     fout->mkdir("global_ratio");
     
-    TFile* f = TFile::Open("test/btag_out_"+name+".root");
+    //TFile* f = TFile::Open("test/btag_out_"+name+".root");
+    //TFile* f = TFile::Open("/shome/bianchi/TTH-72X-heppy/CMSSW/src/TTH/MEIntegratorStandalone/test/btag_out_"+name+".root");
+    TFile* f = TFile::Open("/scratch/bianchi/74X/btag_out_"+name+".root");
+
     TTree* t = (TTree*)f->Get("tree");
     TH1F*  h = new TH1F("h","",10,0,10);
     TH1F*  h_yields_inp   = new TH1F("h_yields_inp","",15,0,15);
@@ -76,8 +85,9 @@
     TH1F*  h_frac_ratio   = new TH1F("h_frac_ratio","",15,0,15);
     
 
-    char* globals[2] = {"met","HT"};
-    
+    string globals[3] = {"met","HT","ttCls"};
+    //char* globals[2];
+
     for( int njet = 4 ; njet <=6 ; ++njet ){
       for( int i = 0 ; i <=4 ; ++i ){
 	h->Reset();
@@ -88,7 +98,7 @@
 	float pass = h->IntegralAndError(1, h->GetNbinsX(), pass_err); 
 	
 	h->Reset();
-	t->Draw("njet>>h",Form("(njet==%d)*pcat[%d]", njet,i));
+	t->Draw("njet>>h",Form("(njet==%d && pass_rnd[%d])*pcat[%d]", njet,i,i));
 	double weight_err=0.; 
 	int weight_entries = h->GetEntries();
 	float weight = h->IntegralAndError(1, h->GetNbinsX(), weight_err); 
@@ -97,7 +107,7 @@
 	printf("Jet: %d, Tag: %d\n", njet, i);
 	printf("\tPASS:   %.0f +/- %.1f\n", pass, pass_err);
 	printf("\tWEIGHT: %.0f +/- %.1f\n", weight, weight_err);
-	printf("\tDiff: %.1f\%\n",   ratio*100);
+	printf("\tDiff: %.1f \n",   ratio*100);
 	
 	h_yields_ratio->GetXaxis()->SetBinLabel((njet-4)*5+i+1, Form("(%d,%d)", njet, i));
 	h_yields_inp->SetBinContent((njet-4)*5+i+1, pass);
@@ -111,16 +121,23 @@
 	h_frac_rnd->SetBinError((njet-4)*5+i+1, sqrt(weight_entries));
 
 	if(DOGLOBAL){	
-	for(int gl = 0 ; gl < 2 ; ++gl){
-	  char* glo = globals[gl];
-	  TH1F* h_inp   = new TH1F(Form("h_%s_inp_%d_%d",  glo,njet,i),Form("N_{jet}=%d, N_{tag}=%d; %s", njet, i, glo),20,0, gl<1 ? 300 : 2000);
-	  TH1F* h_rnd   = new TH1F(Form("h_%s_rnd_%d_%d",  glo,njet,i),Form("N_{jet}=%d, N_{tag}=%d; %s", njet, i, glo),20,0, gl<1 ? 300 : 2000);
-	  TH1F* h_ratio = new TH1F(Form("h_%s_ratio_%d_%d",glo,njet,i),Form("N_{jet}=%d, N_{tag}=%d; %s; (weighted-cut)/cut", njet, i, glo),20,0, gl<1 ? 300 : 2000);
+	for(int gl = 0 ; gl < 3 ; ++gl){
+	  string glo = globals[gl];
+	  
+	  int nbins = 10;
+	  if( gl==2 ) nbins = 30;
+	  float xmax = 400;
+	  if( gl==1 ) xmax = 2000;
+	  if( gl==2 ) xmax = 30;
+
+	  TH1F* h_inp   = new TH1F(Form("h_%s_inp_%d_%d",  glo.c_str(),njet,i),Form("N_{jet}=%d, N_{tag}=%d; %s", njet, i, glo.c_str()), nbins,0, xmax);
+	  TH1F* h_rnd   = new TH1F(Form("h_%s_rnd_%d_%d",  glo.c_str(),njet,i),Form("N_{jet}=%d, N_{tag}=%d; %s", njet, i, glo.c_str()), nbins,0, xmax);
+	  TH1F* h_ratio = new TH1F(Form("h_%s_ratio_%d_%d",glo.c_str(),njet,i),Form("N_{jet}=%d, N_{tag}=%d; %s; (weighted-cut)/cut", njet, i, glo.c_str()), nbins, 0, xmax);
 	  h_inp->Sumw2();
 	  h_rnd->Sumw2();
 	  h_ratio->Sumw2();
-	  t->Draw(Form("%s>>h_%s_inp_%d_%d",glo,glo,njet, i), Form("njet==%d && pass[%d]",njet,i));
-	  t->Draw(Form("%s>>h_%s_rnd_%d_%d",glo,glo,njet, i), Form("(njet==%d)*pcat[%d]", njet,i));
+	  t->Draw(Form("%s>>h_%s_inp_%d_%d",glo.c_str(),glo.c_str(),njet, i), Form("njet==%d && pass[%d]",njet,i));
+	  t->Draw(Form("%s>>h_%s_rnd_%d_%d",glo.c_str(),glo.c_str(),njet, i), Form("(njet==%d && pass_rnd[%d])*pcat[%d]", njet,i,i));
 	  h_inp->SetLineColor(kBlue);
 	  h_inp->SetLineWidth(3);
 	  h_rnd->SetLineWidth(3);
@@ -130,7 +147,7 @@
 	  //h_inp->Write();
 	  //h_rnd->Write();
 	  c1->Clear();
-	  c1->SetName(Form("h_%s_comp_%d_%d", glo,njet,i));
+	  c1->SetName(Form("h_%s_comp_%d_%d", glo.c_str(),njet,i));
 	  leg->Clear();
 	  c1->cd();
 	  h_inp->SetMaximum( TMath::Max( h_inp->GetMaximum(),  h_rnd->GetMaximum() )*1.3 );
@@ -152,7 +169,7 @@
 	h_ratio->SetMaximum(+2.0);
 	h_ratio->SetMinimum(-2.0);
 	c1->Clear();
-	c1->SetName(Form("h_%s_ratio_%d_%d", glo,njet,i));
+	c1->SetName(Form("h_%s_ratio_%d_%d", glo.c_str(),njet,i));
 	c1->cd();
 	leg->Clear();
 	leg->SetHeader(sample);     
@@ -179,14 +196,14 @@
 	if(k==2) title = "max for tagged jets";
 	if(k==3) title = "max for untagged jets";
 
-	TH1F* h_inp   = new TH1F(Form("h_inp_%d_%d_%d",  njet,i,k),Form("N_{jet}=%d, N_{tag}=%d; #DeltaR %s", njet, i,title.c_str()),20,0,6);
-	TH1F* h_rnd   = new TH1F(Form("h_rnd_%d_%d_%d",  njet,i,k),Form("N_{jet}=%d, N_{tag}=%d; #DeltaR %s", njet, i,title.c_str()),20,0,6);
-	TH1F* h_ratio = new TH1F(Form("h_ratio_%d_%d_%d",njet,i,k),Form("N_{jet}=%d, N_{tag}=%d; #DeltaR %s; (weighted-cut)/cut", njet, i,title.c_str()),20,0,6);
+	TH1F* h_inp   = new TH1F(Form("h_inp_%d_%d_%d",  njet,i,k),Form("N_{jet}=%d, N_{tag}=%d; #DeltaR %s", njet, i,title.c_str()),10,0,6);
+	TH1F* h_rnd   = new TH1F(Form("h_rnd_%d_%d_%d",  njet,i,k),Form("N_{jet}=%d, N_{tag}=%d; #DeltaR %s", njet, i,title.c_str()),10,0,6);
+	TH1F* h_ratio = new TH1F(Form("h_ratio_%d_%d_%d",njet,i,k),Form("N_{jet}=%d, N_{tag}=%d; #DeltaR %s; (weighted-cut)/cut", njet, i,title.c_str()),10,0,6);
 	h_inp->Sumw2();
 	h_rnd->Sumw2();
 	h_ratio->Sumw2();
 	t->Draw(Form("corr_inp_%d[%d]>>h_inp_%d_%d_%d",i, k, njet, i,k), Form("njet==%d && pass[%d]",njet,i));
-	t->Draw(Form("corr_rnd_%d[%d]>>h_rnd_%d_%d_%d",i, k, njet, i,k), Form("(njet==%d)*pcat[%d]", njet,i));
+	t->Draw(Form("corr_rnd_%d[%d]>>h_rnd_%d_%d_%d",i, k, njet, i,k), Form("(njet==%d && pass_rnd[%d])*pcat[%d]", njet,i,i));
 	if(DOUNWEIGHTED){
 	  h_rnd->Reset();
 	  t->Draw(Form("corr_rnd_%d[%d]>>h_rnd_%d_%d_%d",i, k, njet, i,k), Form("(njet==%d)", njet));
@@ -258,7 +275,7 @@
 	h_rnd->Sumw2();
 	h_ratio->Sumw2();
 	t->Draw(Form("corr_inp_%d[%d]>>h_inp_%d_%d_%d",i, k, njet, i,k), Form("njet==%d && pass[%d]",njet,i));
-	t->Draw(Form("corr_rnd_%d[%d]>>h_rnd_%d_%d_%d",i, k, njet, i,k), Form("(njet==%d)*pcat[%d]", njet,i));
+	t->Draw(Form("corr_rnd_%d[%d]>>h_rnd_%d_%d_%d",i, k, njet, i,k), Form("(njet==%d && pass_rnd[%d])*pcat[%d]", njet,i,i));
 	h_inp->SetLineColor(kBlue);
 	h_rnd->SetLineColor(kRed);
 	h_ratio->SetLineColor(kBlack);      
@@ -275,7 +292,7 @@
 	h_inp->Draw("HISTE");	
 	h_rnd->Draw("HISTESAME");	
 	float KS   = h_inp->KolmogorovTest( h_rnd );
-	float CHI2 = h_inp->Chi2Test( h_rnd, "UW" );
+        float CHI2 = h_inp->Chi2Test( h_rnd, "UW" );
 	leg->AddEntry(h_inp, Form("Full cuts: %.0f +/- %.0f", pass, pass_err), "L");
 	leg->AddEntry(h_rnd, Form("Weighted : %.0f +/- %.0f", weight, weight_err), "L");
 	leg->SetHeader(sample+", "+TString(Form("KS: %.2f, #chi2: %.2f", KS, CHI2)));
@@ -317,9 +334,9 @@
 	TH1F* h_csv_rnd   = new TH1F(Form("h_csv_rnd_%d_%d_%d",  njet,i,k),Form("N_{jet}=%d, N_{tag}=%d, Jet %d; CSV", njet, i, k),15,0,1);
 	TH1F* h_csv_ratio = new TH1F(Form("h_csv_ratio_%d_%d_%d",njet,i,k),Form("N_{jet}=%d, N_{tag}=%d, Jet %d; CSV; (weighted-cut)/cut", njet, i, k),15,0,1);
 
-	TH1F* h_pt_inp   = new TH1F(Form("h_pt_inp_%d_%d_%d",  njet,i,k),Form("N_{jet}=%d, N_{tag}=%d, Jet %d; p_{T}", njet, i, k),24,0,360);
-	TH1F* h_pt_rnd   = new TH1F(Form("h_pt_rnd_%d_%d_%d",  njet,i,k),Form("N_{jet}=%d, N_{tag}=%d, Jet %d; p_{T}", njet, i, k),24,0,360);
-	TH1F* h_pt_ratio = new TH1F(Form("h_pt_ratio_%d_%d_%d",njet,i,k),Form("N_{jet}=%d, N_{tag}=%d, Jet %d; p_{T}; (weighted-cut)/cut", njet, i, k),24,0,360);
+	TH1F* h_pt_inp   = new TH1F(Form("h_pt_inp_%d_%d_%d",  njet,i,k),Form("N_{jet}=%d, N_{tag}=%d, Jet %d; p_{T}", njet, i, k),20,0,400);
+	TH1F* h_pt_rnd   = new TH1F(Form("h_pt_rnd_%d_%d_%d",  njet,i,k),Form("N_{jet}=%d, N_{tag}=%d, Jet %d; p_{T}", njet, i, k),20,0,400);
+	TH1F* h_pt_ratio = new TH1F(Form("h_pt_ratio_%d_%d_%d",njet,i,k),Form("N_{jet}=%d, N_{tag}=%d, Jet %d; p_{T}; (weighted-cut)/cut", njet, i, k),20,0,400);
 
 	TH1F* h_eta_inp   = new TH1F(Form("h_eta_inp_%d_%d_%d",  njet,i,k),Form("N_{jet}=%d, N_{tag}=%d, Jet %d; #eta", njet, i, k),27,-2.7,2.7);
 	TH1F* h_eta_rnd   = new TH1F(Form("h_eta_rnd_%d_%d_%d",  njet,i,k),Form("N_{jet}=%d, N_{tag}=%d, Jet %d; #eta", njet, i, k),27,-2.7,2.7);
@@ -329,7 +346,7 @@
 	h_csv_rnd->Sumw2();
 	h_csv_ratio->Sumw2();
 	t->Draw(Form("csv_inp_%d[%d]>>h_csv_inp_%d_%d_%d",i,k,njet, i,k), Form("njet==%d && pass[%d]",njet,i));
-	t->Draw(Form("csv_rnd_%d[%d]>>h_csv_rnd_%d_%d_%d",i,k,njet, i,k), Form("(njet==%d)*pcat[%d]", njet,i));
+	t->Draw(Form("csv_rnd_%d[%d]>>h_csv_rnd_%d_%d_%d",i,k,njet, i,k), Form("(njet==%d && pass_rnd[%d])*pcat[%d]", njet,i,i));
 	if(DOUNWEIGHTED){
 	  h_csv_rnd->Reset();
 	  t->Draw(Form("csv_rnd_%d[%d]>>h_csv_rnd_%d_%d_%d",i,k,njet, i,k), Form("(njet==%d)", njet));
@@ -340,13 +357,13 @@
 	h_pt_rnd->Sumw2();
 	h_pt_ratio->Sumw2();
 	t->Draw(Form("pt[%d]>>h_pt_inp_%d_%d_%d",k,njet, i,k), Form("njet==%d && pass[%d]",njet,i));
-	t->Draw(Form("pt[%d]>>h_pt_rnd_%d_%d_%d",k,njet, i,k), Form("(njet==%d)*pcat[%d]", njet,i));
+	t->Draw(Form("pt[%d]>>h_pt_rnd_%d_%d_%d",k,njet, i,k), Form("(njet==%d && pass_rnd[%d])*pcat[%d]", njet,i,i));
 
 	h_eta_inp->Sumw2();
 	h_eta_rnd->Sumw2();
 	h_eta_ratio->Sumw2();
 	t->Draw(Form("eta[%d]>>h_eta_inp_%d_%d_%d",k,njet, i,k), Form("njet==%d && pass[%d]",njet,i));
-	t->Draw(Form("eta[%d]>>h_eta_rnd_%d_%d_%d",k,njet, i,k), Form("(njet==%d)*pcat[%d]", njet,i));
+	t->Draw(Form("eta[%d]>>h_eta_rnd_%d_%d_%d",k,njet, i,k), Form("(njet==%d && pass_rnd[%d])*pcat[%d]", njet,i,i));
 
 	fout->cd();            
 	h_csv_inp->SetLineColor(kBlue);
@@ -394,8 +411,8 @@
 	h_eta_inp->SetMaximum( TMath::Max( h_eta_inp->GetMaximum(),  h_eta_rnd->GetMaximum() )*1.3 );
 	h_eta_inp->Draw("HISTE");	
 	h_eta_rnd->Draw("HISTESAME");	
-	float KS   = h_eta_inp->KolmogorovTest( h_eta_rnd );
-	float CHI2 = h_eta_inp->Chi2Test( h_eta_rnd, "UW" );
+	KS   = h_eta_inp->KolmogorovTest( h_eta_rnd );
+	CHI2 = h_eta_inp->Chi2Test( h_eta_rnd, "UW" );
 	leg->AddEntry(h_eta_inp, Form("Full cuts: %.0f +/- %.0f", pass, pass_err), "L");
 	leg->AddEntry(h_eta_rnd, Form("Weighted : %.0f +/- %.0f", weight, weight_err), "L");
 	leg->SetHeader(sample+", "+TString(Form("KS: %.2f, #chi2: %.2f", KS, CHI2)));
@@ -414,8 +431,8 @@
 	h_csv_inp->SetMaximum( TMath::Max( h_csv_inp->GetMaximum(),  h_csv_rnd->GetMaximum() )*1.3 );
 	h_csv_inp->Draw("HISTE");	
 	h_csv_rnd->Draw("HISTESAME");	
-	float KS   = h_csv_inp->KolmogorovTest( h_csv_rnd );
-	float CHI2 = h_csv_inp->Chi2Test( h_csv_rnd, "UW" );
+	KS   = h_csv_inp->KolmogorovTest( h_csv_rnd );
+	CHI2 = h_csv_inp->Chi2Test( h_csv_rnd, "UW" );
 	leg->AddEntry(h_csv_inp, Form("Full cuts: %.0f +/- %.0f", pass, pass_err), "L");
 	leg->AddEntry(h_csv_rnd, Form("Weighted : %.0f +/- %.0f", weight, weight_err), "L");
 	leg->SetHeader(sample+", "+TString(Form("KS: %.2f, #chi2: %.2f", KS, CHI2)));
@@ -463,7 +480,7 @@
 	h_pt_ratio->SetLineColor(kBlue); 
 	h_pt_ratio->Draw();
 	leg->Draw();
-	TF1* line = new TF1("line","0",  h_pt_ratio->GetXaxis()->GetXmin(),  h_pt_ratio->GetXaxis()->GetXmax());
+	line = new TF1("line","0",  h_pt_ratio->GetXaxis()->GetXmin(),  h_pt_ratio->GetXaxis()->GetXmax());
 	line->SetLineWidth(3);
 	line->SetLineColor(kBlack);
 	line->SetLineStyle(kDashed);
@@ -487,7 +504,7 @@
 	h_eta_ratio->SetLineColor(kBlue); 
 	h_eta_ratio->Draw();
 	leg->Draw();
-	TF1* line = new TF1("line","0",  h_eta_ratio->GetXaxis()->GetXmin(),  h_eta_ratio->GetXaxis()->GetXmax());
+	line = new TF1("line","0",  h_eta_ratio->GetXaxis()->GetXmin(),  h_eta_ratio->GetXaxis()->GetXmax());
 	line->SetLineWidth(3);
 	line->SetLineColor(kBlack);
 	line->SetLineStyle(kDashed);
@@ -541,7 +558,7 @@
     h_frac_ratio->SetLineColor(kBlue); 
     h_frac_ratio->Draw();
     leg->Draw();
-    TF1* line = new TF1("line","0",  h_frac_ratio->GetXaxis()->GetXmin(),  h_frac_ratio->GetXaxis()->GetXmax());
+    line = new TF1("line","0",  h_frac_ratio->GetXaxis()->GetXmin(),  h_frac_ratio->GetXaxis()->GetXmax());
     line->SetLineWidth(3);
     line->SetLineColor(kBlack);
     line->SetLineStyle(kDashed);

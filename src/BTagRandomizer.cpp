@@ -109,6 +109,7 @@ void MEM::BTagRandomizer::init_pdfs(){
     if(compress_csv) discr = TMath::Min(discr,  0.999999);
 
     int pdg      = std::abs(int(jets[j]->getObs(Observable::PDGID)));
+    int mcmatch  = jets[j]->isSet(Observable::MCMATCH) ? std::abs(int(jets[j]->getObs(Observable::MCMATCH))) : -1;
 
     if( debug_code&DebugVerbosity::init_more)
       cout << "BTagRandomizer::init_pdfs(): init jet[" << j << "] with (Pt,Eta,PDGID,csv) = (" 
@@ -131,10 +132,20 @@ void MEM::BTagRandomizer::init_pdfs(){
     else if( pdg==4 ){
       type = DistributionType::DistributionType::csv_c;
       ++count_c;
+      if     ( mcmatch==0 && btag_pdfs.find(DistributionType::DistributionType::csv_c_g) != btag_pdfs.end() )
+	type = DistributionType::DistributionType::csv_c_g; 
+      else if( mcmatch>0  && btag_pdfs.find(DistributionType::DistributionType::csv_c_t) != btag_pdfs.end() )
+	type = DistributionType::DistributionType::csv_c_t;
+      else{ /*...*/ }  
     }
     else if( pdg==5 ){
       type = DistributionType::DistributionType::csv_b;
       ++count_b;
+      if     ( mcmatch==0 && btag_pdfs.find(DistributionType::DistributionType::csv_b_g) != btag_pdfs.end() )
+	type = DistributionType::DistributionType::csv_b_g; 
+      else if( mcmatch>0  && btag_pdfs.find(DistributionType::DistributionType::csv_b_t) != btag_pdfs.end() )
+	type = DistributionType::DistributionType::csv_b_t; 
+      else{ /*...*/ }  
     }
     else{
       cout << "BTagRandomizer::init_pdfs(): no pdf available for jet[" << j 
@@ -281,7 +292,6 @@ MEM::BTagRandomizerOutput MEM::BTagRandomizer::run(){
 
       if( debug_code&DebugVerbosity::event ) cout << "\tp = : " << p  << endl;
 
-      //p /= (TMath::Factorial( n_tags )*TMath::Factorial( n_jets-n_tags ));
       if( debug_code&DebugVerbosity::event ) cout << "\tFilling bin " << count_perm << endl;
       h_combinations.Fill( count_perm, p);
       pass += p;

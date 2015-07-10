@@ -128,7 +128,7 @@ namespace MEM {
   }
   
   namespace DistributionType {
-    enum DistributionType {csv_b=0, csv_c=1, csv_l=2, csv_s=3, csv_u=4, csv_g=5};
+    enum DistributionType {csv_b=0, csv_c=1, csv_l=2, csv_s=3, csv_u=4, csv_g=5, csv_b_t=6, csv_b_g=7, csv_c_t=8, csv_c_g=9};
   }
   
   namespace TFMethod {
@@ -150,7 +150,7 @@ namespace MEM {
   } 
   
   namespace Observable {
-    enum Observable { E_LOW_Q=0, E_HIGH_Q=1, E_LOW_B=2, E_HIGH_B=3, BTAG=4, CHARGE=5, PDGID=6, CSV=7, BTAGPROB=8};
+    enum Observable { E_LOW_Q=0, E_HIGH_Q=1, E_LOW_B=2, E_HIGH_B=3, BTAG=4, CHARGE=5, PDGID=6, CSV=7, BTAGPROB=8, MCMATCH=9};
   }
   
   class ObsHash{
