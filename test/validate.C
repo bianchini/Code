@@ -31,21 +31,21 @@
   
   TString names[] = {
     //
-    //"tth_13tev_amcatnlo_pu20bx25_0" 
+    //"tth_13tev_amcatnlo_pu20bx25_0testIgn" 
     //,
     //"tth_13tev_amcatnlo_pu20bx25_1"
     //,
-    "ttjets_13tev_madgraph_pu20bx25_phys14_0ByDecay"
+    "ttjets_13tev_madgraph_pu20bx25_phys14_0testIgnCGL"
     //,
     //"ttjets_13tev_madgraph_pu20bx25_phys14_1"
   };
   TString samples[] = {
     //
-    //"t#bar{t}H, reco CSV"
+    //"t#bar{t}H, reco CSV test ignore"
     //,
-    //"t#bar{t}H, closure test"
+    //"t#bar{t}H, closure test ignore all"
     //,
-    "t#bar{t}+jets, reco CSV"
+    "t#bar{t}+jets, reco CSV test ignore C,G,L"
     //,
     //"t#bar{t}+jets, closure test"
   };
@@ -125,10 +125,12 @@
 	  string glo = globals[gl];
 	  
 	  int nbins = 10;
-	  if( gl==2 ) nbins = 30;
+	  if( gl==2 ){	    
+	    nbins = 60;
+	  }
 	  float xmax = 400;
 	  if( gl==1 ) xmax = 2000;
-	  if( gl==2 ) xmax = 30;
+	  if( gl==2 ) xmax = 60;
 
 	  TH1F* h_inp   = new TH1F(Form("h_%s_inp_%d_%d",  glo.c_str(),njet,i),Form("N_{jet}=%d, N_{tag}=%d; %s", njet, i, glo.c_str()), nbins,0, xmax);
 	  TH1F* h_rnd   = new TH1F(Form("h_%s_rnd_%d_%d",  glo.c_str(),njet,i),Form("N_{jet}=%d, N_{tag}=%d; %s", njet, i, glo.c_str()), nbins,0, xmax);

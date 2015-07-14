@@ -119,10 +119,10 @@ int main(int argc, char *argv[]){
   TFile* f = TFile::Open("/shome/bianchi/TTH-74X-heppy//CMSSW/src/TTH/MEAnalysis/root/csv.root");
   TH3D* h3_b   = (TH3D*)f->Get("csv_b_pt_eta");
   TH3D* h3_c   = (TH3D*)f->Get("csv_c_pt_eta");
-  TH3D* h3_b_t = (TH3D*)f->Get("csv_b_t_pt_eta");
-  TH3D* h3_c_t = (TH3D*)f->Get("csv_c_t_pt_eta");
-  TH3D* h3_b_g = (TH3D*)f->Get("csv_b_g_pt_eta");
-  TH3D* h3_c_g = (TH3D*)f->Get("csv_c_g_pt_eta");
+  //TH3D* h3_b_t = (TH3D*)f->Get("csv_b_t_pt_eta");
+  //TH3D* h3_c_t = (TH3D*)f->Get("csv_c_t_pt_eta");
+  //TH3D* h3_b_g = (TH3D*)f->Get("csv_b_g_pt_eta");
+  //TH3D* h3_c_g = (TH3D*)f->Get("csv_c_g_pt_eta");
   TH3D* h3_l   = (TH3D*)f->Get("csv_l_pt_eta");
   //TH3D* h3_s = (TH3D*)f->Get("csv_s_pt_eta");
   //TH3D* h3_g = (TH3D*)f->Get("csv_g_pt_eta");
@@ -130,10 +130,10 @@ int main(int argc, char *argv[]){
   std::map<MEM::DistributionType::DistributionType, TH3D> btag_pdfs;
   btag_pdfs[MEM::DistributionType::DistributionType::csv_b]   = *h3_b ;
   btag_pdfs[MEM::DistributionType::DistributionType::csv_c]   = *h3_c ;
-  btag_pdfs[MEM::DistributionType::DistributionType::csv_b_t] = *h3_b_t ;
-  btag_pdfs[MEM::DistributionType::DistributionType::csv_c_t] = *h3_c_t ;
-  btag_pdfs[MEM::DistributionType::DistributionType::csv_b_g] = *h3_b_g ;
-  btag_pdfs[MEM::DistributionType::DistributionType::csv_c_g] = *h3_c_g ;
+  //btag_pdfs[MEM::DistributionType::DistributionType::csv_b_t] = *h3_b_t ;
+  //btag_pdfs[MEM::DistributionType::DistributionType::csv_c_t] = *h3_c_t ;
+  //btag_pdfs[MEM::DistributionType::DistributionType::csv_b_g] = *h3_b_g ;
+  //btag_pdfs[MEM::DistributionType::DistributionType::csv_c_g] = *h3_c_g ;
   btag_pdfs[MEM::DistributionType::DistributionType::csv_l]   = *h3_l ;
   //btag_pdfs[MEM::DistributionType::DistributionType::csv_s] = *h3_s ;
   //btag_pdfs[MEM::DistributionType::DistributionType::csv_u] = *h3_u ;
@@ -150,7 +150,7 @@ int main(int argc, char *argv[]){
 					   );
 
   
-  TCut cut = "numJets>=4 && numJets<=8 && is_sl";
+  TCut cut = "numJets>=4 && numJets<=6 && is_sl";
   TFile* fin = TFile::Open(Form("/scratch/bianchi/new/%s.root", argv[1]));
   
   if(fin==0 || fin->IsZombie()) return 0;
@@ -236,6 +236,20 @@ int main(int argc, char *argv[]){
       jet->addObs( Observable::PDGID,     std::abs(jets_mcFlavour[j]));  
       jet->addObs( Observable::CSV,       jets_btagCSV[j]  );  
       jet->addObs( Observable::MCMATCH,   std::abs(jets_mcMatchId[j])  );  
+      bool ingnore = true;
+      if(
+	 (std::abs(jets_mcMatchId[j])==6  ||  
+	  std::abs(jets_mcMatchId[j])==24 ||  
+	  std::abs(jets_mcMatchId[j])==23 || 
+	  std::abs(jets_mcMatchId[j])==25)
+	 ) ingnore = false;
+      if( std::abs(jets_mcFlavour[j])==4  ) ingnore = true;
+      if( std::abs(jets_mcFlavour[j])==21 ) ingnore = true;
+      if( std::abs(jets_mcFlavour[j])<4 )   ingnore = true;
+      if( ingnore ){
+	jet->addObs( Observable::IGNORE_FOR_RND,  1.0);
+      }
+
       rnd->push_back_object( jet );
 
       if( j<5 ){
@@ -271,7 +285,7 @@ int main(int argc, char *argv[]){
       pcat[o]     = out_all[o].p;
       pass[o]     = out_all[o].pass;
       pass_rnd[o] = out_all[o].pass_rnd;
-      //o.print(cout);    
+      //out_all[o].print(cout);    
 
       for( int j = 0 ; j < njets ; ++j){
 	(csv_rnd_map.at(o))[j] = (out_all[o].rnd_btag)[j];

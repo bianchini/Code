@@ -12,22 +12,29 @@ namespace MEM {
   struct Lock{
     Lock(const std::size_t& s){
       size = s;
-      lock    = new vector<bool>(s);
-      haslock = new vector<bool>(s);
-      for(size_t l = 0 ; l < s; ++l) (*lock)[l]    = false;
-      for(size_t l = 0 ; l < s; ++l) (*haslock)[l] = false;
+      lock       = new vector<bool>(s);
+      haslock    = new vector<bool>(s);
+      alwayslock = new vector<bool>(s);
+      for(size_t l = 0 ; l < s; ++l) (*lock)[l]       = false;
+      for(size_t l = 0 ; l < s; ++l) (*haslock)[l]    = false;
+      for(size_t l = 0 ; l < s; ++l) (*alwayslock)[l] = false;
     }
     ~Lock(){
       lock->clear();
       haslock->clear();
+      alwayslock->clear();
       delete lock;
       delete haslock;
+      delete alwayslock;
     }
     void set_lock(const size_t& j, const bool& val){
       (*lock)[j] = val;
     }
     void set_haslock(const size_t& j, const bool& val){
       (*haslock)[j] = val;
+    }
+    void set_alwayslock(const size_t& j, const bool& val){
+      (*alwayslock)[j] = val;
     }
     bool allset(){
       bool out = true;
@@ -42,11 +49,24 @@ namespace MEM {
     bool get_haslock(const size_t& j){
       return (*haslock)[j];
     }
+    bool get_alwayslock(const size_t& j){
+      return (*alwayslock)[j];
+    }
     void reset(){
-      for(size_t l = 0 ; l < size; ++l) (*lock)[l] = false;
+      for(size_t l = 0 ; l < size; ++l){
+	(*lock)[l]       = false;
+	(*haslock)[l]    = false;
+	(*alwayslock)[l] = false;
+      }
+    }
+    void reset_locked(){
+      for(size_t l = 0 ; l < size; ++l){
+	if( (*haslock)[l] && !(*alwayslock)[l] ) (*lock)[l] = false;
+      }
     }
     vector<bool>* lock;
     vector<bool>* haslock;
+    vector<bool>* alwayslock;
     std::size_t size;
   };
 
@@ -136,6 +156,10 @@ namespace MEM {
 
   private:
 
+    void fill_perm();
+    bool consider(const std::vector<int>&, const std::size_t&) const;
+    bool check_ignore_jets ();
+    bool check_restore_jets(int&);
     vector<int> get_permutation(const std::size_t&,const int&);
     void init_pdfs();
 
