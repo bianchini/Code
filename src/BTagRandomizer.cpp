@@ -1,11 +1,12 @@
 #include "interface/BTagRandomizer.h"
 
 
-MEM::BTagRandomizer::BTagRandomizer(int debug, int seed, 
+MEM::BTagRandomizer::BTagRandomizer(int debug, int seed_strategy, 
 				    const std::map<DistributionType::DistributionType, TH3D>& pdf, 
 				    int assignrnd,
 				    int compress,
-				    int nmax){
+				    int nmax
+				    ){
   btag_pdfs    = pdf;
   init         = 0;
   debug_code   = debug;
@@ -22,14 +23,13 @@ MEM::BTagRandomizer::BTagRandomizer(int debug, int seed,
   compress_csv = compress;
   tag_id       = 0;
   tag_name     = "";
-
-  ran = new TRandom3();
-  if(seed<0) gRandom->SetSeed(0);
-  if(seed>0) gRandom->SetSeed(seed);
+  seed         = 4357;
+  use_random_seed  = seed_strategy<0;
+  ran              = new TRandom3();
 
   if( debug_code&DebugVerbosity::init){
     cout << "BTagRandomizer::BTagRandomizer(): " << endl;
-    cout << "\tRandom seed:        " << gRandom->GetSeed() << endl;
+    cout << "\tRandom seed:        " << (use_random_seed ? -1 : seed) << endl;
     cout << "\tPdfs initilialized: " << (btag_pdfs.size()>0) << endl;
     cout << "\tMax number of toys: " << n_max_toys << endl;
     if(assign_rnd)   cout << "\tWARNING: Sampling csv output from pdfs" << endl;
@@ -84,6 +84,14 @@ void MEM::BTagRandomizer::init_pdfs(){
     return;
   }
 
+  if(use_random_seed){
+    gRandom->SetSeed(0);
+    seed = gRandom->GetSeed();
+  }
+  else{
+    gRandom->SetSeed(seed);
+  }
+  
   for(size_t j = 0; j < size_t(n_jets) ; ++j){
 
     if( !jets[j]->isSet(Observable::PDGID) ) {
@@ -121,11 +129,11 @@ void MEM::BTagRandomizer::init_pdfs(){
     if( pdg<4 || pdg==21 ){
       type = DistributionType::DistributionType::csv_l;
       ++count_l;
-      if     ( pdg==3  && btag_pdfs.find(DistributionType::DistributionType::csv_s) != btag_pdfs.end() )
+      if     ( pdg==3              && btag_pdfs.find(DistributionType::DistributionType::csv_s) != btag_pdfs.end() )
 	type = DistributionType::DistributionType::csv_s;
-      else if( pdg<2   && btag_pdfs.find(DistributionType::DistributionType::csv_u) != btag_pdfs.end() )
+      else if( (pdg==1 || pdg==2)  && btag_pdfs.find(DistributionType::DistributionType::csv_u) != btag_pdfs.end() )
 	type = DistributionType::DistributionType::csv_u;
-      else if( pdg==21 && btag_pdfs.find(DistributionType::DistributionType::csv_g) != btag_pdfs.end() )
+      else if( pdg==21             && btag_pdfs.find(DistributionType::DistributionType::csv_g) != btag_pdfs.end() )
 	type = DistributionType::DistributionType::csv_g;
       else{ /*...*/ }
     }
@@ -209,7 +217,7 @@ vector<MEM::BTagRandomizerOutput> MEM::BTagRandomizer::run_all(const vector<JetC
     JetCategory cat = cats[c];
     tag_id   = cat.tag;
     tag_name = cat.name_tag;
-    set_condition( cat.ntags_l, cat.ntags_h, cat.cut );
+    set_condition( cat.ntags_l, cat.ntags_h, cat.cut , cat.seed );
     BTagRandomizerOutput out_c = run();
     out.push_back(out_c);
     next_category();
@@ -305,7 +313,18 @@ MEM::BTagRandomizerOutput MEM::BTagRandomizer::run(){
     out.err = error_code;
     return out;
   }
-  
+
+  // use seed set by set_condition()
+  if(use_random_seed)
+    gRandom->SetSeed(0);
+  else
+    gRandom->SetSeed(seed);
+
+  seed = gRandom->GetSeed(); 
+
+  if( debug_code&DebugVerbosity::init_more )
+    cout << "Using seed " << seed << endl;
+
   out.n_b        = count_b;  
   out.n_c        = count_c;  
   out.n_l        = count_l;  
@@ -314,6 +333,7 @@ MEM::BTagRandomizerOutput MEM::BTagRandomizer::run(){
   out.n_tags_h   = n_tags_h;
   out.tag_id     = tag_id;
   out.tag_name   = tag_name;
+  out.seed       = seed;
 
   vector<double> input_btag = vector<double>(n);
   vector<double> rnd_btag   = vector<double>(n);
@@ -462,8 +482,6 @@ MEM::BTagRandomizerOutput MEM::BTagRandomizer::run(){
   for(size_t j = 0; j < n ; ++j){  
     if(jets.at(j)->isSet(Observable::IGNORE_FOR_RND) && jets.at(j)->getObs(Observable::IGNORE_FOR_RND)>0 ){
       if( debug_code&DebugVerbosity::init_more ) cout << "\tIgnoring jet index (" << j << ")" << endl;
-      //lk.set_haslock( j, true );
-      //lk.set_lock   ( j, true );
       lk.set_alwayslock( j, true );
     }
   }
@@ -477,9 +495,6 @@ MEM::BTagRandomizerOutput MEM::BTagRandomizer::run(){
     ++ntoys;
     if( debug_code&DebugVerbosity::event ) 
       cout << "\tToy: " << ntoys << endl;
-
-    // number of passing jets 
-    //int count_pass  {0};
 
     // number of passing jets among those that have to pass ( specified in perm )
     int count_pass_t{0};
@@ -540,43 +555,6 @@ MEM::BTagRandomizerOutput MEM::BTagRandomizer::run(){
 	  printf("\t\tRandom value jet[%d]: %.3f (no_lock  /  locked)\n", int(j), rnd_btag[j]);
 	continue;
       }
-
-
-      /*
-      // needed when I have to unlock all jets
-      if(jets.at(j)->isSet(Observable::IGNORE_FOR_RND) && 
-	 jets.at(j)->getObs(Observable::IGNORE_FOR_RND)>0 ) lk.set_lock( j, true );
-
-      // check among the locked jets
-      if( lk.get_haslock(j) && lk.get_lock(j) ){
-	if( debug_code&DebugVerbosity::event ) 
-	  printf("\t\tRandom value jet[%d]: %.3f (locked)\n", int(j), rnd_btag[j]);
-	if( rnd_btag[j]>cut_val ){
-	  ++count_pass;
-	  ++count_pass_t;	
-	}
-	continue;
-      }
-      
-      double rnd  = lk.get_lock(j) ? rnd_btag[j] : pdfs.at(j)->GetRandom();
-      rnd_btag[j] = rnd;
-
-      if(  rnd >= cut_val ){
-	++count_pass;
-	if( lk.get_haslock(j) ){
-	  lk.set_lock(j, true); 
-	  ++count_pass_t;
-	}
-	if( !lk.get_haslock(j) ) ++count_pass_u;
-      }
-      else{
-	if( !lk.get_haslock(j) ) lk.set_lock(j, true);
-      }
-            
-      if( debug_code&DebugVerbosity::event )
-	printf("\t\tRandom value jet[%d]: %.3f %s\n", int(j), rnd_btag[j], 
-	       lk.get_lock(j) ? "(locked)" : "" );      
-      */
     }
 
     if( debug_code&DebugVerbosity::event ) 
@@ -607,12 +585,15 @@ MEM::BTagRandomizerOutput MEM::BTagRandomizer::run(){
 }
 
 
-void MEM::BTagRandomizer::set_condition(const int& ntags_l, const int& ntags_h, const double& v){
+void MEM::BTagRandomizer::set_condition(const int& ntags_l, const int& ntags_h, const double& v, const unsigned long& sd){
   n_tags_l = ntags_l;
   n_tags_h = ntags_h;
   cut_val  = v;
+  seed     = sd;
   if( debug_code&DebugVerbosity::init_more ){
-    cout << "BTagRandomizer::set_condition(): add category (" << n_tags_l << "," << n_tags_h << ")" << endl;
+    cout << "BTagRandomizer::set_condition(): add category (" 
+	 << n_tags_l << "," << n_tags_h 
+	 << ") at cut value " << cut_val << ", seed=" << seed << endl;
   }
 }
 

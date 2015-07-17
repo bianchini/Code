@@ -20,7 +20,8 @@ int main(int argc, char *argv[]){
 
   double csv_cut{0.814};
   
-  TFile* fout  = new TFile( Form("/scratch/bianchi/74X/btag_out_%s_%d%s.root", argv[1], atoi(argv[2]), argc>3 ? argv[3] : ""),"RECREATE");
+  TFile* fout  = new TFile( Form("/scratch/bianchi/74X/btag_out_%s_%d%s_%d_%d.root", 
+				 argv[1], atoi(argv[2]), argc>3 ? argv[3] : "", atoi(argv[4]), atoi(argv[5])),"RECREATE");
   TTree* tout  = new TTree("tree", "");
   int njet, ntag, ncat, event, nB, nC, nL, ttCls;
   float pcat        [99];
@@ -150,7 +151,7 @@ int main(int argc, char *argv[]){
 					   );
 
   
-  TCut cut = "numJets>=4 && numJets<=6 && is_sl";
+  TCut cut = "numJets>=4 && numJets<=8 && is_sl";
   TFile* fin = TFile::Open(Form("/scratch/bianchi/new/%s.root", argv[1]));
   
   if(fin==0 || fin->IsZombie()) return 0;
@@ -196,14 +197,18 @@ int main(int argc, char *argv[]){
 
   for (Long64_t i = 0; i < nentries; i++){
 
-    if( count_pass>atoi(argv[4]) ) break;
-
     tin->GetEntry(i);
 
     tin->LoadTree(i);
     if( treeformula->EvalInstance() == 0){
       continue;
     }
+    ++count_pass;
+
+    if( count_pass < atoi(argv[4]))  continue;
+    if( count_pass > atoi(argv[5]))  break;
+
+
     if(i%500==0) cout << "Event " << i << " (" << evt << ")" << endl;
 
     vector<JetCategory> cats;
@@ -242,11 +247,11 @@ int main(int argc, char *argv[]){
 	  std::abs(jets_mcMatchId[j])==24 ||  
 	  std::abs(jets_mcMatchId[j])==23 || 
 	  std::abs(jets_mcMatchId[j])==25)
-	 ) ingnore = false;
-      if( std::abs(jets_mcFlavour[j])==4  ) ingnore = true;
-      if( std::abs(jets_mcFlavour[j])==21 ) ingnore = true;
-      if( std::abs(jets_mcFlavour[j])<4 )   ingnore = true;
-      if( ingnore ){
+	 ) ingnore = false;      
+      //if( std::abs(jets_mcFlavour[j])==4  ) ingnore = true;
+      //if( std::abs(jets_mcFlavour[j])==21 ) ingnore = true;
+      //if( std::abs(jets_mcFlavour[j])<4 )   ingnore = true;
+      if( ingnore && false){
 	jet->addObs( Observable::IGNORE_FOR_RND,  1.0);
       }
 
@@ -390,7 +395,7 @@ int main(int argc, char *argv[]){
     for( auto c : cats_mem    ) delete c;
     for( auto o : objects_mem ) delete o;
 
-    ++count_pass;
+
     tout->Fill();
   }
     

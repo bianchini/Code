@@ -85,6 +85,7 @@ namespace MEM {
       n_tags_h = 0;
       tag_id   = 0;
       tag_name = "";
+      seed     = 0;
     }
     ~BTagRandomizerOutput(){
       input_btag.clear();
@@ -102,6 +103,7 @@ namespace MEM {
     int n_c;
     int n_l;
     int tag_id;
+    unsigned long seed;
     string tag_name;
     vector<double> input_btag; 
     vector<double> rnd_btag; 
@@ -116,6 +118,7 @@ namespace MEM {
       os << "\tNumber of toys:      " << ntoys << endl;
       os << "\tTag ID:              " << tag_id << endl;
       os << "\tTag name:            " << tag_name << endl;
+      os << "\tSeed:                " << seed << endl;
       os << "\tInput:    --------- Random:" << endl;
       for(size_t i = 0 ; i < rnd_btag.size() ; ++i)
 	printf( "\t[ %.3f ] --------- [ %.3f ]\n", input_btag[i], rnd_btag[i]);
@@ -124,18 +127,20 @@ namespace MEM {
   };
 
   struct JetCategory {
-    JetCategory( const int& ntl =0, const int& nth =0, const double& ct =0., const int& t =0, const string& name =""){
+    JetCategory( const int& ntl =0, const int& nth =0, const double& ct =0., const int& t =0, const string& name ="", const unsigned long& sd=4357){
       ntags_l  = ntl;
       ntags_h  = nth;
       cut      = ct;
       tag      = t;
       name_tag = name;
+      seed     = sd;
     }
     int tag;
     string name_tag;
     int ntags_l;
     int ntags_h;
     double cut;    
+    unsigned long seed;
   };
 
 
@@ -152,7 +157,7 @@ namespace MEM {
     void push_back_object( Object* );
     void next_event();
     void next_category();
-    void set_condition(const int&, const int&, const double&);
+    void set_condition(const int&, const int&, const double&, const unsigned long&);
 
   private:
 
@@ -164,6 +169,8 @@ namespace MEM {
     void init_pdfs();
 
     TRandom3* ran;
+    unsigned long seed;
+    bool use_random_seed;
     int init;
     int debug_code;
     int n_tags_l;

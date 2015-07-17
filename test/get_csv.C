@@ -25,10 +25,10 @@
   Long64_t nentries = t->GetEntries();
   cout << "Total entries: " << nentries << endl;
 
-  TFile* out  = TFile::Open("csv.root","RECREATE");
+  TFile* out  = TFile::Open("csv_byFlavour.root","RECREATE");
   out->cd();
 
-  vector<TString> fl = {"b","c","l", "b_t", "b_g", "c_t", "c_g"};
+  vector<TString> fl = {"b","c","l", "b_t", "b_g", "c_t", "c_g", "s", "u", "g"};
   map<TString, TH3D*> hmap_rec;
   map<TString, TH3D*> hmap_gen;
 
@@ -74,6 +74,23 @@
 	else fl += "_t";
 	hmap_rec[fl]->Fill( jets_pt[j],   jets_eta[j],   jets_btagCSV[j]);
 	hmap_gen[fl]->Fill( jets_mcPt[j], jets_mcEta[j], jets_btagCSV[j]);	
+      }
+      if( pdg<4 || pdg==21){
+	if (pdg==1 || pdg==2){
+	  fl = "u";
+	  hmap_rec[fl]->Fill( jets_pt[j],   jets_eta[j],   jets_btagCSV[j]);
+	  hmap_gen[fl]->Fill( jets_mcPt[j], jets_mcEta[j], jets_btagCSV[j]);
+	}
+	if (pdg==3){
+	  fl = "s";
+	  hmap_rec[fl]->Fill( jets_pt[j],   jets_eta[j],   jets_btagCSV[j]);
+	  hmap_gen[fl]->Fill( jets_mcPt[j], jets_mcEta[j], jets_btagCSV[j]);
+	}
+	if (pdg==21){
+	  fl = "g";
+	  hmap_rec[fl]->Fill( jets_pt[j],   jets_eta[j],   jets_btagCSV[j]);
+	  hmap_gen[fl]->Fill( jets_mcPt[j], jets_mcEta[j], jets_btagCSV[j]);
+	}
       }
     }
   }

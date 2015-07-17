@@ -1,0 +1,25 @@
+{
+
+  TFile* f = TFile::Open("/shome/bianchi/TTH-74X-heppy/CMSSW/src/TTH/MEAnalysis/root/csv_bcl.root");
+  TH2F* h2 = new TH2F("h2", "h2", 1000,0,100000, 20,0,1);
+  TH1F* h1 = new TH1F("h1", "h1", 100,0,1);
+
+  TH1F* h =  (csv_b_pt_eta->ProjectionZ("pz",3,3,1,1));
+
+  int ntoys=100000;
+  int ntoy=1;
+  while(ntoy<ntoys){
+    gRandom->SetSeed(ntoy);
+    h2->Fill( gRandom->GetSeed(), h->GetRandom() );
+    h1->Fill(  h->GetRandom() );
+    ntoy += 100;
+  }
+
+  //h2->Draw("COLZ");
+
+  h1->SetLineColor(kRed);
+  h1->DrawNormalized("HIST");
+  h->DrawNormalized("HISTSAME");
+  //cout << h2->GetCorrelationFactor() << endl;
+
+}

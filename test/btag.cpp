@@ -26,7 +26,7 @@ int main(int argc, char *argv[]){
   }
 
   //TFile* f = TFile::Open("../MEAnalysis/root/ControlPlotsV6.root","READ");
-  TFile* f = TFile::Open("/shome/bianchi/TTH-74X-heppy//CMSSW/src/TTH/MEAnalysis/root/csv.root");
+  TFile* f = TFile::Open("/shome/bianchi/TTH-74X-heppy//CMSSW/src/TTH/MEAnalysis/root/csv_bcl.root");
   TH3D* h3_b = (TH3D*)f->Get("csv_b_pt_eta");
   TH3D* h3_c = (TH3D*)f->Get("csv_c_pt_eta");
   TH3D* h3_l = (TH3D*)f->Get("csv_l_pt_eta");
@@ -50,7 +50,7 @@ int main(int argc, char *argv[]){
   j1.addObs( Observable::BTAG,  0.   );  
   j1.addObs( Observable::PDGID, 5    );  
   j1.addObs( Observable::CSV,   0.9  );  
-  j1.addObs( Observable::IGNORE_FOR_RND,  1 );  
+  //j1.addObs( Observable::IGNORE_FOR_RND,  1 );  
   //j1.addObs( Observable::BTAGPROB, 0.02 );  
 
   TLorentzVector lv_j2;
@@ -59,7 +59,7 @@ int main(int argc, char *argv[]){
   j2.addObs( Observable::BTAG, 1. );
   j2.addObs( Observable::PDGID, 3 );  
   j2.addObs( Observable::CSV,   0.2  );  
-  j2.addObs( Observable::IGNORE_FOR_RND,  1 );  
+  //j2.addObs( Observable::IGNORE_FOR_RND,  1 );  
   //j2.addObs( Observable::BTAGPROB, 0.70 );  
 
   TLorentzVector lv_j3;
@@ -68,7 +68,7 @@ int main(int argc, char *argv[]){
   j3.addObs( Observable::BTAG, 0. );
   j3.addObs( Observable::PDGID, 4 );
   j3.addObs( Observable::CSV,   0.4 );  
-  j3.addObs( Observable::IGNORE_FOR_RND,  1 );  
+  //j3.addObs( Observable::IGNORE_FOR_RND,  1 );  
   //j3.addObs( Observable::BTAGPROB, 0.02 );    
 
   TLorentzVector lv_j4;
@@ -77,7 +77,7 @@ int main(int argc, char *argv[]){
   j4.addObs( Observable::BTAG, 0. );
   j4.addObs( Observable::PDGID, 21 );  
   j4.addObs( Observable::CSV, 0.12 );  
-  j4.addObs( Observable::IGNORE_FOR_RND,  1 );  
+  //j4.addObs( Observable::IGNORE_FOR_RND,  1 );  
   //j4.addObs( Observable::BTAGPROB, 0.70 );    
 
   TLorentzVector lv_j5;
@@ -86,7 +86,7 @@ int main(int argc, char *argv[]){
   j5.addObs( Observable::BTAG, 1. );
   j5.addObs( Observable::PDGID, 5 );
   j5.addObs( Observable::CSV,  0.7 );  
-  j5.addObs( Observable::IGNORE_FOR_RND,  1 );  
+  //j5.addObs( Observable::IGNORE_FOR_RND,  1 );  
   //j5.addObs( Observable::BTAGPROB, 0.70 );       
 
   TLorentzVector lv_j6;
@@ -95,7 +95,7 @@ int main(int argc, char *argv[]){
   j6.addObs( Observable::BTAG, 1. );
   j6.addObs( Observable::PDGID, -5 );
   j6.addObs( Observable::CSV,  0.89 );  
-  j6.addObs( Observable::IGNORE_FOR_RND,  1 );  
+  //j6.addObs( Observable::IGNORE_FOR_RND,  1 );  
   //j6.addObs( Observable::BTAGPROB, 0.70 );       
 
 

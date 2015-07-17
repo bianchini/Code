@@ -31,21 +31,21 @@
   
   TString names[] = {
     //
-    //"tth_13tev_amcatnlo_pu20bx25_0testIgn" 
+    //"tth_13tev_amcatnlo_pu20bx25_0test_0_100000" 
     //,
-    //"tth_13tev_amcatnlo_pu20bx25_1"
+    "tth_13tev_amcatnlo_pu20bx25_1test_0_100000"
     //,
-    "ttjets_13tev_madgraph_pu20bx25_phys14_0testIgnCGL"
-    //,
-    //"ttjets_13tev_madgraph_pu20bx25_phys14_1"
+    //"ttjets_13tev_madgraph_pu20bx25_phys14_0test_0_4000000"
+    ,
+    //"ttjets_13tev_madgraph_pu20bx25_phys14_1test_0_4000000"
   };
   TString samples[] = {
     //
-    //"t#bar{t}H, reco CSV test ignore"
+    //"t#bar{t}H, reco CSV"
     //,
-    //"t#bar{t}H, closure test ignore all"
+    "t#bar{t}H, closure test"
     //,
-    "t#bar{t}+jets, reco CSV test ignore C,G,L"
+    //"t#bar{t}+jets, reco CSV"
     //,
     //"t#bar{t}+jets, closure test"
   };
@@ -75,20 +75,24 @@
     //TFile* f = TFile::Open("/shome/bianchi/TTH-72X-heppy/CMSSW/src/TTH/MEIntegratorStandalone/test/btag_out_"+name+".root");
     TFile* f = TFile::Open("/scratch/bianchi/74X/btag_out_"+name+".root");
 
+    int nmaxjets = 8;//6
+    int nminjets = 4;//4
+    int ncats    = (nmaxjets-nminjets+1)*5;//15
+
     TTree* t = (TTree*)f->Get("tree");
     TH1F*  h = new TH1F("h","",10,0,10);
-    TH1F*  h_yields_inp   = new TH1F("h_yields_inp","",15,0,15);
-    TH1F*  h_yields_rnd   = new TH1F("h_yields_rnd","",15,0,15);
-    TH1F*  h_yields_ratio = new TH1F("h_yields_ratio","",15,0,15);
-    TH1F*  h_frac_inp     = new TH1F("h_frac_inp","",15,0,15);
-    TH1F*  h_frac_rnd     = new TH1F("h_frac_rnd","",15,0,15);
-    TH1F*  h_frac_ratio   = new TH1F("h_frac_ratio","",15,0,15);
+    TH1F*  h_yields_inp   = new TH1F("h_yields_inp","",ncats,0,ncats);
+    TH1F*  h_yields_rnd   = new TH1F("h_yields_rnd","",ncats,0,ncats);
+    TH1F*  h_yields_ratio = new TH1F("h_yields_ratio","",ncats,0,ncats);
+    TH1F*  h_frac_inp     = new TH1F("h_frac_inp","",ncats,0,ncats);
+    TH1F*  h_frac_rnd     = new TH1F("h_frac_rnd","",ncats,0,ncats);
+    TH1F*  h_frac_ratio   = new TH1F("h_frac_ratio","",ncats,0,ncats);
     
 
     string globals[3] = {"met","HT","ttCls"};
     //char* globals[2];
 
-    for( int njet = 4 ; njet <=6 ; ++njet ){
+    for( int njet = nminjets ; njet <= nmaxjets ; ++njet ){
       for( int i = 0 ; i <=4 ; ++i ){
 	h->Reset();
 	h->Sumw2();
@@ -109,22 +113,22 @@
 	printf("\tWEIGHT: %.0f +/- %.1f\n", weight, weight_err);
 	printf("\tDiff: %.1f \n",   ratio*100);
 	
-	h_yields_ratio->GetXaxis()->SetBinLabel((njet-4)*5+i+1, Form("(%d,%d)", njet, i));
-	h_yields_inp->SetBinContent((njet-4)*5+i+1, pass);
-	h_yields_inp->SetBinError((njet-4)*5+i+1, pass_err);
-	h_yields_rnd->SetBinContent((njet-4)*5+i+1, weight);
-	h_yields_rnd->SetBinError((njet-4)*5+i+1, weight_err);
-	h_frac_ratio->GetXaxis()->SetBinLabel((njet-4)*5+i+1, Form("(%d,%d)", njet, i));
-	h_frac_inp->SetBinContent((njet-4)*5+i+1, pass_entries);
-	h_frac_inp->SetBinError((njet-4)*5+i+1, sqrt(pass_entries));
-	h_frac_rnd->SetBinContent((njet-4)*5+i+1, weight_entries);
-	h_frac_rnd->SetBinError((njet-4)*5+i+1, sqrt(weight_entries));
+	h_yields_ratio->GetXaxis()->SetBinLabel((njet-nminjets)*5+i+1, Form("(%d,%d)", njet, i));
+	h_yields_inp->SetBinContent((njet-nminjets)*5+i+1, pass);
+	h_yields_inp->SetBinError((njet-nminjets)*5+i+1, pass_err);
+	h_yields_rnd->SetBinContent((njet-nminjets)*5+i+1, weight);
+	h_yields_rnd->SetBinError((njet-nminjets)*5+i+1, weight_err);
+	h_frac_ratio->GetXaxis()->SetBinLabel((njet-nminjets)*5+i+1, Form("(%d,%d)", njet, i));
+	h_frac_inp->SetBinContent((njet-nminjets)*5+i+1, pass_entries);
+	h_frac_inp->SetBinError((njet-nminjets)*5+i+1, sqrt(pass_entries));
+	h_frac_rnd->SetBinContent((njet-nminjets)*5+i+1, weight_entries);
+	h_frac_rnd->SetBinError((njet-nminjets)*5+i+1, sqrt(weight_entries));
 
 	if(DOGLOBAL){	
 	for(int gl = 0 ; gl < 3 ; ++gl){
 	  string glo = globals[gl];
 	  
-	  int nbins = 10;
+	  int nbins = 8;
 	  if( gl==2 ){	    
 	    nbins = 60;
 	  }
@@ -270,9 +274,9 @@
 	if(k==6) title = "max for tagged jets";
 	if(k==7) title = "max for untagged jets";
 
-	TH1F* h_inp   = new TH1F(Form("h_inp_%d_%d_%d",  njet,i,k),Form("N_{jet}=%d, N_{tag}=%d; dijet mass %s", njet, i,title.c_str()),20,0, k<6 ? 200 : 600);
-	TH1F* h_rnd   = new TH1F(Form("h_rnd_%d_%d_%d",  njet,i,k),Form("N_{jet}=%d, N_{tag}=%d; dijet mass %s", njet, i,title.c_str()),20,0, k<6 ? 200 : 600);
-	TH1F* h_ratio = new TH1F(Form("h_ratio_%d_%d_%d",njet,i,k),Form("N_{jet}=%d, N_{tag}=%d; dijet mass %s; (weighted-cut)/cut", njet, i,title.c_str()),20,0, k<6 ? 200 : 600);
+	TH1F* h_inp   = new TH1F(Form("h_inp_%d_%d_%d",  njet,i,k),Form("N_{jet}=%d, N_{tag}=%d; dijet mass %s", njet, i,title.c_str()),10,0, k<6 ? 200 : 600);
+	TH1F* h_rnd   = new TH1F(Form("h_rnd_%d_%d_%d",  njet,i,k),Form("N_{jet}=%d, N_{tag}=%d; dijet mass %s", njet, i,title.c_str()),10,0, k<6 ? 200 : 600);
+	TH1F* h_ratio = new TH1F(Form("h_ratio_%d_%d_%d",njet,i,k),Form("N_{jet}=%d, N_{tag}=%d; dijet mass %s; (weighted-cut)/cut", njet, i,title.c_str()),10,0, k<6 ? 200 : 600);
 	h_inp->Sumw2();
 	h_rnd->Sumw2();
 	h_ratio->Sumw2();
@@ -330,19 +334,19 @@
       }
 	}
 
-      for(int k = 0 ; k <6 ; ++k){
+      for(int k = 0 ; k < nmaxjets ; ++k){
 	if(k>=njet) continue;
-	TH1F* h_csv_inp   = new TH1F(Form("h_csv_inp_%d_%d_%d",  njet,i,k),Form("N_{jet}=%d, N_{tag}=%d, Jet %d; CSV", njet, i, k),15,0,1);
-	TH1F* h_csv_rnd   = new TH1F(Form("h_csv_rnd_%d_%d_%d",  njet,i,k),Form("N_{jet}=%d, N_{tag}=%d, Jet %d; CSV", njet, i, k),15,0,1);
-	TH1F* h_csv_ratio = new TH1F(Form("h_csv_ratio_%d_%d_%d",njet,i,k),Form("N_{jet}=%d, N_{tag}=%d, Jet %d; CSV; (weighted-cut)/cut", njet, i, k),15,0,1);
+	TH1F* h_csv_inp   = new TH1F(Form("h_csv_inp_%d_%d_%d",  njet,i,k),Form("N_{jet}=%d, N_{tag}=%d, Jet %d; CSV", njet, i, k),10,0,1);
+	TH1F* h_csv_rnd   = new TH1F(Form("h_csv_rnd_%d_%d_%d",  njet,i,k),Form("N_{jet}=%d, N_{tag}=%d, Jet %d; CSV", njet, i, k),10,0,1);
+	TH1F* h_csv_ratio = new TH1F(Form("h_csv_ratio_%d_%d_%d",njet,i,k),Form("N_{jet}=%d, N_{tag}=%d, Jet %d; CSV; (weighted-cut)/cut", njet, i, k),10,0,1);
 
-	TH1F* h_pt_inp   = new TH1F(Form("h_pt_inp_%d_%d_%d",  njet,i,k),Form("N_{jet}=%d, N_{tag}=%d, Jet %d; p_{T}", njet, i, k),20,0,400);
-	TH1F* h_pt_rnd   = new TH1F(Form("h_pt_rnd_%d_%d_%d",  njet,i,k),Form("N_{jet}=%d, N_{tag}=%d, Jet %d; p_{T}", njet, i, k),20,0,400);
-	TH1F* h_pt_ratio = new TH1F(Form("h_pt_ratio_%d_%d_%d",njet,i,k),Form("N_{jet}=%d, N_{tag}=%d, Jet %d; p_{T}; (weighted-cut)/cut", njet, i, k),20,0,400);
+	TH1F* h_pt_inp   = new TH1F(Form("h_pt_inp_%d_%d_%d",  njet,i,k),Form("N_{jet}=%d, N_{tag}=%d, Jet %d; p_{T}", njet, i, k),12,0,400);
+	TH1F* h_pt_rnd   = new TH1F(Form("h_pt_rnd_%d_%d_%d",  njet,i,k),Form("N_{jet}=%d, N_{tag}=%d, Jet %d; p_{T}", njet, i, k),12,0,400);
+	TH1F* h_pt_ratio = new TH1F(Form("h_pt_ratio_%d_%d_%d",njet,i,k),Form("N_{jet}=%d, N_{tag}=%d, Jet %d; p_{T}; (weighted-cut)/cut", njet, i, k),12,0,400);
 
-	TH1F* h_eta_inp   = new TH1F(Form("h_eta_inp_%d_%d_%d",  njet,i,k),Form("N_{jet}=%d, N_{tag}=%d, Jet %d; #eta", njet, i, k),27,-2.7,2.7);
-	TH1F* h_eta_rnd   = new TH1F(Form("h_eta_rnd_%d_%d_%d",  njet,i,k),Form("N_{jet}=%d, N_{tag}=%d, Jet %d; #eta", njet, i, k),27,-2.7,2.7);
-	TH1F* h_eta_ratio = new TH1F(Form("h_eta_ratio_%d_%d_%d",njet,i,k),Form("N_{jet}=%d, N_{tag}=%d, Jet %d; #eta", njet, i, k),27,-2.7,2.7);
+	TH1F* h_eta_inp   = new TH1F(Form("h_eta_inp_%d_%d_%d",  njet,i,k),Form("N_{jet}=%d, N_{tag}=%d, Jet %d; #eta", njet, i, k),8,-2.7,2.7);
+	TH1F* h_eta_rnd   = new TH1F(Form("h_eta_rnd_%d_%d_%d",  njet,i,k),Form("N_{jet}=%d, N_{tag}=%d, Jet %d; #eta", njet, i, k),8,-2.7,2.7);
+	TH1F* h_eta_ratio = new TH1F(Form("h_eta_ratio_%d_%d_%d",njet,i,k),Form("N_{jet}=%d, N_{tag}=%d, Jet %d; #eta", njet, i, k),8,-2.7,2.7);
 
 	h_csv_inp->Sumw2();
 	h_csv_rnd->Sumw2();
@@ -573,7 +577,7 @@
     fout->Close();
     f->Close();
 
-    delete f; delete fout;
+    //delete f; delete fout;
   }
 
 }
