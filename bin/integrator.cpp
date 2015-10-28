@@ -39,7 +39,7 @@ int main(){
   //this needs to be done once per job, not for every event
   MEMConfig cfg;
   cfg.defaultCfg();
-  cfg.transfer_function_method = TFMethod::Builtin;
+  cfg.transfer_function_method = TFMethod::External;
 
   //Transfer functions for jet reconstruction efficiency
   cfg.set_tf_global(TFType::bLost, 0, *getTransferFunction(tffile, "beff", 0.0));
@@ -159,6 +159,7 @@ int main(){
   cout << "p = " << res.p << " +- " << res.p_err << endl;
   double p1 = res.p;
 
+  //this is the final discriminator value. the normalization constant is to be optimized
   double mem_w = p0 / (p0 + 0.02*p1);
   cout << "mem 222 discriminator " << mem_w << endl;
 
