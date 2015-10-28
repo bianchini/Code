@@ -1,5 +1,6 @@
 #include "TTH/MEIntegratorStandalone/interface/Integrand.h"
 #include "TTH/MEIntegratorStandalone/interface/BTagRandomizer.h"
+#include "TTH/MEIntegratorStandalone/interface/JetLikelihood.h"
 
 //template class map<string, vector<Algo::Decay::Decay> >;
 //template class vector<Algo::Decay::Decay>;
