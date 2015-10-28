@@ -1,0 +1,18 @@
+<use   name="root"/>
+<use   name="rootcore"/>
+<use   name="rootmath"/>
+<use   name="rootminuit"/>
+<use   name="rootminuit2"/>
+<use   name="classlib"/>
+<use   name="boost"/>
+<use   name="lhapdf"/>
+<use   name="TTH/MEIntegratorStandalone"/>
+<lib   name="openloops"/>
+<lib   name="coli"/>
+<lib   name="openloops_ppHtt_1tL"/>
+<lib   name="openloops_ppttbb_1tL"/>
+<lib   name="pphttxcallme2born"/>
+<lib   name="ppttxbbxcallme2born"/>
+<Flags CXXFLAGS="-I$(CMSSW_BASE)/src/TTH/MEIntegratorStandalone"/>
+<Flags GENREFLEX_ARGS="-I$(CMSSW_BASE)/src/TTH/MEIntegratorStandalone"/>
+<bin name="integrator" file="integrator.cpp"></bin>
