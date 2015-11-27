@@ -128,7 +128,21 @@ namespace MEM {
   }
   
   namespace DistributionType {
-    enum DistributionType {csv_b=0, csv_c=1, csv_l=2, csv_s=3, csv_u=4, csv_g=5, csv_b_t=6, csv_b_g=7, csv_c_t=8, csv_c_g=9};
+    enum DistributionType {csv_b=0, csv_c=1, csv_l=2, csv_s=3, csv_u=4, csv_g=5, 
+			   csv_b_t=6, csv_b_g=7, csv_c_t=8, csv_c_g=9, 
+			   csv_1b=10, csv_2b=11, csv_1c=12, csv_2c=13, csv_pu=14, csv_ud=15, 
+			   csv_b_dR_0p0_1p0=16, csv_b_dR_1p0_2p0=17, csv_b_dR_2p0_Inf=18,
+			   csv_1b_dR_0p0_1p0=19, csv_1b_dR_1p0_2p0=20, csv_1b_dR_2p0_Inf=21,
+			   csv_2b_dR_0p0_1p0=22, csv_2b_dR_1p0_2p0=23, csv_2b_dR_2p0_Inf=24,
+			   csv_c_dR_0p0_1p0=25, csv_c_dR_1p0_2p0=26, csv_c_dR_2p0_Inf=27,
+			   csv_1c_dR_0p0_1p0=28, csv_1c_dR_1p0_2p0=29, csv_1c_dR_2p0_Inf=30,
+			   csv_2c_dR_0p0_1p0=31, csv_2c_dR_1p0_2p0=32, csv_2c_dR_2p0_Inf=33,
+			   csv_pu_dR_0p0_1p0=34, csv_pu_dR_1p0_2p0=35, csv_pu_dR_2p0_Inf=18,
+			   csv_s_dR_0p0_1p0=37, csv_s_dR_1p0_2p0=38, csv_s_dR_2p0_Inf=39,
+			   csv_ud_dR_0p0_1p0=40, csv_ud_dR_1p0_2p0=41, csv_ud_dR_2p0_Inf=42,
+			   csv_g_dR_0p0_1p0=43, csv_g_dR_1p0_2p0=44, csv_g_dR_2p0_Inf=45,
+			   csv_l_dR_0p0_1p0=46, csv_l_dR_1p0_2p0=47, csv_l_dR_2p0_Inf=48,
+			   Unknown=49};
   }
   
   namespace TFMethod {
@@ -185,12 +199,14 @@ namespace MEM {
 
   class Object {       
   public:
-    Object(const LV&, const ObjectType::ObjectType&); 
+    Object(const LV&, const ObjectType::ObjectType&, DistributionType::DistributionType =DistributionType::DistributionType::Unknown, DistributionType::DistributionType =DistributionType::DistributionType::Unknown); 
     Object(); 
     ~Object(); 
     LV p4() const;
     void setp4(const LV&);
     ObjectType::ObjectType type() const;
+    DistributionType::DistributionType distribution_type() const;
+    DistributionType::DistributionType distribution_type_bkp() const;
     double getObs(const Observable::Observable&) const; 
     TF1* getTransferFunction(const TFType::TFType&); 
     std::size_t getNumTransferFunctions() const; 
@@ -201,6 +217,8 @@ namespace MEM {
   private:
     LV p;
     ObjectType::ObjectType t;
+    DistributionType::DistributionType dt;
+    DistributionType::DistributionType dt_bkp;
     boost::unordered_map<const Observable::Observable, double, ObsHash, ObsEqual> obs; 
     boost::unordered_map<const TFType::TFType, TF1*, TFTypeHash, TFTypeEqual> transfer_funcs; 
   };  

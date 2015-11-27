@@ -526,9 +526,11 @@ void MEM::PS::print(ostream& os) const{
   }
 }
 
-MEM::Object::Object(const LV& lv, const MEM::ObjectType::ObjectType& ty){ 
+MEM::Object::Object(const LV& lv, const MEM::ObjectType::ObjectType& ty, DistributionType::DistributionType dtype, DistributionType::DistributionType dtype_bkp){ 
   p  = lv; 
   t  = ty; 
+  dt = dtype;
+  dt_bkp = dtype_bkp;
 } 
 
 MEM::Object::Object(){ 
@@ -545,6 +547,10 @@ void  MEM::Object::setp4(const LV& lv) {
 }
 
 MEM::ObjectType::ObjectType MEM::Object::type() const { return t; }
+
+MEM::DistributionType::DistributionType MEM::Object::distribution_type() const { return dt; }
+
+MEM::DistributionType::DistributionType MEM::Object::distribution_type_bkp() const { return dt_bkp; }
 
 double MEM::Object::getObs(const MEM::Observable::Observable& name) const { 
   return (obs.find(name)!=obs.end() ? obs.find(name)->second : 0.);

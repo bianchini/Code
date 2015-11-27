@@ -26,74 +26,86 @@ int main(int argc, char *argv[]){
   }
 
   //TFile* f = TFile::Open("../MEAnalysis/root/ControlPlotsV6.root","READ");
-  TFile* f = TFile::Open("/shome/bianchi/TTH-74X-heppy//CMSSW/src/TTH/MEAnalysis/root/csv_bcl.root");
-  TH3D* h3_b = (TH3D*)f->Get("csv_b_pt_eta");
-  TH3D* h3_c = (TH3D*)f->Get("csv_c_pt_eta");
-  TH3D* h3_l = (TH3D*)f->Get("csv_l_pt_eta");
+  TFile* f = TFile::Open("./csv.root");
+  TH3D* h3_b  = (TH3D*)f->Get("csv_b_pt_eta");
+  TH3D* h3_c  = (TH3D*)f->Get("csv_c_pt_eta");
+  TH3D* h3_l  = (TH3D*)f->Get("csv_l_pt_eta");
+  TH3D* h3_pu = (TH3D*)f->Get("csv_pu_pt_eta");
+  TH3D* h3_1b = (TH3D*)f->Get("csv_1b_pt_eta");
+  TH3D* h3_1c = (TH3D*)f->Get("csv_1c_pt_eta");
+  TH3D* h3_2b = (TH3D*)f->Get("csv_2b_pt_eta");
+  TH3D* h3_2c = (TH3D*)f->Get("csv_2c_pt_eta");
+
   std::map<MEM::DistributionType::DistributionType, TH3D> btag_pdfs;
-  btag_pdfs[MEM::DistributionType::DistributionType::csv_b] = *h3_b ;
-  btag_pdfs[MEM::DistributionType::DistributionType::csv_c] = *h3_c ;
-  btag_pdfs[MEM::DistributionType::DistributionType::csv_l] = *h3_l ;
+  btag_pdfs[MEM::DistributionType::DistributionType::csv_b]  = *h3_b ;
+  btag_pdfs[MEM::DistributionType::DistributionType::csv_c]  = *h3_c ;
+  btag_pdfs[MEM::DistributionType::DistributionType::csv_l]  = *h3_l ;
+  btag_pdfs[MEM::DistributionType::DistributionType::csv_pu] = *h3_pu ;
+  btag_pdfs[MEM::DistributionType::DistributionType::csv_1b] = *h3_1b ;
+  btag_pdfs[MEM::DistributionType::DistributionType::csv_2b] = *h3_2b ;
+  btag_pdfs[MEM::DistributionType::DistributionType::csv_1c] = *h3_1c ;
+  btag_pdfs[MEM::DistributionType::DistributionType::csv_2c] = *h3_2c ;
 
   BTagRandomizer* rnd = new BTagRandomizer(DebugVerbosity::init
 					   //|DebugVerbosity::init_more
 					   //|DebugVerbosity::event
-					   , -1
-					   , btag_pdfs 
-					   , 1
-					   , 5000
+					   , -1         // seed strategy
+					   , btag_pdfs  // pdfs
+					   , 1          // assign rnd vals
+					   , 0          // compress
+					   , 5000       // max trials
 					   );
 
   TLorentzVector lv_j1;
   lv_j1.SetPtEtaPhiM(242.816604614, -0.107542805374, 1.25506973267, 24.5408706665);
-  Object j1( lv_j1, ObjectType::Jet );
-  j1.addObs( Observable::BTAG,  0.   );  
-  j1.addObs( Observable::PDGID, 5    );  
+  Object j1( lv_j1, ObjectType::Jet, MEM::DistributionType::DistributionType::csv_l );
+  //j1.addObs( Observable::BTAG,  0.   );  
+  //j1.addObs( Observable::PDGID, 5    );  
   j1.addObs( Observable::CSV,   0.9  );  
   //j1.addObs( Observable::IGNORE_FOR_RND,  1 );  
   //j1.addObs( Observable::BTAGPROB, 0.02 );  
 
   TLorentzVector lv_j2;
   lv_j2.SetPtEtaPhiM(35.6511192322, 0.566395223141, -2.51394343376, 8.94268417358);
-  Object j2( lv_j2, ObjectType::Jet );
-  j2.addObs( Observable::BTAG, 1. );
-  j2.addObs( Observable::PDGID, 3 );  
+  Object j2( lv_j2, ObjectType::Jet, MEM::DistributionType::DistributionType::csv_l );
+  //j2.addObs( Observable::BTAG, 1. );
+  //j2.addObs( Observable::PDGID, 3 );  
   j2.addObs( Observable::CSV,   0.2  );  
   //j2.addObs( Observable::IGNORE_FOR_RND,  1 );  
   //j2.addObs( Observable::BTAGPROB, 0.70 );  
 
   TLorentzVector lv_j3;
   lv_j3.SetPtEtaPhiM(77.6708831787, -0.709680855274, -2.53739523888, 10.4904966354);
-  Object j3( lv_j3, ObjectType::Jet );
-  j3.addObs( Observable::BTAG, 0. );
-  j3.addObs( Observable::PDGID, 4 );
+  Object j3( lv_j3, ObjectType::Jet,  MEM::DistributionType::DistributionType::csv_c );
+  //j3.addObs( Observable::BTAG, 0. );
+  //j3.addObs( Observable::PDGID, 4 );
   j3.addObs( Observable::CSV,   0.4 );  
   //j3.addObs( Observable::IGNORE_FOR_RND,  1 );  
   //j3.addObs( Observable::BTAGPROB, 0.02 );    
 
   TLorentzVector lv_j4;
   lv_j4.SetPtEtaPhiM(52.0134391785, -0.617823541164, -1.23360788822, 6.45914268494);
-  Object j4( lv_j4, ObjectType::Jet );
-  j4.addObs( Observable::BTAG, 0. );
-  j4.addObs( Observable::PDGID, 21 );  
+  Object j4( lv_j4, ObjectType::Jet,  MEM::DistributionType::DistributionType::csv_l );
+  //j4.addObs( Observable::BTAG, 0. );
+  //j4.addObs( Observable::PDGID, 21 );  
   j4.addObs( Observable::CSV, 0.12 );  
   //j4.addObs( Observable::IGNORE_FOR_RND,  1 );  
   //j4.addObs( Observable::BTAGPROB, 0.70 );    
 
   TLorentzVector lv_j5;
   lv_j5.SetPtEtaPhiM( 235.892044067, -0.997860729694, -2.10646605492, 27.9887943268 );
-  Object j5( lv_j5, ObjectType::Jet );
-  j5.addObs( Observable::BTAG, 1. );
-  j5.addObs( Observable::PDGID, 5 );
+  Object j5( lv_j5, ObjectType::Jet,  MEM::DistributionType::DistributionType::csv_b );
+  //j5.addObs( Observable::BTAG, 1. );
+  //j5.addObs( Observable::PDGID, 5 );
   j5.addObs( Observable::CSV,  0.7 );  
   //j5.addObs( Observable::IGNORE_FOR_RND,  1 );  
   //j5.addObs( Observable::BTAGPROB, 0.70 );       
 
   TLorentzVector lv_j6;
   lv_j6.SetPtEtaPhiM(191.423553467, -0.46368226409, 0.750520706177, 30.5682048798);
-  Object j6( lv_j6, ObjectType::Jet );
-  j6.addObs( Observable::BTAG, 1. );
-  j6.addObs( Observable::PDGID, -5 );
+  Object j6( lv_j6, ObjectType::Jet,  MEM::DistributionType::DistributionType::csv_l );
+  //j6.addObs( Observable::BTAG, 1. );
+  //j6.addObs( Observable::PDGID, -5 );
   j6.addObs( Observable::CSV,  0.89 );  
   //j6.addObs( Observable::IGNORE_FOR_RND,  1 );  
   //j6.addObs( Observable::BTAGPROB, 0.70 );       
@@ -125,11 +137,11 @@ int main(int argc, char *argv[]){
     rnd->push_back_object( &j5 );
     rnd->push_back_object( &j6 );
     
-    //JetCategory cat0 = JetCategory(0, 0, 0.879, 0, "6j0t");
-    //JetCategory cat1 = JetCategory(1, 1, 0.814, 1, "6j1t");
-    //JetCategory cat2 = JetCategory(2, 2, 0.879, 2, "6j2t");
-    //JetCategory cat3 = JetCategory(3, 3, 0.879, 3, "6j3t");
-    JetCategory cat4 = JetCategory(4, 6, 0.879, 4, "6jge4t");
+    JetCategory cat0 = JetCategory(0, 0, 0.879, 0, "6j0t");
+    JetCategory cat1 = JetCategory(1, 1, 0.814, 1, "6j1t");
+    JetCategory cat2 = JetCategory(2, 2, 0.879, 2, "6j2t");
+    JetCategory cat3 = JetCategory(3, 3, 0.89, 3, "6j3t");
+    JetCategory cat4 = JetCategory(4, 6, 0.89, 4, "6jge4t");
     vector<BTagRandomizerOutput> out_all = rnd->run_all(vector<JetCategory>{/*cat0, cat1, cat2, cat3, cat4*/ cat4});
     //for(auto o : out_all ) o.print(cout);
 

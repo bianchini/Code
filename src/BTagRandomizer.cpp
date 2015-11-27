@@ -94,12 +94,6 @@ void MEM::BTagRandomizer::init_pdfs(){
   
   for(size_t j = 0; j < size_t(n_jets) ; ++j){
 
-    if( !jets[j]->isSet(Observable::PDGID) ) {
-      cout << "BTagRandomizer::init_pdfs(): jet[" << j << "] has no no PDG ID info" << endl;   
-      error_code = 1; 
-      continue;
-    }
-
     if( !jets[j]->isSet(Observable::CSV) ) {
       if(!assign_rnd){
 	cout << "BTagRandomizer::init_pdfs(): jet[" << j << "] has no no CSV discriminant info" << endl;   
@@ -116,16 +110,23 @@ void MEM::BTagRandomizer::init_pdfs(){
     if(compress_csv) discr = TMath::Max(discr,  0.);
     if(compress_csv) discr = TMath::Min(discr,  0.999999);
 
-    int pdg      = std::abs(int(jets[j]->getObs(Observable::PDGID)));
-    int mcmatch  = jets[j]->isSet(Observable::MCMATCH) ? std::abs(int(jets[j]->getObs(Observable::MCMATCH))) : -1;
+    //if( !jets[j]->isSet(Observable::PDGID) ) {
+    //  cout << "BTagRandomizer::init_pdfs(): jet[" << j << "] has no no PDG ID info" << endl;   
+    //  error_code = 1; 
+    //  continue;
+    //}
+
+    //int pdg      = std::abs(int(jets[j]->getObs(Observable::PDGID)));
+    //int mcmatch  = jets[j]->isSet(Observable::MCMATCH) ? std::abs(int(jets[j]->getObs(Observable::MCMATCH))) : -1;
 
     if( debug_code&DebugVerbosity::init_more)
-      cout << "BTagRandomizer::init_pdfs(): init jet[" << j << "] with (Pt,Eta,PDGID,csv) = (" 
-	   << jets[j]->p4().Pt() << ", " << jets[j]->p4().Eta() << ", " << pdg
+      cout << "BTagRandomizer::init_pdfs(): init jet[" << j << "] with (Pt,Eta,csv) = (" 
+	   << jets[j]->p4().Pt() << ", " << jets[j]->p4().Eta() //<< ", " << pdg
 	   << ", " << discr << ")" << endl;   
     
-    DistributionType::DistributionType type = DistributionType::DistributionType::csv_l;
 
+    /*
+    DistributionType::DistributionType type = DistributionType::DistributionType::csv_l;
     if( pdg<4 || pdg==21 ){
       type = DistributionType::DistributionType::csv_l;
       ++count_l;
@@ -135,7 +136,7 @@ void MEM::BTagRandomizer::init_pdfs(){
 	type = DistributionType::DistributionType::csv_u;
       else if( pdg==21             && btag_pdfs.find(DistributionType::DistributionType::csv_g) != btag_pdfs.end() )
 	type = DistributionType::DistributionType::csv_g;
-      else{ /*...*/ }
+      else{ }
     }
     else if( pdg==4 ){
       type = DistributionType::DistributionType::csv_c;
@@ -144,7 +145,7 @@ void MEM::BTagRandomizer::init_pdfs(){
 	type = DistributionType::DistributionType::csv_c_g; 
       else if( mcmatch>0  && btag_pdfs.find(DistributionType::DistributionType::csv_c_t) != btag_pdfs.end() )
 	type = DistributionType::DistributionType::csv_c_t;
-      else{ /*...*/ }  
+      else{ }  
     }
     else if( pdg==5 ){
       type = DistributionType::DistributionType::csv_b;
@@ -153,13 +154,21 @@ void MEM::BTagRandomizer::init_pdfs(){
 	type = DistributionType::DistributionType::csv_b_g; 
       else if( mcmatch>0  && btag_pdfs.find(DistributionType::DistributionType::csv_b_t) != btag_pdfs.end() )
 	type = DistributionType::DistributionType::csv_b_t; 
-      else{ /*...*/ }  
+      else{  }  
     }
     else{
       cout << "BTagRandomizer::init_pdfs(): no pdf available for jet[" << j 
 	   << "] (PDGID=" << pdg << ")" << endl;   
       error_code = 1; 
       continue;      
+    }
+    */
+
+    DistributionType::DistributionType type = jets[j]->distribution_type();
+    if( type==DistributionType::DistributionType::Unknown || btag_pdfs.find(type)==btag_pdfs.end() ) {
+      cout << "BTagRandomizer::init_pdfs(): jet[" << j << "] has no valid distribution type" << endl;   
+      error_code = 1; 
+      continue;
     }
   
     TH3D  h3 = btag_pdfs.at(type);
@@ -178,6 +187,30 @@ void MEM::BTagRandomizer::init_pdfs(){
       continue;
     }
 
+    int bin = h1->FindBin(cut_val);
+    double norm = h1->Integral(compress_csv ? 1 : 0,  compress_csv ? h1->GetNbinsX() : h1->GetNbinsX()+1 );
+    double pass = h1->Integral( bin , compress_csv ? h1->GetNbinsX() :  h1->GetNbinsX()+1 );
+
+    if((norm==0. || pass==norm || pass==0.)){
+      if( debug_code&DebugVerbosity::init){
+	if(norm==0.)   
+	  cout << "BTagRandomizer::init_pdfs(): histogram for " << static_cast<int>(type) 
+	       << " has " << norm << " entries: use main distribution type" << endl;
+	else if(pass==norm) 
+	  cout << "BTagRandomizer::init_pdfs(): histogram for " << static_cast<int>(type) 
+	       << " has " << pass << "/" << norm << " entries passing: use main distribution type" << endl;
+	else
+	  cout << "BTagRandomizer::init_pdfs(): histogram for " << static_cast<int>(type) 
+	       << " has " << pass << "/" << norm << " entries passing: use main distribution type" << endl;
+      }
+      h3 = btag_pdfs.at( jets[j]->distribution_type_bkp() );
+      binX = h3.GetXaxis()->FindBin(jets[j]->p4().Pt());
+      binY = h3.GetYaxis()->FindBin(std::abs(jets[j]->p4().Eta()));      
+      h1 = h3.ProjectionZ(Form("%d_pz",int(j)), 
+			  TMath::Max(binX,1),TMath::Max(binX,1),
+			  TMath::Max(binY,1),TMath::Max(binY,1));      
+    }
+
     //deal with underflow
     if(compress_csv){
       if(h1->GetBinContent(0)>0. )
@@ -192,10 +225,10 @@ void MEM::BTagRandomizer::init_pdfs(){
 	cout << "BTagRandomizer::init_pdfs(): assigning random output " << discr << endl;
     }
 
-    int bin     = h1->FindBin(cut_val);
-    double pass = h1->Integral( bin , compress_csv ? h1->GetNbinsX() :  h1->GetNbinsX()+1 );
+    bin = h1->FindBin(cut_val);
+    norm = h1->Integral(compress_csv ? 1 : 0,  compress_csv ? h1->GetNbinsX() : h1->GetNbinsX()+1 );
+    pass = h1->Integral( bin , compress_csv ? h1->GetNbinsX() :  h1->GetNbinsX()+1 );
     pass -= (cut_val-h1->GetBinLowEdge( bin ))/h1->GetBinWidth( bin )*h1->GetBinContent(bin);
-    double norm = h1->Integral(compress_csv ? 1 : 0,  compress_csv ? h1->GetNbinsX() : h1->GetNbinsX()+1 );
     pass /= (norm>0. ? norm : 1.0);
 
     pdfs.insert( make_pair(j, h1)    );
@@ -449,7 +482,12 @@ MEM::BTagRandomizerOutput MEM::BTagRandomizer::run(){
     }
   }
 
-  size_t rnd_perm = h_combinations.GetBinLowEdge(h_combinations.FindBin(h_combinations.GetRandom()));
+  if(h_combinations.Integral()==0.){
+    if( debug_code&DebugVerbosity::init )
+      cout << "WARNING: all " << n_perm_max << " combinations have probability zero!" << endl;
+  }
+
+  size_t rnd_perm = h_combinations.GetBinLowEdge(h_combinations.FindBin( h_combinations.Integral()>0. ? h_combinations.GetRandom() : ran->Uniform(0, n_perm_max) ));
   int n_tags_rnd {0};
   int n_perm_rnd {0};
   count_perm = 0;
@@ -516,7 +554,7 @@ MEM::BTagRandomizerOutput MEM::BTagRandomizer::run(){
       if( lk.get_haslock(j) ){
 
 	if( !lk.get_lock(j) ){ 
-	  rnd_btag[j] = pdfs.at(j)->GetRandom();
+	  rnd_btag[j] = pdfs.at(j)->Integral()>0 ? pdfs.at(j)->GetRandom() : vals.at(j);
 	  if( rnd_btag[j] >= cut_val ){
 	    ++count_pass_t;  
 	    lk.set_lock( j, true ); 
@@ -538,7 +576,7 @@ MEM::BTagRandomizerOutput MEM::BTagRandomizer::run(){
       if( !lk.get_haslock(j) ){ 
 	
 	if( !lk.get_lock(j) ){ 
-	  rnd_btag[j] = pdfs.at(j)->GetRandom();
+	  rnd_btag[j] = pdfs.at(j)->Integral()>0 ? pdfs.at(j)->GetRandom() : vals.at(j);
 	  if( rnd_btag[j] >= cut_val ){
 	    ++count_pass_u;  
 	    if( debug_code&DebugVerbosity::event ) 
