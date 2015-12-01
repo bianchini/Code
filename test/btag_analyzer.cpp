@@ -33,23 +33,23 @@ int main(int argc, char *argv[]){
   double csv_cut{0.890};
   
   //TFile* fout  = new TFile( Form("/scratch/bianchi/vhbb74X/btag_out_%s_%d%s_%d_%d.root", 
-  TFile* fout  = new TFile( Form("./btag_out_%s_%d_%s_%d_%d_option%d.root", 
+  TFile* fout  = new TFile( Form("./btag_out_%s_rnd%d_csv%s_files%d_%d_option%d.root", 
 				 argv[1], atoi(argv[2]), argc>3 ? argv[3] : "", atoi(argv[4]), atoi(argv[5]), option),"RECREATE");
   TTree* tout  = new TTree("tree", "");
   int njet, ntag, ncat, event, nB, nC, nL, ttCls;
-  float pcat        [99];
-  int   pass        [99];
-  int   pass_rnd    [99];
-  float csv_rnd_0   [99];
-  float csv_inp_0   [99];
-  float csv_rnd_1   [99];
-  float csv_inp_1   [99];
-  float csv_rnd_2   [99];
-  float csv_inp_2   [99];
-  float csv_rnd_3   [99];
-  float csv_inp_3   [99];
-  float csv_rnd_4   [99];
-  float csv_inp_4   [99];
+  float pcat        [5];
+  int   pass        [5];
+  int   pass_rnd    [5];
+  float csv_rnd_0   [8];
+  float csv_inp_0   [8];
+  float csv_rnd_1   [8];
+  float csv_inp_1   [8];
+  float csv_rnd_2   [8];
+  float csv_inp_2   [8];
+  float csv_rnd_3   [8];
+  float csv_inp_3   [8];
+  float csv_rnd_4   [8];
+  float csv_inp_4   [8];
 
   float corr_rnd_0   [8];
   float corr_inp_0   [8];
@@ -63,10 +63,10 @@ int main(int argc, char *argv[]){
   float corr_inp_4   [8];
 
   float HT, met;
-  float pt    [99];
-  float mcpt  [99];
-  float eta   [99];
-  int   pdgid [99];
+  float pt    [8];
+  float mcpt  [8];
+  float eta   [8];
+  int   pdgid [8];
 
   map<int, float*> csv_rnd_map;
   map<int, float*> csv_inp_map;
@@ -95,38 +95,38 @@ int main(int argc, char *argv[]){
   corr_rnd_map[4] = corr_rnd_4;
 
 
-  tout->Branch("event",    &event,    "event/I");
+  //tout->Branch("event",    &event,    "event/I");
   tout->Branch("njet",     &njet,     "njet/I");
-  tout->Branch("nB",       &nB,       "nB/I");
-  tout->Branch("nC",       &nC,       "nC/I");
-  tout->Branch("nL",       &nL,       "nL/I");
+  //tout->Branch("nB",       &nB,       "nB/I");
+  //tout->Branch("nC",       &nC,       "nC/I");
+  //tout->Branch("nL",       &nL,       "nL/I");
   tout->Branch("ttCls",    &ttCls,    "ttCls/I");
   tout->Branch("ncat",     &ncat,     "ncat/I");
   tout->Branch("ntag",     &ntag,     "ntag/I");
   tout->Branch("pcat",     pcat,      "pcat[ncat]/F");
   tout->Branch("pass",     pass,      "pass[ncat]/I");
   tout->Branch("pass_rnd", pass_rnd,  "pass_rnd[ncat]/I");
-  tout->Branch("pt",       pt,        "pt[njet]/F");
-  tout->Branch("mcpt",     mcpt,       "mcpt[njet]/F");
-  tout->Branch("eta",      eta,       "eta[njet]/F");
-  tout->Branch("pdgid",    pdgid,     "pdgid[njet]/I");
-  tout->Branch("HT",       &HT,       "HT/F");
-  tout->Branch("met",      &met,      "met/F");
+  //tout->Branch("pt",       pt,        "pt[njet]/F");
+  //tout->Branch("mcpt",     mcpt,       "mcpt[njet]/F");
+  //tout->Branch("eta",      eta,       "eta[njet]/F");
+  //tout->Branch("pdgid",    pdgid,     "pdgid[njet]/I");
+  //tout->Branch("HT",       &HT,       "HT/F");
+  //tout->Branch("met",      &met,      "met/F");
 
-  for(auto it = csv_rnd_map.begin() ; it!=csv_rnd_map.end(); ++it)
-    tout->Branch(Form("csv_rnd_%d",it->first),  it->second,   Form("csv_rnd_%d[njet]/F",it->first));
+  //for(auto it = csv_rnd_map.begin() ; it!=csv_rnd_map.end(); ++it)
+  //  tout->Branch(Form("csv_rnd_%d",it->first),  it->second,   Form("csv_rnd_%d[njet]/F",it->first));
 
   for(auto it = csv_inp_map.begin() ; it!=csv_inp_map.end(); ++it)
     tout->Branch(Form("csv_inp_%d",it->first),  it->second,   Form("csv_inp_%d[njet]/F",it->first));
 
-  for(auto it = corr_rnd_map.begin() ; it!=corr_rnd_map.end(); ++it)
-    tout->Branch(Form("corr_rnd_%d",it->first),  it->second,   Form("corr_rnd_%d[8]/F",it->first));
+  //for(auto it = corr_rnd_map.begin() ; it!=corr_rnd_map.end(); ++it)
+  //  tout->Branch(Form("corr_rnd_%d",it->first),  it->second,   Form("corr_rnd_%d[8]/F",it->first));
 
-  for(auto it = corr_inp_map.begin() ; it!=corr_inp_map.end(); ++it)
-    tout->Branch(Form("corr_inp_%d",it->first),  it->second,   Form("corr_inp_%d[8]/F",it->first));
+  //for(auto it = corr_inp_map.begin() ; it!=corr_inp_map.end(); ++it)
+  //  tout->Branch(Form("corr_inp_%d",it->first),  it->second,   Form("corr_inp_%d[8]/F",it->first));
 
 
-  TFile* f = TFile::Open("./csv.root");
+  TFile* f = TFile::Open("./csv"+TString(argv[3])+".root");
   TH3D* h3_b  = (TH3D*)f->Get("csv_b_pt_eta");
   TH3D* h3_c  = (TH3D*)f->Get("csv_c_pt_eta");
   TH3D* h3_l  = (TH3D*)f->Get("csv_l_pt_eta");
@@ -235,7 +235,8 @@ int main(int argc, char *argv[]){
   TString path = "dcap://t3se01.psi.ch:22125//pnfs/psi.ch/cms/trivcat/store/t3groups/ethz-higgs/run2/VHBBHeppyV14/";
   vector<TString> samples;
   //samples.push_back("TT_TuneCUETP8M1_13TeV-powheg-pythia8/VHBB_HEPPY_V14_TT_TuneCUETP8M1_13TeV-powheg-pythia8__RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v1/151024_212301/0000/");
-  samples.push_back("WJetsToLNu_HT-200To400_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/VHBB_HEPPY_V14_WJetsToLNu_HT-200To400_TuneCUETP8M1_13TeV-madgraphMLM-pythia8__RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v1/151024_220559/0000/");
+  //samples.push_back("WJetsToLNu_HT-200To400_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/VHBB_HEPPY_V14_WJetsToLNu_HT-200To400_TuneCUETP8M1_13TeV-madgraphMLM-pythia8__RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v1/151024_220559/0000/");
+  samples.push_back("TTJets_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/VHBB_HEPPY_V14_TTJets_TuneCUETP8M1_13TeV-madgraphMLM-pythia8__RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v1/151024_212453/0000/");
   //samples.push_back("ttHTobb_M125_13TeV_powheg_pythia8/VHBB_HEPPY_V14_ttHTobb_M125_13TeV_powheg_pythia8__RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v1/151025_084144/0000/");
   TChain* ch = new TChain("tree");
   for(unsigned int ns = 0; ns<samples.size(); ++ns){
@@ -305,7 +306,7 @@ int main(int argc, char *argv[]){
     ++count_pass;
 
     //if( count_pass < atoi(argv[4]))  continue;
-    //if( count_pass > atoi(argv[5]))  break;
+    //if( count_pass > 1000 )  break;
 
 
     if(i%500==0) cout << "Event " << i << " (" << evt << ")" << endl;
@@ -322,7 +323,6 @@ int main(int argc, char *argv[]){
     nL = 0;
     int nBCSVM = 0;
 
-    int count_j = 0;
     vector<int> good_jets;
     for( int j = 0 ; j < nJet ; ++j){
       if( Jet_pt[j]<30. || std::abs(Jet_eta[j])>2.5 ) continue;
@@ -332,7 +332,7 @@ int main(int argc, char *argv[]){
     int goodjets = good_jets.size();
     if(goodjets>8 || goodjets<4) continue;
 
-
+    int count_j = 0;
     for( int gj = 0 ; gj < goodjets ; ++gj){
 
       int j = good_jets[gj];
@@ -526,9 +526,8 @@ int main(int argc, char *argv[]){
 	jet->addObs( Observable::IGNORE_FOR_RND,  1.0);
       }
       rnd->push_back_object( jet );
-      ++count_j;
 
-      if( count_j<5 ){
+      if( count_j<=4 ){
 	int ntags_l = count_j; 
 	int ntags_h = ntags_l<4 ? count_j : -1;
 	JetCategory* cat = new JetCategory(ntags_l, ntags_h, csv_cut, goodjets, 
@@ -538,8 +537,10 @@ int main(int argc, char *argv[]){
       }
       
       objects_mem.push_back( jet );
+      ++count_j;
     }
 
+    
     if( goodjets==4 ){
       int ntags_l = 4; 
       int ntags_h = -1;
@@ -549,6 +550,7 @@ int main(int argc, char *argv[]){
       cats_mem.push_back( cat );
     }
     
+
     event = evt;
     njet  = goodjets;
     ncat  = int(cats.size());    
@@ -560,6 +562,7 @@ int main(int argc, char *argv[]){
     for(int o = 0; o < int(out_all.size()) ; ++o ){
       pcat[o]     = out_all[o].p;
       pass[o]     = out_all[o].pass;
+
       pass_rnd[o] = out_all[o].pass_rnd;
       //out_all[o].print(cout);    
 

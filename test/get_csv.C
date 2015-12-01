@@ -2,14 +2,16 @@
 
 {
 
+  TString postfix = "TTbar_excl";
+
   Long64_t nmax = 5e+06;
 
   TString path = "dcap://t3se01.psi.ch:22125//pnfs/psi.ch/cms/trivcat/store/t3groups/ethz-higgs/run2/VHBBHeppyV14/";
   vector<TString> samples;
   
-  //samples.push_back("dcap://t3se01.psi.ch:22125//pnfs/psi.ch/cms/trivcat/store/t3groups/ethz-higgs/run2/VHBBHeppyV14/ZJetsToNuNu_HT-100To200_13TeV-madgraph/VHBB_HEPPY_V14_ZJetsToNuNu_HT-100To200_13TeV-madgraph__RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v1/151025_083120/0000/");
   samples.push_back("TT_TuneCUETP8M1_13TeV-powheg-pythia8/VHBB_HEPPY_V14_TT_TuneCUETP8M1_13TeV-powheg-pythia8__RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v1/151024_212301/0000/");
   //samples.push_back("WJetsToLNu_HT-100To200_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/VHBB_HEPPY_V14_WJetsToLNu_HT-100To200_TuneCUETP8M1_13TeV-madgraphMLM-pythia8__RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v1/151024_220138/0000/");
+  //samples.push_back("WJetsToLNu_HT-200To400_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/VHBB_HEPPY_V14_WJetsToLNu_HT-200To400_TuneCUETP8M1_13TeV-madgraphMLM-pythia8__RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v1/151024_220559/0000/");
   //samples.push_back("dcap://t3se01.psi.ch:22125//pnfs/psi.ch/cms/trivcat/store/t3groups/ethz-higgs/run2/VHBBHeppyV14/ZH_HToBB_ZToNuNu_M125_13TeV_amcatnloFXFX_madspin_pythia8/VHBB_HEPPY_V14_ZH_HToBB_ZToNuNu_M125_13TeV_amcatnloFXFX_madspin_pythia8__RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v1/151024_161706/0000/");
 
   TChain* ch = new TChain("tree");
@@ -60,7 +62,7 @@
   Long64_t nentries = ch->GetEntries();
   cout << "Total entries: " << nentries << endl;
 
-  TFile* out  = TFile::Open("csv.root","RECREATE");
+  TFile* out  = TFile::Open("csv"+postfix+".root","RECREATE");
   out->cd();
 
   vector<TString> fl = {"b", "b_dR_0p0_1p0",  "b_dR_1p0_2p0",  "b_dR_2p0_Inf",
@@ -117,7 +119,7 @@
       else if( min_dR < 2.0 ) dR_bin = "dR_1p0_2p0";
       else                    dR_bin = "dR_2p0_Inf";
 
-      TString fl = "";
+      TString fl = "None";
       int hadflav = std::abs( Jet_hadronFlavour[j] );
       int mcflav  = std::abs( Jet_mcFlavour[j] );
       
@@ -141,38 +143,44 @@
 
       switch(hadflav){
       case 5:
+	//if( mcIdx<0 || (mcIdx>=0 && GenJet_numBHadrons[mcIdx] == 0) )
 	fl = "b";
 	if( mcIdx>=0 && GenJet_numBHadrons[mcIdx] == 1 )
 	  fl = "1b";
 	else if( mcIdx>=0 && GenJet_numBHadrons[mcIdx] >= 2 )
 	  fl = "2b";
+	/*
 	hmap_rec["b"]->Fill( Jet_pt[j],   Jet_eta[j],   csv);
 	hmap_gen["b"]->Fill( Jet_mcPt[j], Jet_mcEta[j], csv);	
 	hmap_rec["b_"+dR_bin]->Fill( Jet_pt[j],   Jet_eta[j],   csv);
 	hmap_gen["b_"+dR_bin]->Fill( Jet_mcPt[j], Jet_mcEta[j], csv);		
-	if(fl!="b"){
-	  hmap_rec[fl]->Fill( Jet_pt[j],   Jet_eta[j],   csv);
-	  hmap_gen[fl]->Fill( Jet_mcPt[j], Jet_mcEta[j], csv);
-	  hmap_rec[fl+"_"+dR_bin]->Fill( Jet_pt[j],   Jet_eta[j],   csv);
-	  hmap_gen[fl+"_"+dR_bin]->Fill( Jet_mcPt[j], Jet_mcEta[j], csv);
-	}
+	*/
+	//if(fl!="b"){
+	hmap_rec[fl]->Fill( Jet_pt[j],   Jet_eta[j],   csv);
+	hmap_gen[fl]->Fill( Jet_mcPt[j], Jet_mcEta[j], csv);
+	hmap_rec[fl+"_"+dR_bin]->Fill( Jet_pt[j],   Jet_eta[j],   csv);
+	hmap_gen[fl+"_"+dR_bin]->Fill( Jet_mcPt[j], Jet_mcEta[j], csv);
+	//}
 	break;
       case 4:
+	//if( mcIdx<0 || (mcIdx>=0 && GenJet_numCHadrons[mcIdx] == 0) )
 	fl = "c";
 	if( mcIdx>=0 && GenJet_numCHadrons[mcIdx]==1 )
 	  fl = "1c";
-	if( mcIdx>=0 && GenJet_numCHadrons[mcIdx]>=2 )
+	else if( mcIdx>=0 && GenJet_numCHadrons[mcIdx]>=2 )
 	  fl = "2c";
+	/*
 	hmap_rec["c"]->Fill( Jet_pt[j],   Jet_eta[j],   csv);
 	hmap_gen["c"]->Fill( Jet_mcPt[j], Jet_mcEta[j], csv);	
 	hmap_rec["c_"+dR_bin]->Fill( Jet_pt[j],   Jet_eta[j],   csv);
 	hmap_gen["c_"+dR_bin]->Fill( Jet_mcPt[j], Jet_mcEta[j], csv);		
-	if(fl!="c"){
-	  hmap_rec[fl]->Fill( Jet_pt[j],   Jet_eta[j],   csv);
-	  hmap_gen[fl]->Fill( Jet_mcPt[j], Jet_mcEta[j], csv);
-	  hmap_rec[fl+"_"+dR_bin]->Fill( Jet_pt[j],   Jet_eta[j],   csv);
-	  hmap_gen[fl+"_"+dR_bin]->Fill( Jet_mcPt[j], Jet_mcEta[j], csv);
-	}
+	*/
+	//if(fl!="c"){
+	hmap_rec[fl]->Fill( Jet_pt[j],   Jet_eta[j],   csv);
+	hmap_gen[fl]->Fill( Jet_mcPt[j], Jet_mcEta[j], csv);
+	hmap_rec[fl+"_"+dR_bin]->Fill( Jet_pt[j],   Jet_eta[j],   csv);
+	hmap_gen[fl+"_"+dR_bin]->Fill( Jet_mcPt[j], Jet_mcEta[j], csv);
+	//}
 	break;
       case 0:
 	fl = "l";
