@@ -1,15 +1,14 @@
-
 {
 
-  // X axis
+  // X axis: Pt
   int binX_L = 1;
-  int binX_H = -1;
+  int binX_H = 3;
 
-  // Y axis
+  // Y axis: Eta
   int binY_L = 1;
   int binY_H = -1;
 
-  TFile* f = TFile::Open("csv.root", "READ");
+  TFile* f = TFile::Open("csvTTbar_excl.root", "READ");
 
   TCanvas *c1  = new TCanvas("c1","",5,30,650,600);
   c1->SetGrid(1,1);
@@ -116,7 +115,7 @@
     "csv_2c_dR_2p0_Inf_pt_eta"
   };
 
-  std::vector<TString> histos = histos_b_dR;
+  std::vector<TString> histos = histos_light;
 
 
 
@@ -128,9 +127,9 @@
       continue;      
     }
 
-  if(binX_H<0) binX_H =  h3->GetXaxis()->GetNbins();
-  if(binY_H<0) binY_H =  h3->GetYaxis()->GetNbins();
-  TH1D* h1 = h3->ProjectionZ(Form("%d_pz",i), binX_L, binX_H, binY_L, binY_H );
+    if(binX_H<0) binX_H =  h3->GetXaxis()->GetNbins();
+    if(binY_H<0) binY_H =  h3->GetYaxis()->GetNbins();
+    TH1D* h1 = h3->ProjectionZ(Form("%d_pz",i), binX_L, binX_H, binY_L, binY_H );
     h1->Rebin(2);
     h1->SetLineWidth(2);
     h1->SetLineColor(i+1);

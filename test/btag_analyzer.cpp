@@ -28,7 +28,7 @@ int main(int argc, char *argv[]){
 
   if(argc<5) return 0;
 
-  int option = atoi(argv[6]);
+  int option = atoi(argv[7]);
 
   double csv_cut{0.890};
   
@@ -37,36 +37,36 @@ int main(int argc, char *argv[]){
 				 argv[1], atoi(argv[2]), argc>3 ? argv[3] : "", atoi(argv[4]), atoi(argv[5]), option),"RECREATE");
   TTree* tout  = new TTree("tree", "");
   int njet, ntag, ncat, event, nB, nC, nL, ttCls;
-  float pcat        [5];
-  int   pass        [5];
-  int   pass_rnd    [5];
-  float csv_rnd_0   [8];
-  float csv_inp_0   [8];
-  float csv_rnd_1   [8];
-  float csv_inp_1   [8];
-  float csv_rnd_2   [8];
-  float csv_inp_2   [8];
-  float csv_rnd_3   [8];
-  float csv_inp_3   [8];
-  float csv_rnd_4   [8];
-  float csv_inp_4   [8];
+  float pcat        [99];
+  int   pass        [99];
+  int   pass_rnd    [99];
+  float csv_rnd_0   [99];
+  float csv_inp_0   [99];
+  float csv_rnd_1   [99];
+  float csv_inp_1   [99];
+  float csv_rnd_2   [99];
+  float csv_inp_2   [99];
+  float csv_rnd_3   [99];
+  float csv_inp_3   [99];
+  float csv_rnd_4   [99];
+  float csv_inp_4   [99];
 
-  float corr_rnd_0   [8];
-  float corr_inp_0   [8];
-  float corr_rnd_1   [8];
-  float corr_inp_1   [8];
-  float corr_rnd_2   [8];
-  float corr_inp_2   [8];
-  float corr_rnd_3   [8];
-  float corr_inp_3   [8];
-  float corr_rnd_4   [8];
-  float corr_inp_4   [8];
+  float corr_rnd_0   [99];
+  float corr_inp_0   [99];
+  float corr_rnd_1   [99];
+  float corr_inp_1   [99];
+  float corr_rnd_2   [99];
+  float corr_inp_2   [99];
+  float corr_rnd_3   [99];
+  float corr_inp_3   [99];
+  float corr_rnd_4   [99];
+  float corr_inp_4   [99];
 
   float HT, met;
-  float pt    [8];
-  float mcpt  [8];
-  float eta   [8];
-  int   pdgid [8];
+  float pt    [99];
+  float mcpt  [99];
+  float eta   [99];
+  int   pdgid [99];
 
   map<int, float*> csv_rnd_map;
   map<int, float*> csv_inp_map;
@@ -113,8 +113,8 @@ int main(int argc, char *argv[]){
   //tout->Branch("HT",       &HT,       "HT/F");
   //tout->Branch("met",      &met,      "met/F");
 
-  //for(auto it = csv_rnd_map.begin() ; it!=csv_rnd_map.end(); ++it)
-  //  tout->Branch(Form("csv_rnd_%d",it->first),  it->second,   Form("csv_rnd_%d[njet]/F",it->first));
+  for(auto it = csv_rnd_map.begin() ; it!=csv_rnd_map.end(); ++it)
+    tout->Branch(Form("csv_rnd_%d",it->first),  it->second,   Form("csv_rnd_%d[njet]/F",it->first));
 
   for(auto it = csv_inp_map.begin() ; it!=csv_inp_map.end(); ++it)
     tout->Branch(Form("csv_inp_%d",it->first),  it->second,   Form("csv_inp_%d[njet]/F",it->first));
@@ -234,12 +234,13 @@ int main(int argc, char *argv[]){
 
   TString path = "dcap://t3se01.psi.ch:22125//pnfs/psi.ch/cms/trivcat/store/t3groups/ethz-higgs/run2/VHBBHeppyV14/";
   vector<TString> samples;
-  //samples.push_back("TT_TuneCUETP8M1_13TeV-powheg-pythia8/VHBB_HEPPY_V14_TT_TuneCUETP8M1_13TeV-powheg-pythia8__RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v1/151024_212301/0000/");
-  //samples.push_back("WJetsToLNu_HT-200To400_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/VHBB_HEPPY_V14_WJetsToLNu_HT-200To400_TuneCUETP8M1_13TeV-madgraphMLM-pythia8__RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v1/151024_220559/0000/");
+  samples.push_back("TT_TuneCUETP8M1_13TeV-powheg-pythia8/VHBB_HEPPY_V14_TT_TuneCUETP8M1_13TeV-powheg-pythia8__RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v1/151024_212301/0000/");
   samples.push_back("TTJets_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/VHBB_HEPPY_V14_TTJets_TuneCUETP8M1_13TeV-madgraphMLM-pythia8__RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v1/151024_212453/0000/");
-  //samples.push_back("ttHTobb_M125_13TeV_powheg_pythia8/VHBB_HEPPY_V14_ttHTobb_M125_13TeV_powheg_pythia8__RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v1/151025_084144/0000/");
+  samples.push_back("WJetsToLNu_HT-200To400_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/VHBB_HEPPY_V14_WJetsToLNu_HT-200To400_TuneCUETP8M1_13TeV-madgraphMLM-pythia8__RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v1/151024_220559/0000/");
+  samples.push_back("ttHTobb_M125_13TeV_powheg_pythia8/VHBB_HEPPY_V14_ttHTobb_M125_13TeV_powheg_pythia8__RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v1/151025_084144/0000/");
   TChain* ch = new TChain("tree");
   for(unsigned int ns = 0; ns<samples.size(); ++ns){
+    if(ns!=atoi(argv[6])) continue;
     TString sample = samples[ns];
     cout << sample << endl;
     for(int nf=atoi(argv[4]); nf <=atoi(argv[5]); ++nf)
@@ -306,7 +307,7 @@ int main(int argc, char *argv[]){
     ++count_pass;
 
     //if( count_pass < atoi(argv[4]))  continue;
-    //if( count_pass > 1000 )  break;
+    //if( count_pass > 5000 )  break;
 
 
     if(i%500==0) cout << "Event " << i << " (" << evt << ")" << endl;

@@ -12,20 +12,26 @@ import FWCore.ParameterSet.Config as cms
 import sys
 sys.path.append('./')
 
+path = '/pnfs/psi.ch/cms/trivcat/store/t3groups/ethz-higgs/run2/VHBBHeppyV14/'
+sample = 'TTJetsMG'
+csvFile = 'TTbar_excl'
 rnd_list = [0]
+opt_list = [2]
 
-opt_list = [3]
+################################################################################
 
 files_per_job = 4
 
 splits = []
-#for k in range(10):
-#    splits.append([3*k+1,3*k+3])
-#print splits
+dirnames = {
+    'TTbar' : [path+'TT_TuneCUETP8M1_13TeV-powheg-pythia8/VHBB_HEPPY_V14_TT_TuneCUETP8M1_13TeV-powheg-pythia8__RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v1/151024_212301/0000', 0],
+    'TTJetsMG' : [path+'TTJets_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/VHBB_HEPPY_V14_TTJets_TuneCUETP8M1_13TeV-madgraphMLM-pythia8__RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v1/151024_212453/0000/', 1],
+    'WJets' : [path+'WJetsToLNu_HT-200To400_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/VHBB_HEPPY_V14_WJetsToLNu_HT-200To400_TuneCUETP8M1_13TeV-madgraphMLM-pythia8__RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v1/151024_220559/0000/', 2],
+    'ttH' : [path+'ttHTobb_M125_13TeV_powheg_pythia8/VHBB_HEPPY_V14_ttHTobb_M125_13TeV_powheg_pythia8__RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v1/151025_084144/0000/', 3],
+}
 
-#dirname = '/pnfs/psi.ch/cms/trivcat/store/t3groups/ethz-higgs/run2/VHBBHeppyV14/TT_TuneCUETP8M1_13TeV-powheg-pythia8/VHBB_HEPPY_V14_TT_TuneCUETP8M1_13TeV-powheg-pythia8__RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v1/151024_212301/0000'
-dirname = '/pnfs/psi.ch/cms/trivcat/store/t3groups/ethz-higgs/run2/VHBBHeppyV14/TTJets_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/VHBB_HEPPY_V14_TTJets_TuneCUETP8M1_13TeV-madgraphMLM-pythia8__RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v1/151024_212453/0000/'
-#dirname = '/pnfs/psi.ch/cms/trivcat/store/t3groups/ethz-higgs/run2/VHBBHeppyV14/WJetsToLNu_HT-200To400_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/VHBB_HEPPY_V14_WJetsToLNu_HT-200To400_TuneCUETP8M1_13TeV-madgraphMLM-pythia8__RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v1/151024_220559/0000/'
+dirname = dirnames[sample][0]
+
 onlyfiles = [f for f in listdir(dirname) if isfile(join(dirname, f))]
 
 files = []
@@ -51,11 +57,8 @@ print splits
 print "Total number of jobs: ", len(splits)
 
 
-sample = 'TTbarMG'
-#sample = 'WJets'
 
-csvFile = 'TTbar_excl'
-#csvFile = 'WJets'
+
 
 count = 0
 for part in splits:
@@ -74,7 +77,7 @@ for part in splits:
             f.write('source /cvmfs/cms.cern.ch/cmsset_default.sh\n')
             f.write('eval `scramv1 runtime -sh`\n')
             f.write('\n')    
-            f.write('../bin/btag_analyzer '+sample+' '+str(rnd)+' '+csvFile+' '+str(part[0])+' '+str(part[1])+' '+str(option)+'\n')
+            f.write('../bin/btag_analyzer '+sample+' '+str(rnd)+' '+csvFile+' '+str(part[0])+' '+str(part[len(part)-1])+' '+str( dirnames[sample][1] )+' '+str(option)+'\n')
             f.close()
             os.system('chmod +x '+scriptName)
             
