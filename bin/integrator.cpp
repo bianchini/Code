@@ -1,4 +1,4 @@
-#include "interface/Integrand.h"
+#include "TTH/MEIntegratorStandalone/interface/Integrand.h"
 #include "Math/Factory.h"
 #include "Math/Functor.h"
 #include "Math/GSLMCIntegrator.h"

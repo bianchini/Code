@@ -1,4 +1,4 @@
-#include "interface/JetLikelihood.h"
+#include "TTH/MEIntegratorStandalone/interface/JetLikelihood.h"
 #include <iostream>
 
 using namespace std;

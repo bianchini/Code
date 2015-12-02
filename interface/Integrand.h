@@ -2,7 +2,7 @@
 #define INTEGRAND_H
 
 // user headers
-#include "interface/Parameters.h"
+#include "TTH/MEIntegratorStandalone/interface/Parameters.h"
 
 extern "C" {
   void pphttxcallme2born_( double*, double[20], double*, double* );

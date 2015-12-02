@@ -1,8 +1,8 @@
 #ifndef BTAGRANDOMIZER_H
 #define BTAGRANDOMIZER_H
 
-#include "interface/Parameters.h"
-#include "interface/Utils.h"
+#include "TTH/MEIntegratorStandalone/interface/Parameters.h"
+#include "TTH/MEIntegratorStandalone/interface/Utils.h"
 #include <random>
 
 namespace MEM {
