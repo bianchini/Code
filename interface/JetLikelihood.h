@@ -1,7 +1,7 @@
 #ifndef JETLIKELIHOOD_H
 #define JETLIKELIHOOD_H
 
-#include "interface/Utils.h"
+#include "TTH/MEIntegratorStandalone/interface/Utils.h"
 #include <map>
 
 namespace MEM {

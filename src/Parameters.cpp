@@ -1,4 +1,4 @@
-#include "interface/Parameters.h"
+#include "TTH/MEIntegratorStandalone/interface/Parameters.h"
 
 // matches a jet to the |eta| bin (jet outside acceptance are matched to highest |eta| bin or flagged as 'outside')
 int MEM::eta_to_bin( const double& eta, bool mark_acceptance ){

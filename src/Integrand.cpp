@@ -1,4 +1,4 @@
-#include "interface/Integrand.h"
+#include "TTH/MEIntegratorStandalone/interface/Integrand.h"
 
 MEM::Integrand::Integrand(int debug, const MEMConfig& config) :
 tf_map(config.tf_map),
