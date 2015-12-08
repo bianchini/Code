@@ -108,10 +108,11 @@ void MEM::Integrand::init( const MEM::FinalState::FinalState f, const MEM::Hypot
   for( auto j : obs_jets ){
 
     const bool external_tf = (
-      cfg.transfer_function_method == TFMethod::External &&
-      j->getNumTransferFunctions()>0
+      cfg.transfer_function_method == TFMethod::External
     );
-
+    if (external_tf) {
+      assert(j->getNumTransferFunctions()>0);
+    }
     // smear gen jets by TF
     if(cfg.int_code&IntegrandType::SmearJets)
       smear_jet(j, external_tf);    
@@ -2666,6 +2667,7 @@ double MEM::Integrand::matrix(const PS& ps) const {
 
   if( TMath::IsNaN(m) ){
     cout << "\tmatrix() returned a NaN..." << endl;
+    //throw std::runtime_error("\tmatrix() returned a NaN...");
     return 0.;
   }
 
@@ -2699,7 +2701,8 @@ double MEM::Integrand::matrix_nodecay(const PS& ps) const {
   m *= Jac;
 
   if( TMath::IsNaN(m) ){
-    cout << "\tA NaN occurred while evaluation m..." << endl;
+    cout << "\tmatrix_nodecay() returned a NaN..." << endl;
+    //throw std::runtime_error("\tmatrix_nodecay() returned a NaN...");
     return 0.;
   }
 
@@ -2841,8 +2844,8 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm, int& acce
     
     //Try to calculate using externally supplied transfer functions
     //N.B.: new transfer functions are functions of jet pt
-    if (cfg.transfer_function_method == TFMethod::External && 
-	obj!=nullptr && obj->getNumTransferFunctions()>0) {
+    if (cfg.transfer_function_method == TFMethod::External) {
+      assert(obj!=nullptr && obj->getNumTransferFunctions()>0);
       x[0] = pt_gen;
       double _w = transfer_function2( obj, x, p->second.type, accept, cfg.tf_offscale, false, debug_code );
       w *= _w;
@@ -2850,14 +2853,13 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm, int& acce
 
     //Calculate using reco efficiency
     //N.B.: new transfer functions are functions of jet pt
-    else if (cfg.transfer_function_method == TFMethod::External && 
-	     obj==nullptr) {
+    else if (cfg.transfer_function_method == TFMethod::External) {
 
       int eta_bin = eta_to_bin(eta_gen, true);
       // if outside acceptance, return 1.0
       if( eta_bin<0 ){
-	w *= 1.0;
-	continue;
+        w *= 1.0;
+        continue;
       }
 
       //pass the efficienty function as a pointer, 
@@ -2892,7 +2894,8 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm, int& acce
     w *= transfer_function( y_rho, x_pT, TFType::Recoil, accept, cfg.tf_offscale, debug_code );
 
   if( TMath::IsNaN(w) ){
-    cout << "\ttransfer() returned a NaN..." << endl;
+    cout << "transfer() returned a NaN..." << endl;
+    //throw std::runtime_error("transfer() returned a NaN...");
     return 0.;
   }
 
@@ -3402,7 +3405,7 @@ void MEM::Integrand::smear_jet(MEM::Object* j, const bool& external_tf){
 const TF1* MEM::Integrand::get_tf_global(TFType::TFType type, int etabin) const {
     std::pair<TFType::TFType, int> p = std::make_pair(type, etabin);
     if (tf_map.find(p) != tf_map.end()) {
-        return &(tf_map.at(p));
+        return tf_map.at(p);
     } else {
         std::cerr << "could not find tf for " << type << " " << etabin << std::endl;
         return nullptr;
