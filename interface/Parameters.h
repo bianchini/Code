@@ -372,7 +372,7 @@ namespace MEM {
     void defaultCfg(float nCallsMultiplier=1.0);
     void setNCalls(FinalState::FinalState, Hypothesis::Hypothesis, Assumption::Assumption, int);
     int getNCalls(FinalState::FinalState, Hypothesis::Hypothesis, Assumption::Assumption);
-    void set_tf_global(TFType::TFType type, int etabin, TF1 tf);
+    void set_tf_global(TFType::TFType type, int etabin, TF1 *tf);
     void add_distribution_global(DistributionType::DistributionType type, TH3D tf);
 
     // optionally this can be called instead of the built-in array
@@ -440,7 +440,7 @@ namespace MEM {
     // do a pre-fit to filter permutations
     int do_prefit;
 
-    std::map<std::pair<TFType::TFType, int>, TF1> tf_map;
+    std::map<std::pair<TFType::TFType, int>, TF1*> tf_map;
     
     std::map<DistributionType::DistributionType, TH3D> btag_pdfs;
   };

@@ -42,18 +42,18 @@ int main(){
   cfg.transfer_function_method = TFMethod::External;
 
   //Transfer functions for jet reconstruction efficiency
-  cfg.set_tf_global(TFType::bLost, 0, *getTransferFunction(tffile, "beff", 0.0));
-  cfg.set_tf_global(TFType::bLost, 1, *getTransferFunction(tffile, "beff", 2.0));
-  cfg.set_tf_global(TFType::qLost, 0, *getTransferFunction(tffile, "leff", 0.0));
-  cfg.set_tf_global(TFType::qLost, 1, *getTransferFunction(tffile, "leff", 2.0));
+  cfg.set_tf_global(TFType::bLost, 0, getTransferFunction(tffile, "beff", 0.0));
+  cfg.set_tf_global(TFType::bLost, 1, getTransferFunction(tffile, "beff", 2.0));
+  cfg.set_tf_global(TFType::qLost, 0, getTransferFunction(tffile, "leff", 0.0));
+  cfg.set_tf_global(TFType::qLost, 1, getTransferFunction(tffile, "leff", 2.0));
 
   //Create the mem integrator, once per job
   Integrand* integrand = new Integrand( 
     DebugVerbosity::output
-    //|DebugVerbosity::init
-    //|DebugVerbosity::input
-    //|DebugVerbosity::init_more
-    //|DebugVerbosity::integration				        
+    |DebugVerbosity::init
+    |DebugVerbosity::input
+    |DebugVerbosity::init_more
+    |DebugVerbosity::integration				        
     ,cfg
   );
 

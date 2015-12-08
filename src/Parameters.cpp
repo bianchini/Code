@@ -580,7 +580,14 @@ std::size_t MEM::Object::getNumTransferFunctions() const {
 void MEM::Object::print(ostream& os) const {
   os << "\tType: " << static_cast<int>(t) << ", p=(Pt, Eta, Phi, M)=("
      << p.Pt() << ", " << p.Eta() << ", " << p.Phi() << ", " << p.M()
-     << ")" << endl;
+     << ")";
+  for (auto& kv : obs) {
+    os << " " << kv.first << "->" << kv.second;
+  }
+  for (auto& kv : transfer_funcs) {
+    os << " tf " << kv.first << "->" << ((TF1*)kv.second);
+  }
+    os << endl;
 }
 
 MEM::MEMConfig::MEMConfig(int nmc, 
@@ -757,7 +764,7 @@ int MEM::getEtaBin(double eta) {
 }
 */
 
-void MEM::MEMConfig::set_tf_global(TFType::TFType type, int etabin, TF1 tf) {
+void MEM::MEMConfig::set_tf_global(TFType::TFType type, int etabin, TF1 *tf) {
     tf_map[std::make_pair(type, etabin)] = tf;
 }
 
