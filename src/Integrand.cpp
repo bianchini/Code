@@ -2844,8 +2844,8 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm, int& acce
     
     //Try to calculate using externally supplied transfer functions
     //N.B.: new transfer functions are functions of jet pt
-    if (cfg.transfer_function_method == TFMethod::External) {
-      assert(obj!=nullptr && obj->getNumTransferFunctions()>0);
+    if (cfg.transfer_function_method == TFMethod::External && obj != nullptr) {
+      assert(obj->getNumTransferFunctions()>0);
       x[0] = pt_gen;
       double _w = transfer_function2( obj, x, p->second.type, accept, cfg.tf_offscale, false, debug_code );
       w *= _w;
@@ -2853,7 +2853,7 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm, int& acce
 
     //Calculate using reco efficiency
     //N.B.: new transfer functions are functions of jet pt
-    else if (cfg.transfer_function_method == TFMethod::External) {
+    else if (cfg.transfer_function_method == TFMethod::External && obj != nullptr) {
 
       int eta_bin = eta_to_bin(eta_gen, true);
       // if outside acceptance, return 1.0
