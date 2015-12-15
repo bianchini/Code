@@ -214,6 +214,13 @@ void MEM::Integrand::get_edges(double* lim, const std::vector<PSVar::PSVar>& los
   case FinalState::LH:
     if( cfg.m_range_CL<1. )
       phi_edges = get_support( y, TFType::MET, (edge? +cfg.m_range_CL : -cfg.m_range_CL),  debug_code ) ;
+    //work-around for events with very high MET, in which case the MET phi edges are not correctly found
+    //in this case, reverse the edges here if they are in the wrong order
+    //https://github.com/cms-ttH/CommonClassifier/issues/7
+    if ((edge == 0 && phi_edges.first > 0) || (edge == 1 && phi_edges.first < 0)) {
+        phi_edges.first = -TMath::Pi();
+        phi_edges.second = +TMath::Pi();
+    }
     lim[map_to_var[PSVar::E_q1]]      =  edge ?  1. :  0.;
     lim[map_to_var[PSVar::cos_qbar2]] =  edge ? +1  : -1.;
     lim[map_to_var[PSVar::phi_qbar2]] =  edge ? phi_edges.second : phi_edges.first;
@@ -738,8 +745,7 @@ void MEM::Integrand::make_assumption( const std::vector<MEM::PSVar::PSVar>& miss
 
   double xL[npar], xU[npar];
   get_edges(xL, lost, npar, 0);
-  get_edges(xU, lost, npar, 1);      
-
+  get_edges(xU, lost, npar, 1);
   double volume = get_width(xL,xU,npar);
 
   if(cfg.do_minimize){
@@ -2844,8 +2850,8 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm, int& acce
     
     //Try to calculate using externally supplied transfer functions
     //N.B.: new transfer functions are functions of jet pt
-    if (cfg.transfer_function_method == TFMethod::External) {
-      assert(obj!=nullptr && obj->getNumTransferFunctions()>0);
+    if (cfg.transfer_function_method == TFMethod::External && obj != nullptr) {
+      assert(obj->getNumTransferFunctions()>0);
       x[0] = pt_gen;
       double _w = transfer_function2( obj, x, p->second.type, accept, cfg.tf_offscale, false, debug_code );
       w *= _w;
@@ -2853,7 +2859,7 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm, int& acce
 
     //Calculate using reco efficiency
     //N.B.: new transfer functions are functions of jet pt
-    else if (cfg.transfer_function_method == TFMethod::External) {
+    else if (cfg.transfer_function_method == TFMethod::External && obj != nullptr) {
 
       int eta_bin = eta_to_bin(eta_gen, true);
       // if outside acceptance, return 1.0
