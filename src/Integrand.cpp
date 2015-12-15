@@ -218,7 +218,8 @@ void MEM::Integrand::get_edges(double* lim, const std::vector<PSVar::PSVar>& los
     //in this case, reverse the edges here if they are in the wrong order
     //https://github.com/cms-ttH/CommonClassifier/issues/7
     if ((edge == 0 && phi_edges.first > 0) || (edge == 1 && phi_edges.first < 0)) {
-      phi_edges = get_support( y, TFType::MET, (edge? -cfg.m_range_CL : +cfg.m_range_CL),  debug_code ) ;
+        phi_edges.first = -TMath::Pi();
+        phi_edges.second = +TMath::Pi();
     }
     lim[map_to_var[PSVar::E_q1]]      =  edge ?  1. :  0.;
     lim[map_to_var[PSVar::cos_qbar2]] =  edge ? +1  : -1.;
