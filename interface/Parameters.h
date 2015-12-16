@@ -373,7 +373,7 @@ namespace MEM {
     void setNCalls(FinalState::FinalState, Hypothesis::Hypothesis, Assumption::Assumption, int);
     int getNCalls(FinalState::FinalState, Hypothesis::Hypothesis, Assumption::Assumption);
     void set_tf_global(TFType::TFType type, int etabin, TF1 *tf);
-    void add_distribution_global(DistributionType::DistributionType type, TH3D tf);
+    void add_distribution_global(DistributionType::DistributionType type, TH3D *tf);
 
     // optionally this can be called instead of the built-in array
     int n_max_calls;
@@ -442,7 +442,7 @@ namespace MEM {
 
     std::map<std::pair<TFType::TFType, int>, TF1*> tf_map;
     
-    std::map<DistributionType::DistributionType, TH3D> btag_pdfs;
+    std::map<DistributionType::DistributionType, TH3D*> btag_pdfs;
   };
 
   struct MEMOutput{

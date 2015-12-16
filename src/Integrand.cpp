@@ -31,6 +31,9 @@ btag_pdfs(config.btag_pdfs) {
 
   if( debug_code&DebugVerbosity::init )  
     cout << "Integrand::Integrand(): START" << endl;
+  for (auto& kv : btag_pdfs) {
+    cout << kv.first << " " << kv.second->GetName() << endl;
+  }
 }
 
 MEM::Integrand::~Integrand(){
@@ -208,7 +211,8 @@ void MEM::Integrand::get_edges(double* lim, const std::vector<PSVar::PSVar>& los
   //   odd  <=> phi      [-PI, +PI]
   size_t count_extra{0};
   pair<double, double> phi_edges = {-TMath::Pi(),+TMath::Pi()};
-  double y[2] = { obs_mets[0]->p4().Px(), obs_mets[0]->p4().Py()} ;
+
+  double y[2] = { obs_mets.at(0)->p4().Px(), obs_mets.at(0)->p4().Py()} ;
 
   switch( fs ){
   case FinalState::LH:
@@ -1504,10 +1508,10 @@ std::map<MEM::PermConstants::PermConstants, double> MEM::Integrand::get_permutat
       obj    = obs_jets[ perm[pos] ];
       DeltaE = (obj->getObs(Observable::E_HIGH_Q) - obj->getObs(Observable::E_LOW_Q));
       if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
-	TH3D h1 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
-	TH3D h2 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_c);
-	bp =  0.5*h1.GetBinContent( h1.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) )) 
-	  + 0.5*h2.GetBinContent( h2.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	TH3D* h1 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
+	TH3D* h2 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_c);
+	bp =  0.5*h1->GetBinContent( h1->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) )) 
+	  + 0.5*h2->GetBinContent( h2->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
 	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", l/c) = " << bp << endl;
       }      
     }
@@ -1525,8 +1529,8 @@ std::map<MEM::PermConstants::PermConstants, double> MEM::Integrand::get_permutat
       obj    = obs_jets[ perm[pos] ];
       bp     = 1.;
       if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
-	TH3D h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
-	bp =  h.GetBinContent( h.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	TH3D *h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
+	bp =  h->GetBinContent( h->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
 	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", l) = " << bp << endl;
       }      
     }
@@ -1539,8 +1543,8 @@ std::map<MEM::PermConstants::PermConstants, double> MEM::Integrand::get_permutat
       obj    = obs_jets[ perm[pos] ];
       bp     = 1.;
       if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
-	TH3D h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
-	bp =  h.GetBinContent( h.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	TH3D *h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
+	bp =  h->GetBinContent( h->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
 	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", b) = " << bp << endl;
       }      
     }
@@ -1553,8 +1557,8 @@ std::map<MEM::PermConstants::PermConstants, double> MEM::Integrand::get_permutat
       obj    = obs_jets[ perm[pos] ];
       bp     = 1.;
       if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
-	TH3D h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
-	bp *=  h.GetBinContent( h.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	TH3D *h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
+	bp *=  h->GetBinContent( h->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
 	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", b) = " << bp << endl;
       }      
     }
@@ -1570,12 +1574,12 @@ std::map<MEM::PermConstants::PermConstants, double> MEM::Integrand::get_permutat
       bp  = 1.;
       DeltaE = (obj->getObs(Observable::E_HIGH_B) - obj->getObs(Observable::E_LOW_B)); 
       if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
-	TH3D h1 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
-	TH3D h2 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
-	TH3D h3 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_c);
-	bp  = h1.GetBinContent( h1.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
-	jj *= h2.GetBinContent( h2.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
-	cc *= h3.GetBinContent( h3.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	TH3D *h1 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
+	TH3D *h2 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
+	TH3D *h3 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_c);
+	bp  = h1->GetBinContent( h1->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	jj *= h2->GetBinContent( h2->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	cc *= h3->GetBinContent( h3->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
 	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", b) = " << bp << endl;
       }      
     }
@@ -1608,12 +1612,12 @@ std::map<MEM::PermConstants::PermConstants, double> MEM::Integrand::get_permutat
       obj    = obs_jets[ perm[pos] ];
       bp     = 1.;
       if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
-	TH3D h1 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
-	TH3D h2 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
-	TH3D h3 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_c);
-	bp  = h1.GetBinContent( h1.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
-	jj *= h2.GetBinContent( h2.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
-	cc *= h3.GetBinContent( h3.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	TH3D *h1 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
+	TH3D *h2 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
+	TH3D *h3 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_c);
+	bp  = h1->GetBinContent( h1->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	jj *= h2->GetBinContent( h2->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	cc *= h3->GetBinContent( h3->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
 	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", b) = " << bp << endl;
       }      
     }
@@ -1628,8 +1632,8 @@ std::map<MEM::PermConstants::PermConstants, double> MEM::Integrand::get_permutat
       obj    = obs_jets[ perm[pos] ];
       bp     = 1.;
       if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
-	TH3D h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
-	bp =  h.GetBinContent( h.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	TH3D *h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
+	bp =  h->GetBinContent( h->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
 	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", b) = " << bp << endl;
       }      
     }
@@ -1642,8 +1646,8 @@ std::map<MEM::PermConstants::PermConstants, double> MEM::Integrand::get_permutat
       obj    = obs_jets[ perm[pos] ];
       bp     = 1.;
       if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
-	TH3D h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
-	bp =  h.GetBinContent( h.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	TH3D *h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
+	bp =  h->GetBinContent( h->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
 	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", b) = " << bp << endl;
       }      
     }
@@ -1659,12 +1663,12 @@ std::map<MEM::PermConstants::PermConstants, double> MEM::Integrand::get_permutat
       bp  = 1.;
       DeltaE = (obj->getObs(Observable::E_HIGH_B) - obj->getObs(Observable::E_LOW_B));
       if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
-	TH3D h1 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
-	TH3D h2 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
-	TH3D h3 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_c);
-	bp  = h1.GetBinContent( h1.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
-	jj *= h2.GetBinContent( h2.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
-	cc *= h3.GetBinContent( h3.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	TH3D *h1 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
+	TH3D *h2 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
+	TH3D *h3 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_c);
+	bp  = h1->GetBinContent( h1->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	jj *= h2->GetBinContent( h2->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	cc *= h3->GetBinContent( h3->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
 	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", b) = " << bp << endl;
       }      
     }
@@ -1695,12 +1699,12 @@ std::map<MEM::PermConstants::PermConstants, double> MEM::Integrand::get_permutat
       obj    = obs_jets[ perm[pos] ];
       bp     = 1.;
       if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
-	TH3D h1 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
-	TH3D h2 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
-	TH3D h3 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_c);
-	bp  = h1.GetBinContent( h1.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
-	jj *= h2.GetBinContent( h2.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
-	cc *= h3.GetBinContent( h3.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	TH3D *h1 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
+	TH3D *h2 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
+	TH3D *h3 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_c);
+	bp  = h1->GetBinContent( h1->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	jj *= h2->GetBinContent( h2->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	cc *= h3->GetBinContent( h3->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
 	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", b) = " << bp << endl;
       }      
     }
@@ -1717,10 +1721,10 @@ std::map<MEM::PermConstants::PermConstants, double> MEM::Integrand::get_permutat
       bp  = 1.;
       DeltaE = (obj->getObs(Observable::E_HIGH_Q) - obj->getObs(Observable::E_LOW_Q));
       if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
- 	TH3D h1 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
- 	TH3D h2 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_c);
-	bp =  h1.GetBinContent( h1.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) )) +
-	  h2.GetBinContent( h2.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));;
+ 	TH3D *h1 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
+ 	TH3D *h2 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_c);
+	bp =  h1->GetBinContent( h1->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) )) +
+	  h2->GetBinContent( h2->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));;
 	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", l/c) = " << bp << endl;
       }      
     }
@@ -1738,8 +1742,8 @@ std::map<MEM::PermConstants::PermConstants, double> MEM::Integrand::get_permutat
       obj    = obs_jets[ perm[pos] ];
       bp     = 1.;
       if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
-	TH3D h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
-	bp =  h.GetBinContent( h.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	TH3D *h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
+	bp =  h->GetBinContent( h->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
 	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", l) = " << bp << endl;
       }      
     }
@@ -1752,8 +1756,8 @@ std::map<MEM::PermConstants::PermConstants, double> MEM::Integrand::get_permutat
       obj    = obs_jets[ perm[pos] ];
       bp     = 1.;
       if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
-	TH3D h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
-	bp =  h.GetBinContent( h.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	TH3D *h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
+	bp =  h->GetBinContent( h->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
 	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", b) = " << bp << endl;
       }      
     }
@@ -1767,8 +1771,8 @@ std::map<MEM::PermConstants::PermConstants, double> MEM::Integrand::get_permutat
       bp  = 1.;
       DeltaE = (obj->getObs(Observable::E_HIGH_Q) - obj->getObs(Observable::E_LOW_Q));
       if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
-	TH3D h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
-	bp =  h.GetBinContent( h.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	TH3D *h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
+	bp =  h->GetBinContent( h->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
 	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", l) = " << bp << endl;
       }      
     }
@@ -1786,8 +1790,8 @@ std::map<MEM::PermConstants::PermConstants, double> MEM::Integrand::get_permutat
       obj    = obs_jets[ perm[pos] ];
       bp     = 1.;
       if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
-	TH3D h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
-	bp =  h.GetBinContent( h.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	TH3D *h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
+	bp =  h->GetBinContent( h->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
 	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", l) = " << bp << endl;
       }      
     }
@@ -1800,8 +1804,8 @@ std::map<MEM::PermConstants::PermConstants, double> MEM::Integrand::get_permutat
       obj    = obs_jets[ perm[pos] ];
       bp     = 1.;
       if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
-	TH3D h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
-	bp =  h.GetBinContent( h.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	TH3D *h = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
+	bp =  h->GetBinContent( h->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
 	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", b) = " << bp << endl;
       }      
     }
@@ -1817,12 +1821,12 @@ std::map<MEM::PermConstants::PermConstants, double> MEM::Integrand::get_permutat
       bp  = 1.;
       DeltaE = (obj->getObs(Observable::E_HIGH_B) - obj->getObs(Observable::E_LOW_B)); 
       if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
-	TH3D h1 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
-	TH3D h2 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
-	TH3D h3 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_c);
-	bp  = h1.GetBinContent( h1.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
-	jj *= h2.GetBinContent( h2.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
-	cc *= h3.GetBinContent( h3.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	TH3D *h1 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
+	TH3D *h2 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
+	TH3D *h3 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_c);
+	bp  = h1->GetBinContent( h1->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	jj *= h2->GetBinContent( h2->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	cc *= h3->GetBinContent( h3->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
 	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", b) = " << bp << endl;
       }      
     }
@@ -1854,12 +1858,12 @@ std::map<MEM::PermConstants::PermConstants, double> MEM::Integrand::get_permutat
       obj    = obs_jets[ perm[pos] ];
       bp     = 1.;
       if( btag_pdfs.size()>0 && obj->isSet(Observable::CSV) ){
-	TH3D h1 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
-	TH3D h2 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
-	TH3D h3 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_c);
-	bp  = h1.GetBinContent( h1.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
-	jj *= h2.GetBinContent( h2.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
-	cc *= h3.GetBinContent( h3.FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	TH3D *h1 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_b);
+	TH3D *h2 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_l);
+	TH3D *h3 = btag_pdfs.at(MEM::DistributionType::DistributionType::csv_c);
+	bp  = h1->GetBinContent( h1->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	jj *= h2->GetBinContent( h2->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
+	cc *= h3->GetBinContent( h3->FindBin(obj->p4().Pt(), std::abs(obj->p4().Eta()), obj->getObs(Observable::CSV) ));
 	if( debug_code&DebugVerbosity::init_more ) cout << "\tbtag(" <<  obj->getObs(Observable::CSV) << ", " << obj->p4().Pt() << ", " <<  obj->p4().Eta()  << ", b) = " << bp << endl;
       }      
     }
