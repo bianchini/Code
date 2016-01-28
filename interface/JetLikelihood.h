@@ -3,6 +3,7 @@
 
 #include "TTH/MEIntegratorStandalone/interface/Utils.h"
 #include <map>
+#include <cassert>
 
 namespace MEM {
 
