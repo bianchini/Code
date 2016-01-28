@@ -19,7 +19,9 @@ double JetLikelihood::calcProbability(
 
     int nperms = 0;
     double P = 0.0;
-    double maxCombP = 0;
+
+    //use negative value, as any probability will certainly be positive
+    double maxCombP = -1.0;
     vector<unsigned int> bestPerm;
 
     //In case less jets specified than in hypo, truncate
@@ -34,7 +36,14 @@ double JetLikelihood::calcProbability(
         for (auto& p : perm_index_copy) {
             const auto& jet = jets.at(p);
             double _p = jet.probas.at(ip < nhypo1 ? hypo1 : hypo2);
-            combP *= _p;
+            //we don't want a combination ruined just because a probability happened to be 0 
+            if (_p > 0) {
+                //std::cout << "_p=" << _p << " ip=" << ip << " p=" << p << std::endl;
+                combP *= _p;
+            //multiply by some small value. FIXME: verify that this does not change results
+            } else {
+                combP *= 0.00001;
+            }
             ip += 1;
         }
         if (combP > maxCombP) {
@@ -51,6 +60,7 @@ double JetLikelihood::calcProbability(
         std::less<int>()
         )
     );
+    assert(bestPerm.size() == jets.size());
     outBestPerm = bestPerm;
     return P;
 }
