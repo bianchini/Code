@@ -2736,7 +2736,7 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm, int& acce
 
   // subtract MET from the recoil
   rho_x -= obs_mets[0]->p4().Px();
-  rho_x -= obs_mets[0]->p4().Py();
+  rho_y -= obs_mets[0]->p4().Py();
 
   // Dealing with jets and leptons
   PSMap::const_iterator p;
@@ -3230,7 +3230,7 @@ double MEM::Integrand::solve(const LV& p4_w, const double& DM2, const double& M,
 	cout << "\t\t\tAngle=" << p4_w.Vect().Angle(p4_b.Vect()) << endl;
       }
 #endif
-      return ( TMath::Abs(target-g_p)<TMath::Abs(target-g_m) ? g_p*M : g_m*M );
+      return ( TMath::Abs(target-g_p*M)<TMath::Abs(target-g_m*M) ? g_p*M : g_m*M );
     }
 #ifdef DEBUG_MODE
     if( debug_code&DebugVerbosity::integration ){
