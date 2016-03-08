@@ -646,6 +646,10 @@ void MEM::Integrand::make_assumption( const std::vector<MEM::PSVar::PSVar>& miss
   for(auto it : missed) lost.push_back( it );
   for(auto it : any)    lost.push_back( it );
 
+  cout << "missed.size() " << missed.size() << endl;
+  cout << "any.size() " << any.size() << endl;
+  cout << "lost.size() " << lost.size() << endl;
+
   // an assumption may not be consistent with the number of observed jets
   // E.g.: assume 1 lost quark but 2 jets missing wrt to expectation
   // N.B. extra_jets filled here!!!
@@ -672,10 +676,13 @@ void MEM::Integrand::make_assumption( const std::vector<MEM::PSVar::PSVar>& miss
       size_t lost_particle = (static_cast<size_t>(*it)-1)/3;
       if(count%2==0) perm[ map_to_part[ static_cast<PSPart::PSPart>(lost_particle)] ] = -1;      
     }
+    if(n_perm < 10) cout << "lost_particles ";  //DS
     for(auto it = any.begin() ; it!=any.end() ; ++count, ++it ){
       size_t lost_particle = (static_cast<size_t>(*it)-1)/3;
+      if(n_perm < 10) cout << lost_particle << " "; //DS
       if(count%2==0) perm[ map_to_part[ static_cast<PSPart::PSPart>(lost_particle)] ] = -2;      
     }
+    if(n_perm < 10) cout << endl; //DS
 
     // count the number of lost quarks as assumed in perm
     // if it turns out to be equal to the assumed (lost.size()/2), 
@@ -2390,9 +2397,11 @@ int MEM::Integrand::create_PS_HH(MEM::PS& ps, const double* x, const vector<int>
     dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_q1)->second ] );
     E_LOW   = MQ;
     E_HIGH  = TMath::Min(cfg.emax, 2*MEM::TF_ACC_param[1]/TMath::Sin(dir.Theta()) );
+    //if(n_calls < 3) cout << n_calls << " E_HIGH (q1) " << E_HIGH << endl; //DS temp
     tftype  = (perm[nj_q1]==-1 ? TFType::qLost : TFType::Unknown);
   }
   E       = E_LOW + (E_HIGH-E_LOW)*(x[ map_to_var.find(PSVar::E_q1)->second ]);
+  //if(n_calls < 3) cout << n_calls << " E (q1) " << E << endl; //DS temp
   extend_PS( ps, PSPart::q1, E, MQ, dir, perm[nj_q1], PSVar::cos_q1, PSVar::phi_q1, PSVar::E_q1, tftype); 
 
   /////  PSPart::qbar1
@@ -2723,7 +2732,7 @@ double MEM::Integrand::transfer(const PS& ps, const vector<int>& perm, int& acce
 
   // subtract MET from the recoil
   rho_x -= obs_mets[0]->p4().Px();
-  rho_x -= obs_mets[0]->p4().Py();
+  rho_y -= obs_mets[0]->p4().Py(); //FIXED was rho_x //DS
 
   // Dealing with jets and leptons
   PSMap::const_iterator p;
@@ -3217,7 +3226,7 @@ double MEM::Integrand::solve(const LV& p4_w, const double& DM2, const double& M,
 	cout << "\t\t\tAngle=" << p4_w.Vect().Angle(p4_b.Vect()) << endl;
       }
 #endif
-      return ( TMath::Abs(target-g_p)<TMath::Abs(target-g_m) ? g_p*M : g_m*M );
+      return ( TMath::Abs(target-g_p*M)<TMath::Abs(target-g_m*M) ? g_p*M : g_m*M ); //DS fixed
     }
 #ifdef DEBUG_MODE
     if( debug_code&DebugVerbosity::integration ){

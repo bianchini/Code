@@ -299,7 +299,7 @@ namespace MEM {
   }
   
   namespace Assumption {
-    enum Assumption { ZeroQuarkLost=0, OneQuarkLost=1, TwoQuarkLost=2};
+    enum Assumption { ZeroQuarkLost=0, OneQuarkLost=1, TwoQuarkLost=2, ThreeQuarkLost=3, FourQuarkLost=4, FiveQuarkLost=5}; //DS
   }
   
   namespace Permutations {
@@ -335,7 +335,7 @@ namespace MEM {
 	       int    =0,                // int_code
 	       int    =0,                // =0 <=> Int{ Perm }; =1 <=> Perm{ Int }
 	       double =13000.,           // c.o.m. energy
-	       double =8000.,            // max energy for integration over momenta
+	       double =2000.,            // max energy for integration over momenta //DS was 8000.
 	       string ="cteq66.LHgrid",  // PDF set
 	       double =0.98,             // light quark energy CL
 	       double =0.98,             // heavy quark energy CL
@@ -346,9 +346,9 @@ namespace MEM {
 	       int    =1,                // use highest pT jets for E_q/E_b,
                TFMethod::TFMethod =TFMethod::Builtin,
 	       int    =0,                // do minimisation instead of integration
-	       int    =0,                // do runtime pruning of permutations
+	       int    =0,                // do runtime pruning of permutations //DS was 0
 	       double =1e-03,            // pruning accuracy  
-	       int    =0                 // prefit
+	       int    =0                 // prefit //DS selects permutations based on highest MEprob,was 0
 	       );
 
     void defaultCfg(float nCallsMultiplier=1.0);
