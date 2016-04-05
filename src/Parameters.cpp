@@ -703,19 +703,19 @@ void MEM::MEMConfig::defaultCfg(float nCallsMultiplier){
   calls                                                                       //DS
     [ static_cast<std::size_t>(FinalState::FinalState::HH) ]
     [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTH)]
-    [ static_cast<std::size_t>(Assumption::Assumption::FourQuarkLost)] = 15000;     
+    [ static_cast<std::size_t>(Assumption::Assumption::FourQuarkLost)] = 45000;     
   calls
     [ static_cast<std::size_t>(FinalState::FinalState::HH) ]
     [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTBB)]
-    [ static_cast<std::size_t>(Assumption::Assumption::FourQuarkLost)] = 15000;
+    [ static_cast<std::size_t>(Assumption::Assumption::FourQuarkLost)] = 45000;
   calls                                                                       //DS
     [ static_cast<std::size_t>(FinalState::FinalState::HH) ]
     [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTH)]
-    [ static_cast<std::size_t>(Assumption::Assumption::FiveQuarkLost)] = 15000;     
+    [ static_cast<std::size_t>(Assumption::Assumption::FiveQuarkLost)] = 45000;     
   calls
     [ static_cast<std::size_t>(FinalState::FinalState::HH) ]
     [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTBB)]
-    [ static_cast<std::size_t>(Assumption::Assumption::FiveQuarkLost)] = 15000;
+    [ static_cast<std::size_t>(Assumption::Assumption::FiveQuarkLost)] = 45000;
 
 
   
