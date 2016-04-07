@@ -1,3 +1,4 @@
+INC_DIR_CMSSW = /mnt/t3nfs01/data01/shome/bianchi/TTH-76X-heppy/CMSSW/src/
 INC_DIR = ./
 CXX		=g++
 LD		=g++
@@ -31,10 +32,10 @@ InfoLine = compiling $(1)
 
 BASEDIR=$(shell pwd)
 BINDIR=$(BASEDIR)/bin
-LIBDIR=$(BASEDIR)/libs	
+LIBDIR=$(BASEDIR)/libs
 SRCDIR = $(BASEDIR)/src
 HDIR = $(BASEDIR)/interface
-MEM  = -lopenloops -lbar -lcoli -lpphttxcallme2born -lppttxbbxcallme2born -lppttxjcallme2born -lMathMore -lLHAPDF -lTreePlayer
+MEM  = -lopenloops -lbar -lcoli -lpphttxcallme2born -lppttxbbxcallme2born -lppttxjcallme2born -lMathMore -lLHAPDF -lTreePlayer -lRooFit -lRooFitCore -lHtml -lMinuit
 
 ### Main Target, first
 .PHONY: all
@@ -83,7 +84,7 @@ $(Packages): % : $(BINDIR)/% | $(BINDIR)
 #$(BINDIR)/$(Packages): $(BINDIR)/% : $(BASEDIR)/test/%.$(SrcSuf) $(StatLib) | $(BINDIR)
 $(addprefix $(BINDIR)/,$(Packages)): $(BINDIR)/% : $(BASEDIR)/test/%.$(SrcSuf) $(StatLib) | $(BINDIR)
 	@echo $(call InfoLine , $@ )
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $< $(StatLib) -I$(INC_DIR) -I$(HDIR) -L$(LIBDIR)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $< $(StatLib) -I$(INC_DIR) -I$(HDIR) -I$(INC_DIR_CMSSW) -L$(LIBDIR) -L$(ROOTSYS)/lib
 
 #make this function of $(Packages)
 #.PHONY: controller
@@ -109,12 +110,12 @@ clean:
 #.o
 $(BINDIR)/%.$(ObjSuf): $(SRCDIR)/%.$(SrcSuf) $(HDIR)/%.$(HeadSuf)
 	@echo $(call InfoLine , $@ )
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -c -o $@ $(SRCDIR)/$*.$(SrcSuf) -I$(INC_DIR) -I$(HDIR) -L$(LIBDIR)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -c -o $@ $(SRCDIR)/$*.$(SrcSuf) -I$(INC_DIR) -I$(HDIR) -I$(INC_DIR_CMSSW) -L$(LIBDIR) -L$(ROOTSYS)/lib
 
 #.d
 $(BINDIR)/%.$(DepSuf): $(SRCDIR)/%.$(SrcSuf) $(HDIR)/%.$(HeadSuf)
 	@echo $(call InfoLine , $@ )
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -M -o $@ $(SRCDIR)/$*.$(SrcSuf) -I$(INC_DIR) -I$(HDIR) -L$(LIBDIR)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -M -o $@ $(SRCDIR)/$*.$(SrcSuf) -I$(INC_DIR) -I$(HDIR) -I$(INC_DIR_CMSSW) -L$(LIBDIR) -L$(ROOTSYS)/lib
 	sed -i'' "s|^.*:|& Makefile $(BINDIR)/&|g" $@
 
 #-include $(Deps)
