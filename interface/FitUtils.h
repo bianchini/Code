@@ -11,6 +11,7 @@
 #include "RooArgList.h"
 #include "RooRealVar.h"
 #include "RooBernstein.h"
+#include "RooChebychev.h"
 #include "RooGaussian.h"
 #include "RooDataSet.h"
 #include "RooAddPdf.h"
@@ -26,6 +27,13 @@
 using namespace RooFit ; 
 using namespace std;
 
+namespace Option {
+  enum Option { Binned=0, Unbinned=1 }; 
+}
+namespace Process{
+  enum Process { Signal=0, Background=1, Transform=2 }; 
+}
+
 class FitUtils {
 
  public:
@@ -33,33 +41,38 @@ class FitUtils {
   FitUtils();
   ~FitUtils();
 
-  void addPdfSgn(TH1D*);
-  void addPdfBkg(TH1D*);
-  void addTransformPdf(TH1D*);
-
-  void addPdf(TTree*, const string&, const bool& = bool(false));
-
-  void run_test(const int&);
-  void run_test_unbinned(const int&);
+  void save_plots(const int&);
+  void addPdf(TTree*, const Process::Process&, const double& =double(1.), const Option::Option& =Option::Unbinned);
+  void run_test(const int&, const Option::Option&, const size_t& =2);
 
  private:
 
   RooRealVar* x;
   RooRealVar* x_transf;
-  TH1D* h_pdf_sgn;
-  TH1D* h_pdf_bkg;
-  TH1D* cum_pdf;  
   RooAbsPdf* pdf_sgn;
   RooAbsPdf* pdf_bkg;
   RooAbsReal* transformation;
   RooAbsPdf* pdf_sgn_transf;
   RooAbsPdf* pdf_bkg_transf;
 
-  TH1D* h_pdf_sgn_transf;
-  TH1D* h_pdf_bkg_transf;
+  double norm_sgn;
+  double norm_bkg;
 
-  TFile* f;
-  bool savePlots;
+  int savePlots;
+
+  TFile* file;
+  TTree* tree;
+
+  float nsgn_gen;
+  float nsgn_fit;
+  float nsgn_err;
+  float nbkg_gen;
+  float nbkg_fit;
+  float nbkg_err;
+  float minNll;
+  float edm;
+  int status;
+
 };
 
 #endif

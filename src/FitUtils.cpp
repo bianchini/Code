@@ -2,117 +2,113 @@
 
 FitUtils::FitUtils(){
 
-  f = TFile::Open("fit.root","RECREATE");
+  file = TFile::Open("fit.root","RECREATE");
+  tree = new TTree("tree", "tree");
+
+  // save toy
+  tree->Branch("nsgn_gen", &nsgn_gen, "nsgn_gen/F");
+  tree->Branch("nsgn_fit", &nsgn_fit, "nsgn_fit/F");
+  tree->Branch("nsgn_err", &nsgn_err, "nsgn_err/F");
+  tree->Branch("nbkg_gen", &nbkg_gen, "nbkg_gen/F");
+  tree->Branch("nbkg_fit", &nbkg_fit, "nbkg_fit/F");
+  tree->Branch("nbkg_err", &nbkg_err, "nbkg_err/F");
+  tree->Branch("minNll", &minNll, "minNll/F");
+  tree->Branch("edm", &edm, "edm/F");
+  tree->Branch("status", &status, "status/I");
 
   x = new RooRealVar("x","x",-10.,10.);
   x->setRange(-4.,4.);
-  x->setBins(20, "plot");
-  x->setBins(100, "pdf");
+  x->setBins(10, "plot");
+  x->setBins(20, "pdf");
+  x->setBins(20, "fit");
 
   x_transf = new RooRealVar("x_transf","x_transf",0.,1.);
   x_transf->setRange(0.,1.);
   x_transf->setBins(10, "plot");
   x_transf->setBins(20, "pdf");
+  x_transf->setBins(20, "fit");
 
-  h_pdf_sgn_transf = new TH1D("h_pdf_sgn_transf", "h_pdf_sgn_transf", 20, 0., 1.);
-  h_pdf_sgn_transf->Sumw2();
-  h_pdf_bkg_transf = new TH1D("h_pdf_bkg_transf", "h_pdf_bkg_transf", 50, 0., 1.);
-  h_pdf_bkg_transf->Sumw2();
-  
   pdf_sgn_transf = nullptr;
   pdf_sgn = nullptr;
   pdf_bkg_transf = nullptr;
   pdf_bkg = nullptr;
+  transformation = nullptr;
 
-  savePlots = true;
+  norm_sgn = 1.0;
+  norm_bkg = 1.0;
+
+  savePlots = 100;
 }
 
 FitUtils::~FitUtils(){
   delete x;
   delete x_transf;
-  delete h_pdf_sgn;
-  delete h_pdf_bkg;
-  delete h_pdf_sgn_transf;
-  delete h_pdf_bkg_transf;
-  delete cum_pdf;
   delete pdf_sgn;
   delete pdf_bkg;
   delete transformation;
   delete pdf_sgn_transf;
   delete pdf_bkg_transf;
 
-  f->Close();
-  delete f;
+  file->Close();
+  delete file;
+  //delete tree;
   cout << "Done!" << endl;
 }
 
-void FitUtils::addPdfSgn(TH1D* h){
-  
-  h_pdf_sgn = new TH1D(*h);
-  for(int i = 0 ; i < 20000 ; ++i){
-    double val = h->GetRandom();
-    double val_transf = cum_pdf->Interpolate(val);
-    h_pdf_sgn_transf->Fill(val_transf);
+void FitUtils::save_plots(const int& save){
+  savePlots = save;
+}
+
+void FitUtils::addPdf(TTree* tr, const Process::Process& proc, const double& norm, const Option::Option& doBinned){
+
+  string proc_name = "";
+  switch(proc){
+  case Process::Signal:
+    proc_name = "sgn";
+    break;
+  case Process::Background:
+    proc_name = "bkg";
+    break;
+  case Process::Transform:
+    proc_name = "transf";
+    break;
+  default:
+    cout << "*** Not a valid process name. Return! ***" << endl;
+    return;
+    break;
   }
-  h_pdf_sgn_transf->Scale(h_pdf_sgn->Integral()/h_pdf_sgn_transf->Integral());
-  cout << "Sgn template filled with...." << h_pdf_sgn->Integral() << " entries" << endl;
-  f->cd();
-  h_pdf_sgn->Write("Sgn_Pdf", TObject::kOverwrite);
-  h_pdf_sgn_transf->Write("Sgn_Pdf_Transformed", TObject::kOverwrite);
-}
 
-void FitUtils::addPdfBkg(TH1D* h){
-  h_pdf_bkg = new TH1D(*h);
-  for(int i = 0 ; i < h_pdf_bkg->GetEntries() ; ++i){
-    double val = h->GetRandom();
-    double val_transf = cum_pdf->Interpolate(val);
-    h_pdf_bkg_transf->Fill(val_transf);
-  }
-  cout << "Bkg template filled with...." << h_pdf_bkg->Integral() << " entries" << endl;
-  f->cd();
-  h_pdf_bkg->Write("Bkg_Pdf", TObject::kOverwrite);
-  h_pdf_bkg_transf->Write("Bkg_Pdf_Transformed", TObject::kOverwrite);
-}
-
-void FitUtils::addTransformPdf(TH1D* h){
-  cum_pdf = (TH1D*)h->GetCumulative();
-  cum_pdf->Scale(1./h->Integral());
-  f->cd();
-  h->Write("Transform_Pdf", TObject::kOverwrite);
-  cum_pdf->Write("Cumulative_Pdf", TObject::kOverwrite);  
-}
-
-void FitUtils::addPdf(TTree* tree, const string& proc, const bool& doBinned){
-
-  cout << "FitUtils::addPdf(): " << "adding process name " << proc << endl;
+  cout << "FitUtils::addPdf(): " << "adding process name " << proc_name << endl;
 
   // the p.d.f. of variable x
   RooAbsPdf* pdf = nullptr;
   // the p.d.f. of variable x_transf
   RooAbsPdf* pdf_transf = nullptr;
 
-  RooDataSet data("data","data", tree, *x);
-  //data.Print("v");
+  RooDataSet data("data","data", tr, *x);
+  data.Print("v");
   x->setBins(x->getBins("pdf"));
   RooDataHist data_hist("data_hist", "data_hist", *x, data); 
 
-  if(doBinned)
-    pdf = new RooHistPdf(("pdf_"+proc).c_str(),("pdf_"+proc).c_str(), *x, data_hist);
+  if(doBinned==Option::Binned)
+    pdf = new RooHistPdf(("pdf_"+proc_name).c_str(),("pdf_"+proc_name).c_str(), *x, data_hist);
   else
-    pdf = new RooKeysPdf(("pdf_"+proc).c_str(),("pdf_"+proc).c_str(), *x, data);
+    pdf = new RooKeysPdf(("pdf_"+proc_name).c_str(),("pdf_"+proc_name).c_str(), *x, data, RooKeysPdf::MirrorBoth, 1.0);
 
-  if(proc=="transf"){
+  if(proc==Process::Transform){
     transformation = pdf->createCdf(*x);
-    f->cd();
-    RooPlot* frame = x->frame();
-    transformation->plotOn(frame);
-    frame->Write("Cumulative_Pdf", TObject::kOverwrite);   
+    file->cd();
+    if(savePlots){
+      RooPlot* frame = x->frame();
+      transformation->plotOn(frame);
+      frame->Write("Cumulative_Pdf", TObject::kOverwrite);   
+    }
     return;
   }
   
   RooDataSet data_transf("data_transf", "data_transf", RooArgSet(*x_transf));
   for(int i = 0 ; i < data.numEntries(); ++i){
-    if(i%500==0) cout << "\tProcessing event... " << i << endl;
+    //if(i%500==0) cout << "\tProcessing event... " << i << endl;
     double input = ((RooAbsReal*)(data.get(i)->find("x")))->getVal();
     x->setVal(input);
     double output = transformation->getVal(*x);
@@ -120,66 +116,79 @@ void FitUtils::addPdf(TTree* tree, const string& proc, const bool& doBinned){
     data_transf.add(*x_transf);
   }
 
-  //data_transf.Print("v");
-  x_transf->setBins(x_transf->getBins("plot"));
-  RooDataHist* data_transf_hist = new RooDataHist(("data_transf_hist_"+proc).c_str(), "data_transf_hist", *x_transf, data_transf); 
-  pdf_transf = new RooHistPdf(("pdf_"+proc+"_transf").c_str(),("pdf_"+proc+"_transf").c_str(), *x_transf, *data_transf_hist);
+  data_transf.Print("v");
+  x_transf->setBins(x_transf->getBins("pdf"));
+  RooDataHist* data_transf_hist = new RooDataHist(("data_transf_hist_"+proc_name).c_str(), "data_transf_hist", *x_transf, data_transf); 
+  pdf_transf = new RooHistPdf(("pdf_"+proc_name+"_transf").c_str(),("pdf_"+proc_name+"_transf").c_str(), *x_transf, *data_transf_hist);
 
-  if(proc=="sgn"){
+  switch(proc){
+  case Process::Signal:
+    norm_sgn = norm;
     pdf_sgn = pdf;
     pdf_sgn_transf = pdf_transf;
-    cout << "Pdf_sgn loaded" << endl;
-  }
-  else if(proc=="bkg"){
+    break;
+  case Process::Background:
+    norm_bkg = norm;
     pdf_bkg = pdf;
     pdf_bkg_transf = pdf_transf;
-    cout << "Pdf_bkg loaded" << endl;
-  }
-  else{
-    cout << "*** Not a valid process name. Return! ***" << endl;
-    return;
+    break;
+  default:
+    break;
   }
 
-  f->cd();
-  RooPlot* frame = x->frame();
-  RooPlot* frame_transf = x_transf->frame();
-  data.plotOn(frame);
-  pdf->plotOn(frame, LineStyle(kSolid) ); 
-  frame->Write(("Pdf_"+proc).c_str(), TObject::kOverwrite);   
-  data_transf.plotOn(frame_transf); 
-  pdf_transf->plotOn(frame_transf, LineStyle(kSolid) ); 
-  frame_transf->Write(("Pdf_"+proc+"_transf").c_str(), TObject::kOverwrite);   
+  if(savePlots){
+    file->cd();
+    RooPlot* frame = x->frame( Bins(x->getBins("pdf")) );
+    RooPlot* frame_transf = x_transf->frame( Bins(x->getBins("pdf")) );
+    data.plotOn(frame);
+    pdf->plotOn(frame, LineStyle(kSolid)); 
+    frame->Write(("Pdf_"+proc_name).c_str(), TObject::kOverwrite);   
+    data_transf.plotOn(frame_transf); 
+    pdf_transf->plotOn(frame_transf, LineStyle(kSolid)); 
+    frame_transf->Write(("Pdf_"+proc_name+"_transf").c_str(), TObject::kOverwrite);   
+  }
 
   return;
 }
 
-void FitUtils::run_test(const int& ntoys){
+void FitUtils::run_test(const int& ntoys, const Option::Option& doBinned, const size_t& degree){
 
-  // pull
-  TH1F pull_nsig("pull_nsig", "", 100, -5,5);
-
-  RooRealVar nsig("nsig","true fraction of sgn", 10.);
-  RooRealVar nbkg("nbkg","true fraction of bkg", 100.);
+  RooRealVar nsig("nsig","true fraction of sgn", norm_sgn);
+  RooRealVar nbkg("nbkg","true fraction of bkg", norm_bkg);
 
   RooExtendPdf epdf_sgn("epdf_sgn", "epdf_sgn", *pdf_sgn, nsig);
   RooExtendPdf epdf_bkg("epdf_bkg", "epdf_bkg", *pdf_bkg, nbkg);
 
   RooAddPdf model("model","model", RooArgList(epdf_sgn,epdf_bkg) ) ;
 
-  // Bkg pdf (transformed) 
-  RooRealVar a0("a0","a0",1,-20.,20.) ;
-  RooRealVar a1("a1","a1",1,-20.,20.) ;
-  RooRealVar a2("a2","a2",1,-20.,20.) ;
-  RooBernstein fit_pdf_bkg_transf("fit_pdf_bkg_transf","fit_pdf_bkg_transf", *x_transf, RooArgList(a0,a1,a2));
+  // Analytical Bkg Fit function 
+  RooRealVar a0("a0","a0",1,-30.,30.) ;
+  RooRealVar a1("a1","a1",1,-30.,30.) ;
+  RooRealVar a2("a2","a2",1,-30.,30.) ;
+  RooRealVar a3("a3","a3",1,-30.,30.) ;
+  RooRealVar a4("a4","a4",1,-30.,30.) ;
+  RooArgList coeff = RooArgList();
+  switch(degree){
+  case 1: coeff.add(RooArgList(a0,a1)); break;
+  case 2: coeff.add(RooArgList(a0,a1,a2)); break;
+  case 3: coeff.add(RooArgList(a0,a1,a2,a3)); break;
+  case 4: coeff.add(RooArgList(a0,a1,a2,a3,a4)); break;
+  default:
+    cout << "Too large degree!" << endl;
+    return;
+  }
+
+  RooBernstein fit_pdf_bkg_transf("fit_pdf_bkg_transf","fit_pdf_bkg_transf", *x_transf, coeff);
+  //RooChebychev fit_pdf_bkg_transf("fit_pdf_bkg_transf","fit_pdf_bkg_transf", *x_transf, coeff);
 
   // Sum the signal components into a composite signal p.d.f. (transformed) 
-  RooRealVar nsig_fit("nsig_fit","fraction of signal",      10,0., 10000.) ;
-  RooRealVar nbkg_fit("nbkg_fit","fraction of background", 100,0., 10000.) ;
+  RooRealVar ns_fit("ns_fit","fraction of signal", norm_sgn, -100, 10000.) ;
+  RooRealVar nb_fit("nb_fit","fraction of background", norm_bkg, -100, 10000.) ;
 
   // The S+B model (transformed) 
   RooAddPdf model_transf("model_transf","model_transf", 
 			 RooArgList(*pdf_sgn_transf, fit_pdf_bkg_transf), 
-			 RooArgList(nsig_fit,nbkg_fit)) ;
+			 RooArgList(ns_fit,nb_fit)) ;
 
 
   int toy = 0;
@@ -198,33 +207,52 @@ void FitUtils::run_test(const int& ntoys){
       data_transf.add(*x_transf);
     }
 
-    if(savePlots){
-      RooPlot* frame_transf = x_transf->frame();
-      data_transf.plotOn(frame_transf);
-      model_transf.plotOn(frame_transf, Components(fit_pdf_bkg_transf), LineStyle(kDashed) );
-      model_transf.plotOn(frame_transf, Components(*pdf_sgn_transf), LineStyle(kSolid) );
-      f->cd();
-      frame_transf->Write(Form("x_transf_frame_toy%d",toy), TObject::kOverwrite);
-      RooPlot* frame = x->frame();
-      data->plotOn(frame);
-      model.plotOn(frame);
-      frame->Write(Form("x_frame_toy%d",toy), TObject::kOverwrite);  
+    RooFitResult* r = nullptr;
+    if(doBinned==Option::Binned){
+      x_transf->setBins(x_transf->getBins("fit"));
+      RooDataHist data_transf_hist("data_transf_hist", "data_transf_hist", *x_transf, data_transf); 
+      r = model_transf.fitTo(data_transf_hist, Extended(kTRUE), Save());
+    }
+    else{
+      r = model_transf.fitTo(data_transf, Extended(kTRUE), Save());
     }
 
-    return;
+    if( r->status()==0 ){
+      RooRealVar* ns_fit = (RooRealVar*) model_transf.getVariables()->find("ns_fit");
+      RooRealVar* nb_fit = (RooRealVar*) model_transf.getVariables()->find("nb_fit");
+      nsgn_gen = nsig.getVal();
+      nsgn_fit = ns_fit->getVal();
+      nsgn_err = ns_fit->getError();
+      nbkg_gen = nbkg.getVal();
+      nbkg_fit = nb_fit->getVal();
+      nbkg_err = nb_fit->getError();
+      minNll = r->minNll();
+      edm = r->edm();
+      status = r->status();
+      tree->Fill();
+    }
 
-    RooFitResult* r = model_transf.fitTo(data_transf, Extended(kTRUE), Save());
-    RooRealVar* ns_fit = (RooRealVar*) model_transf.getVariables()->find("nsig_fit");
-    cout << ns_fit->getVal() << endl;    
-
-    if( r->status()==0 )
-      pull_nsig.Fill( (ns_fit->getVal() - nsig.getVal() )/ns_fit->getError() );
+    if(savePlots && toy%savePlots==0){
+      RooPlot* frame_transf = x_transf->frame( Bins(x_transf->getBins("fit")) );
+      data_transf.plotOn(frame_transf);
+      model_transf.plotOn(frame_transf, LineStyle(kSolid), LineColor(kRed));
+      model_transf.plotOn(frame_transf, Components(fit_pdf_bkg_transf), LineStyle(kDashed), LineColor(kGreen));
+      model_transf.plotOn(frame_transf, Components(*pdf_sgn_transf), LineStyle(kSolid), LineColor(kBlue));
+      file->cd();
+      frame_transf->Write(Form("x_transf_frame_toy%d",toy), TObject::kOverwrite);
+      RooPlot* frame = x->frame( Bins(x_transf->getBins("fit")) );
+      data->plotOn(frame);
+      model.plotOn(frame, LineStyle(kSolid), LineColor(kRed));
+      model.plotOn(frame, Components(epdf_bkg), LineStyle(kDashed), LineColor(kGreen));
+      model.plotOn(frame, Components(epdf_sgn), LineStyle(kSolid), LineColor(kBlue));
+      frame->Write(Form("x_frame_toy%d",toy), TObject::kOverwrite);  
+    }
 
     ++toy;
   }
 
-  f->cd();
-  pull_nsig.Write("pull_nsig",  TObject::kOverwrite);
+  file->cd();
+  tree->Write("", TObject::kOverwrite);
 
   return;
 }
