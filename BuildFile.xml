@@ -3,6 +3,8 @@
 <use   name="rootmath"/>
 <use   name="rootminuit"/>
 <use   name="rootminuit2"/>
+<use   name="roofit"/>
+<use   name="roostats"/>
 <use   name="classlib"/>
 <use   name="boost"/>
 <use   name="lhapdf"/>
