@@ -71,7 +71,8 @@ namespace MEM {
     MEMOutput run( const FinalState::FinalState=FinalState::LH,
 		   const Hypothesis::Hypothesis =Hypothesis::TTH,
 		   const std::vector<PSVar::PSVar> = std::vector<PSVar::PSVar>(),
-		   const std::vector<PSVar::PSVar> = std::vector<PSVar::PSVar>()
+		   const std::vector<PSVar::PSVar> = std::vector<PSVar::PSVar>(),
+                   int ncalls=-1
 		   );
 
     // clear containers and counters after each event

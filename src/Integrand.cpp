@@ -487,7 +487,7 @@ void MEM::Integrand::set_permutation_strategy(const std::vector<MEM::Permutation
 }
 
 
-MEM::MEMOutput MEM::Integrand::run( const MEM::FinalState::FinalState f, const MEM::Hypothesis::Hypothesis h, const std::vector<MEM::PSVar::PSVar> missed, const std::vector<MEM::PSVar::PSVar> any){
+MEM::MEMOutput MEM::Integrand::run( const MEM::FinalState::FinalState f, const MEM::Hypothesis::Hypothesis h, const std::vector<MEM::PSVar::PSVar> missed, const std::vector<MEM::PSVar::PSVar> any, int ncalls){
 
   if( debug_code&DebugVerbosity::init ){
     cout << "Integrand::run(): START" << endl;
@@ -507,15 +507,14 @@ MEM::MEMOutput MEM::Integrand::run( const MEM::FinalState::FinalState f, const M
   for(auto it : any)    list.push_back(it); // quark directions to be marginalised
 
   // number of calls
-  n_max_calls = cfg.is_default ? 
-    cfg.calls[static_cast<std::size_t>(fs)][static_cast<std::size_t>(h)][list.size()/2] : 
-    cfg.n_max_calls;
+  //n_max_calls = cfg.is_default ? 
+  //  cfg.calls[static_cast<std::size_t>(fs)][static_cast<std::size_t>(h)][list.size()/2] : 
+  //  cfg.n_max_calls;
+  n_max_calls = ncalls > 0 ? ncalls :
+    cfg.calls[static_cast<std::size_t>(fs)][static_cast<std::size_t>(h)][list.size()/2];
 
   if( debug_code&DebugVerbosity::init ){
-    cout << "\tcfg.calls[" << static_cast<std::size_t>(fs) 
-	 << "][" << static_cast<std::size_t>(h) << "][" << list.size()/2 << "] = " 
-	 << cfg.calls[static_cast<std::size_t>(fs)][static_cast<std::size_t>(h)][list.size()/2]
-	 << " (n_max_calls = " << n_max_calls << ")" << endl;
+      cout << "n_max_calls=" << n_max_calls << endl;
   }
 
   // create integrator
