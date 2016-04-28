@@ -9,11 +9,6 @@
 <use   name="boost"/>
 <use   name="lhapdf"/>
 <lib   name="openloops"/>
-<lib   name="coli"/>
-<lib   name="openloops_ppHtt_1tL"/>
-<lib   name="openloops_ppttbb_1tL"/>
-<lib   name="pphttxcallme2born"/>
-<lib   name="ppttxbbxcallme2born"/>
 <Flags CXXFLAGS="-I$(CMSSW_BASE)/src/TTH/MEIntegratorStandalone"/>
 <Flags GENREFLEX_ARGS="-I$(CMSSW_BASE)/src/TTH/MEIntegratorStandalone"/>
 <export>

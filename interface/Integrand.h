@@ -4,16 +4,28 @@
 // user headers
 #include "TTH/MEIntegratorStandalone/interface/Parameters.h"
 
-extern "C" {
-  void pphttxcallme2born_( double*, double[20], double*, double* );
-}
-extern "C" {
-  void ppttxbbxcallme2born_( double*, double[24], double*, double* );
-}
-extern "C" {
-  void ppttxjcallme2born_( double*, double[20], double*, double* );
-}
+//extern "C" {
+//  void pphttxcallme2born_( double*, double[20], double*, double* );
+//}
+//extern "C" {
+//  void ppttxbbxcallme2born_( double*, double[24], double*, double* );
+//}
+//extern "C" {
+//  void ppttxjcallme2born_( double*, double[20], double*, double* );
+//}
 
+// Interface
+extern "C" {
+    void ol_setparameter_int(const char* param, int val);
+    void ol_setparameter_double(const char* param, double val);
+    int ol_register_process(const char* process, int amptype);
+    int ol_n_external(int id);
+    void ol_phase_space_point(int id, double sqrt_s, double* pp);
+    void ol_start();
+    void ol_finish();
+    void ol_evaluate_tree(int id, double* pp, double* m2_tree);
+    void ol_evaluate_loop(int id, double* pp, double* m2_tree, double* m2_loop, double* acc);
+}
 
 namespace LHAPDF {
   void initPDFSet(int nset, const std::string& filename, int member=0);
@@ -188,6 +200,9 @@ namespace MEM {
 
     // debug
     int debug_code;
+    
+    // OpenLoops process ID-s
+    int proc_id0, proc_id1;
 
     // main configurator
     MEMConfig cfg;
