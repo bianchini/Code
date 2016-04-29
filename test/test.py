@@ -1,16 +1,14 @@
 import ROOT
-ROOT.gSystem.Load("libFWCoreFWLite")
-ROOT.gROOT.ProcessLine('AutoLibraryLoader::enable();')
-ROOT.gSystem.Load("libFWCoreFWLite")
-ROOT.gSystem.Load("libCintex")
-ROOT.gROOT.ProcessLine('ROOT::Cintex::Cintex::Enable();')
-ROOT.gSystem.Load("libTTHMEIntegratorStandalone")
+ROOT.gSystem.Load("libFWCoreFWLite.so")
+ROOT.gSystem.Load("libTTHCommonClassifier.so")
+ROOT.gSystem.Load("libTTHGenLevel.so")
 from ROOT import MEM
 from ROOT import TLorentzVector
 import math
 
-cfg = MEM.MEMConfig()
-cfg.transfer_function_method = MEM.TFMethod.External
+cfg = ROOT.MEM.MEMConfig()
+cfg.defaultCfg()
+cfg.transfer_function_method = MEM.TFMethod.Builtin
 mem = MEM.Integrand(MEM.output, cfg)
 print mem
 
@@ -86,22 +84,14 @@ CvectorPermutations = getattr(ROOT, "std::vector<MEM::Permutations::Permutations
 pvec = CvectorPermutations()
 pvec.push_back(MEM.Permutations.BTagged)
 pvec.push_back(MEM.Permutations.QUntagged)
-mem.set_permutation_strategy(pvec)
-
-mem.set_integrand(
-    MEM.IntegrandType.Constant
-    |MEM.IntegrandType.ScattAmpl
-    |MEM.IntegrandType.DecayAmpl
-    |MEM.IntegrandType.Jacobian
-    |MEM.IntegrandType.PDF
-    |MEM.IntegrandType.Transfer
-)
-mem.set_ncalls(4000);
-mem.set_sqrts(13000.);
+cfg.perm_pruning = pvec
 
 
 CvectorPSVar = getattr(ROOT, "std::vector<MEM::PSVar::PSVar>")
-psvar_vec = CvectorPSVar()
-r = mem.run(MEM.FinalState.LL, MEM.Hypothesis.TTH, psvar_vec);
-print r.p
+vars_to_integrate   = CvectorPSVar()
+vars_to_marginalize = CvectorPSVar()
+r = mem.run(MEM.FinalState.LL, MEM.Hypothesis.TTH, vars_to_integrate, vars_to_marginalize)
+print "tth", r.p
+r = mem.run(MEM.FinalState.LL, MEM.Hypothesis.TTBB, vars_to_integrate, vars_to_marginalize)
+print "ttbb", r.p
 mem.next_event()
