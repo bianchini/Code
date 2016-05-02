@@ -1,7 +1,6 @@
 import ROOT
 ROOT.gSystem.Load("libFWCoreFWLite.so")
-ROOT.gSystem.Load("libTTHCommonClassifier.so")
-ROOT.gSystem.Load("libTTHGenLevel.so")
+ROOT.gSystem.Load("libTTHMEIntegratorStandalone.so")
 from ROOT import MEM
 from ROOT import TLorentzVector
 import math
@@ -46,7 +45,6 @@ t1 = ROOT.TF1("fb","[0]*exp(-0.5*((x-[1])/[2])**2)",0,500)
 t1.SetParameter(0, 1.0 / 100/math.sqrt(2*3.1415)) #normalization
 t1.SetParameter(1, 100) #mean
 t1.SetParameter(2, math.sqrt(2)*100) #unc
-
 
 add_obj(mem,
     MEM.ObjectType.Jet, p4c=(0, 50, 20, math.sqrt(50*50+20*20)),

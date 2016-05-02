@@ -28,7 +28,20 @@ btag_pdfs(config.btag_pdfs) {
 
   // init PDF set
   LHAPDF::initPDFSet(1, cfg.pdfset);
- 
+
+  const string cmssw_path(std::getenv("CMSSW_BASE"));
+  const string scram_arch(std::getenv("SCRAM_ARCH"));
+  const string install_path = (
+    cmssw_path +
+    string("/lib/") +
+    scram_arch
+  );
+
+  ol_setparameter_string(
+    "install_path",
+    install_path.c_str() 
+  );
+
   // Set parameter: Z mass
   ol_setparameter_double("mass(6)", MEM::MTOP);
 

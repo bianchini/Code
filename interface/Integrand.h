@@ -18,6 +18,7 @@
 extern "C" {
     void ol_setparameter_int(const char* param, int val);
     void ol_setparameter_double(const char* param, double val);
+    void ol_setparameter_string(const char* param, const char* val);
     int ol_register_process(const char* process, int amptype);
     int ol_n_external(int id);
     void ol_phase_space_point(int id, double sqrt_s, double* pp);
