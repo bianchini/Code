@@ -29,6 +29,32 @@ btag_pdfs(config.btag_pdfs) {
   // init PDF set
   LHAPDF::initPDFSet(1, cfg.pdfset);
 
+  const string cmssw_path(std::getenv("CMSSW_BASE"));
+  const string scram_arch(std::getenv("SCRAM_ARCH"));
+  const string install_path = (
+    cmssw_path +
+    string("/lib/") +
+    scram_arch
+  );
+
+  ol_setparameter_string(
+    "install_path",
+    install_path.c_str() 
+  );
+
+  // Set parameter: Z mass
+  ol_setparameter_double("mass(6)", MEM::MTOP);
+
+  // Increase verbosity level to list loaded libraries
+  ol_setparameter_int("verbose", 0);
+  //ttH
+  ol_setparameter_int("order_ew", 1);
+  proc_id0 = ol_register_process("21 21 -> 25 6 -6", 1);
+
+  //ttbb
+  ol_setparameter_int("order_ew", 0);
+  proc_id1 = ol_register_process("21 21 -> 6 -6 5 -5", 1);
+
   if( debug_code&DebugVerbosity::init )  
     cout << "Integrand::Integrand(): START" << endl;
   for (auto& kv : btag_pdfs) {
@@ -487,7 +513,7 @@ void MEM::Integrand::set_permutation_strategy(const std::vector<MEM::Permutation
 }
 
 
-MEM::MEMOutput MEM::Integrand::run( const MEM::FinalState::FinalState f, const MEM::Hypothesis::Hypothesis h, const std::vector<MEM::PSVar::PSVar> missed, const std::vector<MEM::PSVar::PSVar> any){
+MEM::MEMOutput MEM::Integrand::run( const MEM::FinalState::FinalState f, const MEM::Hypothesis::Hypothesis h, const std::vector<MEM::PSVar::PSVar> missed, const std::vector<MEM::PSVar::PSVar> any, int ncalls){
 
   if( debug_code&DebugVerbosity::init ){
     cout << "Integrand::run(): START" << endl;
@@ -507,15 +533,14 @@ MEM::MEMOutput MEM::Integrand::run( const MEM::FinalState::FinalState f, const M
   for(auto it : any)    list.push_back(it); // quark directions to be marginalised
 
   // number of calls
-  n_max_calls = cfg.is_default ? 
-    cfg.calls[static_cast<std::size_t>(fs)][static_cast<std::size_t>(h)][list.size()/2] : 
-    cfg.n_max_calls;
+  //n_max_calls = cfg.is_default ? 
+  //  cfg.calls[static_cast<std::size_t>(fs)][static_cast<std::size_t>(h)][list.size()/2] : 
+  //  cfg.n_max_calls;
+  n_max_calls = ncalls > 0 ? ncalls :
+    cfg.calls[static_cast<std::size_t>(fs)][static_cast<std::size_t>(h)][list.size()/2];
 
   if( debug_code&DebugVerbosity::init ){
-    cout << "\tcfg.calls[" << static_cast<std::size_t>(fs) 
-	 << "][" << static_cast<std::size_t>(h) << "][" << list.size()/2 << "] = " 
-	 << cfg.calls[static_cast<std::size_t>(fs)][static_cast<std::size_t>(h)][list.size()/2]
-	 << " (n_max_calls = " << n_max_calls << ")" << endl;
+      cout << "n_max_calls=" << n_max_calls << endl;
   }
 
   // create integrator
@@ -3002,30 +3027,32 @@ double MEM::Integrand::scattering(const TLorentzVector& top, const TLorentzVecto
   TLorentzVector g2 = TLorentzVector(0.,0., -(E-Pz)/2., (E-Pz)/2.);
 
   // needed to interface with OpenLoops
-  double ccP_0[20] = {
-    g1.E(), g1.Px(), g1.Py(), g1.Pz(),
-    g2.E(), g2.Px(), g2.Py(), g2.Pz(),
-    h.E(),  h.Px(),  h.Py(),  h.Pz(),
-    t.E(),  t.Px(),  t.Py(),  t.Pz(),
-    tx.E(), tx.Px(), tx.Py(), tx.Pz()
+  double ccP_0[25] = {
+    g1.E(), g1.Px(), g1.Py(), g1.Pz(), g1.M(),
+    g2.E(), g2.Px(), g2.Py(), g2.Pz(), g2.M(),
+    h.E(),  h.Px(),  h.Py(),  h.Pz(), h.M(),
+    t.E(),  t.Px(),  t.Py(),  t.Pz(), t.M(),
+    tx.E(), tx.Px(), tx.Py(), tx.Pz(), tx.M()
   };
 
-  double ccP_1[24] = {
-    g1.E(), g1.Px(), g1.Py(), g1.Pz(),
-    g2.E(), g2.Px(), g2.Py(), g2.Pz(),
-    t.E(),  t.Px(),  t.Py(),  t.Pz(),
-    tx.E(), tx.Px(), tx.Py(), tx.Pz(),
-    b.E(),  b.Px(),  b.Py(),  b.Pz(),
-    bx.E(), bx.Px(), bx.Py(), bx.Pz(),
+  double ccP_1[30] = {
+    g1.E(), g1.Px(), g1.Py(), g1.Pz(), g1.M(),
+    g2.E(), g2.Px(), g2.Py(), g2.Pz(), g2.M(),
+    t.E(),  t.Px(),  t.Py(),  t.Pz(), t.M(),
+    tx.E(), tx.Px(), tx.Py(), tx.Pz(), tx.M(),
+    b.E(),  b.Px(),  b.Py(),  b.Pz(), b.M(),
+    bx.E(), bx.Px(), bx.Py(), bx.Pz(), bx.M(),
   };
 
   // call OpenLoops functions
   switch(hypo){
   case Hypothesis::TTH:
-    pphttxcallme2born_  (const_cast<double*>(&M2), ccP_0, const_cast<double*>(&MTOP), const_cast<double*>(&MH));
+    //pphttxcallme2born_  (const_cast<double*>(&M2), ccP_0, const_cast<double*>(&MTOP), const_cast<double*>(&MH));
+    ol_evaluate_tree(proc_id0, ccP_0, &M2);
     break; 
   case Hypothesis::TTBB:
-    ppttxbbxcallme2born_(const_cast<double*>(&M2), ccP_1, const_cast<double*>(&MTOP), const_cast<double*>(&MH));
+    //ppttxbbxcallme2born_(const_cast<double*>(&M2), ccP_1, const_cast<double*>(&MTOP), const_cast<double*>(&MH));
+    ol_evaluate_tree(proc_id1, ccP_1, &M2);
     break;
   default:
     break;
