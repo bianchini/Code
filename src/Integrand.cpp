@@ -2049,7 +2049,8 @@ int MEM::Integrand::create_PS_LH(MEM::PS& ps, const double* x, const vector<int>
     dir.SetTheta( TMath::ACos( x[ map_to_var.find(PSVar::cos_q1)->second ]) );
     dir.SetPhi  ( x[ map_to_var.find(PSVar::phi_q1)->second ] );
     E_LOW   = MQ;
-    E_HIGH  = TMath::Min(cfg.emax, 2*MEM::TF_ACC_param[1]/TMath::Sin(dir.Theta()) ); // Restrict to 2*E threshol
+    //E_HIGH  = TMath::Min(cfg.emax, 2*MEM::TF_ACC_param[1]/TMath::Sin(dir.Theta()) ); // Restrict to 2*E threshol
+    E_HIGH  = cfg.emax;
     tftype  = (perm[nj_q1]==-1 ? TFType::qLost : TFType::Unknown);
   }
   E       = E_LOW + (E_HIGH-E_LOW)*(x[ map_to_var.find(PSVar::E_q1)->second ]);
