@@ -317,7 +317,7 @@ namespace MEM {
   }
   
   namespace Assumption {
-    enum Assumption { ZeroQuarkLost=0, OneQuarkLost=1, TwoQuarkLost=2};
+    enum Assumption { ZeroQuarkLost=0, OneQuarkLost=1, TwoQuarkLost=2, ThreeQuarkLost=3, FourQuarkLost=4, FiveQuarkLost=5};
   }
   
   namespace Permutations {
