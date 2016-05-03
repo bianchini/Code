@@ -380,7 +380,7 @@ namespace MEM {
 
     // "map" between an integration type and the number of function calls
     // FinalState vs Hypothesis vs Assumption
-    int calls[4][2][3];
+    int calls[4][2][6];
 
     // the VEGAS options
     double rel;

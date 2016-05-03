@@ -622,7 +622,7 @@ MEM::MEMConfig::MEMConfig(int nmc,
   highpt_first = hpf;
   for( int i = 0; i < 4 ; ++i){
     for( int j = 0; j < 2 ; ++j){
-      for( int k = 0; k < 3 ; ++k){
+      for( int k = 0; k < 6 ; ++k){
 	calls[i][j][k] = 2000;
       }
     }
@@ -717,24 +717,24 @@ void MEM::MEMConfig::defaultCfg(float nCallsMultiplier){
   calls
     [ static_cast<std::size_t>(FinalState::FinalState::HH) ]
     [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTH)]
-    [ static_cast<std::size_t>(Assumption::Assumption::FourQuarkLost)] = 45000;  //Still to tune   
+    [ static_cast<std::size_t>(Assumption::Assumption::FourQuarkLost)] = 20000;  //~ tuned   
   calls
     [ static_cast<std::size_t>(FinalState::FinalState::HH) ]
     [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTBB)]
-    [ static_cast<std::size_t>(Assumption::Assumption::FourQuarkLost)] = 45000;
+    [ static_cast<std::size_t>(Assumption::Assumption::FourQuarkLost)] = 20000;
   calls
     [ static_cast<std::size_t>(FinalState::FinalState::HH) ]
     [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTH)]
-    [ static_cast<std::size_t>(Assumption::Assumption::FiveQuarkLost)] = 45000;     
+    [ static_cast<std::size_t>(Assumption::Assumption::FiveQuarkLost)] = 25000;     
   calls
     [ static_cast<std::size_t>(FinalState::FinalState::HH) ]
     [ static_cast<std::size_t>(Hypothesis::Hypothesis::TTBB)]
-    [ static_cast<std::size_t>(Assumption::Assumption::FiveQuarkLost)] = 45000;
+    [ static_cast<std::size_t>(Assumption::Assumption::FiveQuarkLost)] = 25000;
   
   if (nCallsMultiplier != 1.0) {
     for (int i=0; i<4; i++) {
       for (int j=0; j<2; j++) {
-        for (int k=0; k<3; k++) {
+        for (int k=0; k<6; k++) {
           calls[i][j][k] = nCallsMultiplier * calls[i][j][k];
         }
       }
