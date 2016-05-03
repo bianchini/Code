@@ -317,7 +317,7 @@ namespace MEM {
   }
   
   namespace Assumption {
-    enum Assumption { ZeroQuarkLost=0, OneQuarkLost=1, TwoQuarkLost=2};
+    enum Assumption { ZeroQuarkLost=0, OneQuarkLost=1, TwoQuarkLost=2, ThreeQuarkLost=3, FourQuarkLost=4, FiveQuarkLost=5};
   }
   
   namespace Permutations {
@@ -353,7 +353,7 @@ namespace MEM {
 	       int    =0,                // int_code
 	       int    =0,                // =0 <=> Int{ Perm }; =1 <=> Perm{ Int }
 	       double =13000.,           // c.o.m. energy
-	       double =8000.,            // max energy for integration over momenta
+	       double =1000.,            // max energy for integration over momenta
 	       string ="cteq66.LHgrid",  // PDF set
 	       double =0.98,             // light quark energy CL
 	       double =0.98,             // heavy quark energy CL
